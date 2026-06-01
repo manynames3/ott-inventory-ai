@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { UploadCloud } from "lucide-react";
 
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, IS_DEMO_MODE } from "@/lib/api";
 
 type Requirements = {
   csv_required_columns: Record<string, string[]>;
@@ -49,6 +49,17 @@ export default function ImportsPage() {
   }
 
   async function upload(entity: string) {
+    if (IS_DEMO_MODE) {
+      setMessages((current) => ({
+        ...current,
+        [entity]: {
+          type: "error",
+          text: "CSV uploads are disabled in demo mode until the FastAPI backend is connected."
+        }
+      }));
+      return;
+    }
+
     const file = files[entity];
     if (!file) {
       setMessages((current) => ({
@@ -97,6 +108,11 @@ export default function ImportsPage() {
       </header>
 
       <section className="panel">
+        {IS_DEMO_MODE ? (
+          <div className="message ok">
+            Demo mode is active. CSV templates are shown, but uploads require a live FastAPI backend.
+          </div>
+        ) : null}
         {Object.entries(columns).map(([entity, required]) => (
           <div className="upload-row" key={entity}>
             <div>
@@ -124,4 +140,3 @@ export default function ImportsPage() {
     </>
   );
 }
-

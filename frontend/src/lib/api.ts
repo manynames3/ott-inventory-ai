@@ -3,7 +3,7 @@ import { getDemoGet, getDemoPost } from "@/lib/demo-data";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 export type TableResponse = {
   rows: Record<string, unknown>[];
@@ -46,7 +46,7 @@ export type QueryResponse = {
 };
 
 export async function apiGet<T>(path: string): Promise<T> {
-  if (DEMO_MODE) {
+  if (IS_DEMO_MODE) {
     const demo = getDemoGet(path);
     if (demo) return demo as T;
   }
@@ -67,7 +67,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  if (DEMO_MODE) {
+  if (IS_DEMO_MODE) {
     const demo = getDemoPost(path, body);
     if (demo) return demo as T;
   }
