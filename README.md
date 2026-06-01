@@ -1,6 +1,42 @@
 # Inventory AI
 
-Inventory AI is an MVP for expiration-aware inventory optimization in food and CPG operations. It combines CSV ingestion, FEFO picking, demand forecasting, reorder recommendations, waste-risk alerts, and a safe natural-language query layer.
+Inventory AI is an expiration-aware inventory optimization and natural-language query tool for imported food and CPG distributors. It is framed for operators who manage long replenishment lead times, lot-level expiration dates, retailer fill-rate expectations, and margin loss from slow-moving inventory.
+
+The MVP is intentionally built around a buyer problem: planners know which SKUs are in stock, but not always which lots should move first, which customers should receive constrained inventory, which inbound shipments arrive too late, or how much cash is tied up in stock that may expire before it sells.
+
+## Buyer Pain Points
+
+Inventory AI addresses common operating problems for Korean food and CPG import/distribution teams:
+
+- Near-expiring lots are discovered too late, forcing write-offs or heavy discounts.
+- FEFO discipline depends on manual spreadsheet checks across warehouses.
+- Ocean freight and import lead times make stockout risk visible only after it is expensive to fix.
+- Reorder decisions miss the combined impact of demand variability, inbound shipments, current inventory, and expiration risk.
+- Sales, operations, and finance teams lack a shared answer to "what should we ship, transfer, promote, or reorder this week?"
+- ERP/WMS exports contain the data, but it is difficult to turn those exports into explainable daily actions.
+
+## Business Value
+
+The product is designed to prove ROI quickly in a pilot:
+
+- Reduce waste by identifying lots expiring in 30, 60, and 90 days and recommending discount, promotion, transfer, or priority allocation.
+- Prevent missed sales by projecting SKU-level stockouts against lead-time demand and inbound shipment ETAs.
+- Improve margin by shipping older lots first instead of discounting them after they become urgent.
+- Improve planner speed by replacing manual spreadsheet reconciliation with explainable recommendations.
+- Align customer allocation with buying cadence so high-velocity customers receive constrained inventory first.
+- Create a clean path from CSV exports to ERP-ready adapters without requiring live SAP or Oracle access on day one.
+
+## Pilot Framing
+
+For a target account such as Ottogi USA / Ottogi America, the pilot should be scoped around one warehouse or a focused set of imported SKUs:
+
+- Load product, lot, order, customer, and inbound shipment CSV exports.
+- Measure inventory value at expiration risk, projected stockouts, reorder value, and recoverable waste opportunity.
+- Review FEFO pick lists and reorder recommendations with operations.
+- Validate whether recommendations match planner judgment and quantify preventable write-off or stockout exposure.
+- Expand only after the team trusts the explanations and the CSV field contract.
+
+See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
 
 ## Stack
 

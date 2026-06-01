@@ -86,7 +86,7 @@ export default function DashboardPage() {
       <header className="page-header">
         <div>
           <h1>Inventory AI</h1>
-          <p>Expiration, stockout, and reorder control for food and CPG inventory.</p>
+          <p>Margin protection for imported food inventory: FEFO, expiration risk, stockouts, and reorder timing.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/imports">
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           tone="value"
         />
         <MetricCard
-          label="Expiration risk value"
+          label="Inventory value at expiration risk"
           value={formatCurrency(dashboard.kpis.inventory_at_risk_value)}
           tone="risk"
         />
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           tone="reorder"
         />
         <MetricCard
-          label="Waste reduction opportunity"
+          label="Recoverable waste opportunity"
           value={formatCurrency(dashboard.kpis.waste_reduction_opportunity)}
           tone="waste"
         />
@@ -130,13 +130,13 @@ export default function DashboardPage() {
       <section className="grid-2">
         <div className="panel">
           <div className="panel-header">
-            <h2>Demand Trend</h2>
+            <h2>Demand Trend By SKU</h2>
           </div>
           <MultiLineChart series={dashboard.charts.demand_trend_by_sku} />
         </div>
         <div className="panel">
           <div className="panel-header">
-            <h2>Expiration Buckets</h2>
+            <h2>Inventory By Expiration Bucket</h2>
           </div>
           <BarChart
             data={dashboard.charts.inventory_by_expiration_bucket}
@@ -149,7 +149,7 @@ export default function DashboardPage() {
       <section className="grid-2">
         <div className="panel">
           <div className="panel-header">
-            <h2>Reorder Recommendations</h2>
+            <h2>Reorder Decisions</h2>
           </div>
           <DataTable
             columns={[
@@ -176,7 +176,7 @@ export default function DashboardPage() {
       <section className="grid-2">
         <div className="panel">
           <div className="panel-header">
-            <h2>FEFO Picking</h2>
+            <h2>FEFO Pick Priority</h2>
           </div>
           <DataTable
             columns={[
@@ -193,7 +193,7 @@ export default function DashboardPage() {
         </div>
         <div className="panel">
           <div className="panel-header">
-            <h2>Waste Risk Alerts</h2>
+            <h2>Waste-Risk Actions</h2>
           </div>
           <DataTable
             columns={[

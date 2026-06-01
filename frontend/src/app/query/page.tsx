@@ -39,7 +39,7 @@ export default function QueryPage() {
       <header className="page-header">
         <div>
           <h1>Natural-Language Query</h1>
-          <p>Rule-based inventory questions over structured operational data.</p>
+          <p>Planner questions over structured data, with safe templates instead of unrestricted SQL.</p>
         </div>
       </header>
 
@@ -92,4 +92,3 @@ export default function QueryPage() {
     </>
   );
 }
-

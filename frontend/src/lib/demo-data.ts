@@ -142,7 +142,7 @@ export const demoDashboard = {
     }
   ],
   roi_explanation:
-    "Waste reduction opportunity estimates recoverable value from near-expiring inventory through FEFO allocation, transfer, promotion, or discount actions."
+    "Recoverable waste opportunity estimates margin that can be protected by moving at-risk lots through FEFO allocation, transfer, promotion, or discount action before they become distressed."
 };
 
 export function demoSkuDetail(sku: string) {

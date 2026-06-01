@@ -103,7 +103,7 @@ export default function ImportsPage() {
       <header className="page-header">
         <div>
           <h1>CSV Imports</h1>
-          <p>Validated uploads for inventory, demand, customer, and inbound data.</p>
+          <p>Validated ERP/WMS exports for products, lots, orders, customers, and inbound containers.</p>
         </div>
       </header>
 
