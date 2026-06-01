@@ -717,7 +717,7 @@ def _import_checklist(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "label": ENTITY_LABELS.get(entity, entity.replace("_", " ").title()),
                     "status": "missing",
                     "required_columns": required,
-                    "message": "Upload this file to complete the pilot dataset.",
+                    "message": "Not loaded",
                     "rows_imported": 0,
                     "error_count": 0,
                 }
@@ -727,7 +727,7 @@ def _import_checklist(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         errors = row.get("errors") if isinstance(row.get("errors"), list) else []
         if import_status == "imported":
             checklist_status = "complete"
-            message = f"{row.get('rows_imported', 0)} rows imported. Insights include this dataset."
+            message = f"{row.get('rows_imported', 0)} rows imported."
         elif import_status == "failed":
             checklist_status = "needs_fix"
             message = row.get("message") or "Fix validation errors and re-upload."
@@ -994,7 +994,7 @@ def _empty_dashboard() -> Dict[str, Any]:
         "recommendations": [],
         "fefo": [],
         "waste_risk_alerts": [],
-        "roi_explanation": "Upload products, inventory lots, orders, customers, and inbound shipments to calculate pilot ROI.",
+        "roi_explanation": "Upload products, inventory lots, orders, customers, and inbound shipments to calculate ROI.",
     }
 
 

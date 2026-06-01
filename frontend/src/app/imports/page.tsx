@@ -167,7 +167,7 @@ export default function ImportsPage() {
       label: entity.replaceAll("_", " "),
       status: "missing",
       required_columns: required,
-      message: "Upload this file to complete the first-run dataset.",
+      message: "Not loaded",
       rows_imported: 0,
       error_count: 0
     }));
@@ -267,9 +267,9 @@ export default function ImportsPage() {
     const samples: Record<string, Record<string, string | number>> = {
       products: {
         sku: "OTG-RAM-001",
-        name: "Golden Kettle Mild Ramyeon Case",
+        name: "Ottogi Jin Ramen Spicy Multi-Pack",
         category: "Noodles",
-        case_size: 24,
+        case_size: 20,
         shelf_life_days: 270
       },
       inventory_lots: {
@@ -413,18 +413,9 @@ export default function ImportsPage() {
       const formData = new FormData();
       formData.append("file", file);
       const body = await apiUpload<UploadResponse>(`/api/import/${entity}`, formData);
-      const stored = body.raw_file_storage?.stored;
-      const storageText = stored
-        ? ` Raw file stored in ${stored.service.toUpperCase()} at ${stored.bucket}/${stored.key}.`
-        : body.raw_file_storage?.enabled
-          ? " Raw file storage is configured but did not return an object key."
-          : " Raw S3 storage is not configured; rows were imported into the query store.";
-      const questionText = body.next_questions?.length
-        ? ` Try asking: ${body.next_questions.join(" | ")}`
-        : "";
       setMessages((current) => ({
         ...current,
-        [entity]: { type: "ok", text: `${body.message || "Import complete."}${storageText}${questionText}` }
+        [entity]: { type: "ok", text: body.message || "Import complete." }
       }));
       void loadHistory();
     } catch (error) {
@@ -502,7 +493,7 @@ export default function ImportsPage() {
       <header className="page-header">
         <div>
           <h1>File Imports</h1>
-          <p>Validated CSV and Excel exports for products, lots, orders, customers, and inbound containers.</p>
+          <p>Products, lots, orders, customers, and inbound shipments.</p>
         </div>
         <div className="toolbar">
           <button className="button secondary" type="button" onClick={loadHistory} disabled={historyLoading}>
@@ -515,8 +506,7 @@ export default function ImportsPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>First-Run Import Checklist</h2>
-            <p>Load these five files once to make the dashboard, recommendations, and natural-language queries credible.</p>
+            <h2>Data Status</h2>
           </div>
         </div>
         <div className="checklist-grid">
@@ -538,17 +528,6 @@ export default function ImportsPage() {
       </section>
 
       <section className="panel">
-        {IS_DEMO_MODE ? (
-          <div className="message ok">
-            Demo mode is active. CSV template downloads work here; Excel templates and uploads require a live backend.
-          </div>
-        ) : null}
-        {requirements?.raw_file_storage ? (
-          <div className="message ok">
-            Raw Excel/CSV storage: {requirements.raw_file_storage.enabled ? "S3 enabled" : "S3 not configured"}.
-            Query speed comes from importing normalized rows into {requirements.query_store?.service || "the query store"} after upload.
-          </div>
-        ) : null}
         {Object.entries(columns).map(([entity, required]) => {
           const preview = previews[entity];
           const missing = missingMappings(entity);
@@ -585,10 +564,7 @@ export default function ImportsPage() {
                 <div className="panel-header">
                   <div>
                     <h3>Mapping Preview</h3>
-                    <p>
-                      {preview.row_count_estimate.toLocaleString()} rows detected from {preview.filename}. Confirm the
-                      source column for each required field before importing.
-                    </p>
+                    <p>{preview.row_count_estimate.toLocaleString()} rows detected from {preview.filename}.</p>
                   </div>
                   <button className="button" type="button" disabled={loading[entity] || missing.length > 0} onClick={() => commitImport(entity)}>
                     <CheckCheck size={17} />
@@ -623,7 +599,7 @@ export default function ImportsPage() {
                 ) : preview.validation.sample_errors.length ? (
                   <div className="message error">{preview.validation.sample_errors.slice(0, 4).join(" ")}</div>
                 ) : (
-                  <div className="message ok">Sample rows validate against the canonical Inventory AI schema.</div>
+                  <div className="message ok">Sample rows validated.</div>
                 )}
                 <DataTable
                   columns={preview.required_columns}
@@ -644,7 +620,6 @@ export default function ImportsPage() {
         <div className="panel-header">
           <div>
             <h2>Import History And Validation</h2>
-            <p>Every upload leaves a status record so planners can see whether insights are running on clean data.</p>
           </div>
         </div>
         {historyError ? <div className="message error">{historyError}</div> : null}
@@ -660,7 +635,6 @@ export default function ImportsPage() {
           <div className="panel-header">
             <div>
               <h2>Validation Errors To Fix</h2>
-              <p>Correct the source file and upload again. Successful uploads automatically refresh dashboard insights.</p>
             </div>
           </div>
           <div className="validation-list">
@@ -683,7 +657,6 @@ export default function ImportsPage() {
         <div className="panel-header">
           <div>
             <h2>Audit Trail</h2>
-            <p>Recent login, upload, preview, commit, import, and query actions for buyer-reviewable traceability.</p>
           </div>
           <button className="button secondary" type="button" onClick={loadAudit} disabled={auditLoading}>
             <ShieldCheck size={17} />
@@ -698,12 +671,6 @@ export default function ImportsPage() {
         />
       </section>
 
-      <section className="panel">
-        <div className="panel-header">
-          <h2>ERP Adapter Placeholders</h2>
-        </div>
-        <p>SAP and Oracle adapters share the same field contract and are intentionally connection-free in this MVP.</p>
-      </section>
     </>
   );
 }

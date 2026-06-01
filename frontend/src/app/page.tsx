@@ -88,7 +88,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
 </head>
 <body>
   <h1>Inventory AI Executive ROI Report</h1>
-  <p class="muted">Generated ${escapeHtml(generatedAt)} from the current pilot dataset.</p>
+  <p class="muted">Generated ${escapeHtml(generatedAt)} from current inventory data.</p>
   <div class="callout">
     <strong>Executive readout:</strong>
     ${escapeHtml(formatCurrency(dashboard.kpis.inventory_at_risk_value))} of inventory is currently at expiration risk (${riskShare}% of inventory value), ${escapeHtml(
@@ -101,7 +101,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   <div class="scorecard">
     <div><span>Low recovery case</span><strong>${escapeHtml(formatCurrency(recoveryLow))}</strong><p class="muted">20% of expiration-risk value protected.</p></div>
     <div><span>Base recovery case</span><strong>${escapeHtml(formatCurrency(recoveryBase))}</strong><p class="muted">Current model assumption from FEFO, transfer, promotion, and discount action.</p></div>
-    <div><span>High recovery case</span><strong>${escapeHtml(formatCurrency(recoveryHigh))}</strong><p class="muted">50% of expiration-risk value protected in a disciplined pilot.</p></div>
+    <div><span>High recovery case</span><strong>${escapeHtml(formatCurrency(recoveryHigh))}</strong><p class="muted">50% of expiration-risk value protected.</p></div>
     <div><span>Planner triage value</span><strong>${escapeHtml(formatCurrency(plannerValue))}</strong><p class="muted">${escapeHtml(String(plannerHours))} focused hours at $75/hour planning cost.</p></div>
     <div><span>Fill-rate exceptions</span><strong>${escapeHtml(String(stockoutActions))}</strong><p class="muted">SKUs/warehouses where replenishment or allocation should be reviewed now.</p></div>
     <div><span>Inventory risk share</span><strong>${escapeHtml(String(riskShare))}%</strong><p class="muted">Expiration-risk value divided by current inventory value.</p></div>
@@ -152,7 +152,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
     <tr><th>Waste recovery</th><td>Base case uses current recoverable waste opportunity from the model; low and high cases use 20% and 50% of expiration-risk value.</td></tr>
     <tr><th>Planner time</th><td>Planner focus estimate counts ranked FEFO, waste-risk, and reorder exceptions, valued at $75/hour for executive comparison.</td></tr>
     <tr><th>Forecasting</th><td>Demand uses historical order exports, simple moving averages, exponential smoothing, and trend placeholders.</td></tr>
-    <tr><th>Controls</th><td>Recommendations are decision support only. The MVP stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
+    <tr><th>Controls</th><td>Recommendations are decision support only. Inventory AI stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
   </tbody></table>
 </body>
 </html>`;
@@ -228,9 +228,6 @@ export default function DashboardPage() {
   }
 
   const dashboard = state.dashboard;
-  const riskShare = dashboard.kpis.total_inventory_value
-    ? Math.round((dashboard.kpis.inventory_at_risk_value / dashboard.kpis.total_inventory_value) * 1000) / 10
-    : 0;
   const stockoutActions = dashboard.recommendations.filter((row) => String(row.status || "").includes("stockout")).length;
   const plannerHours = Math.max(
     2,
@@ -245,7 +242,7 @@ export default function DashboardPage() {
       <header className="page-header">
         <div>
           <h1>Inventory AI</h1>
-          <p>Margin protection for imported food inventory: FEFO, expiration risk, stockouts, and reorder timing.</p>
+          <p>FEFO, expiration risk, stockouts, and reorder timing.</p>
         </div>
         <div className="toolbar">
           <button className="button secondary" type="button" onClick={() => downloadExecutiveReport(dashboard)}>
@@ -297,10 +294,7 @@ export default function DashboardPage() {
           </span>
           <h2>Waste Dollars Protected</h2>
           <strong>{formatCurrency(dashboard.kpis.waste_reduction_opportunity)}</strong>
-          <p>
-            Recoverable opportunity from FEFO allocation, transfer, promotion, or discount action before lots become
-            distressed.
-          </p>
+          <p>FEFO allocation, transfer, promotion, and discount opportunity.</p>
         </div>
         <div className="insight-card">
           <span className="insight-icon stockout">
@@ -308,10 +302,7 @@ export default function DashboardPage() {
           </span>
           <h2>Fill-Rate Exposure</h2>
           <strong>{stockoutActions.toLocaleString()} urgent actions</strong>
-          <p>
-            Reorder and allocation exceptions where current inventory, inbound ETAs, and lead-time demand point to lost
-            sales risk.
-          </p>
+          <p>Reorder and allocation exceptions requiring review.</p>
         </div>
         <div className="insight-card">
           <span className="insight-icon planner">
@@ -319,28 +310,13 @@ export default function DashboardPage() {
           </span>
           <h2>Planner Time Focused</h2>
           <strong>{plannerHours.toLocaleString()} hours</strong>
-          <p>
-            A triage estimate for replacing manual spreadsheet checks with ranked exceptions and plain-English reasons.
-          </p>
+          <p>Estimated exception review time concentrated into ranked actions.</p>
         </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2>Buyer Demo Narrative</h2>
-        </div>
-        <p>
-          This pilot frames the week in operating terms: {formatCurrency(dashboard.kpis.inventory_at_risk_value)} at
-          expiration risk ({riskShare}% of inventory value), {formatNumber(dashboard.kpis.projected_stockouts)} projected
-          stockouts, and {formatCurrency(dashboard.kpis.recommended_reorder_value)} of recommended replenishment. The
-          proof point for a buyer is whether planners agree with the reasons and can act before waste or service failures
-          show up in ERP reports.
-        </p>
       </section>
 
       <section className="grid-3 buyer-value-grid">
         <div className="scenario-card">
-          <h2>Waste Scenario</h2>
+          <h2>Top Waste Action</h2>
           <p>
             {topWasteAction
               ? `${String(topWasteAction.sku ?? "")} lot ${String(topWasteAction.lot_id ?? "")} has ${String(
@@ -350,7 +326,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="scenario-card">
-          <h2>FEFO Scenario</h2>
+          <h2>Next FEFO Pick</h2>
           <p>
             {topFefoAction
               ? `${String(topFefoAction.sku ?? "")} should ship lot ${String(topFefoAction.ship_first_lot ?? "")} first from ${String(
@@ -360,7 +336,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="scenario-card">
-          <h2>Fill-Rate Scenario</h2>
+          <h2>Top Fill-Rate Risk</h2>
           <p>
             {topRecommendation
               ? `${String(topRecommendation.sku ?? "")} is flagged for ${String(topRecommendation.status ?? "")} because ${String(

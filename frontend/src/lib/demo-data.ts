@@ -310,7 +310,7 @@ const demoImportHistory = {
       label: "Products",
       status: "complete",
       required_columns: ["sku", "name", "category", "case_size", "shelf_life_days"],
-      message: "110 rows imported. Insights include this dataset.",
+      message: "110 rows imported.",
       rows_imported: 110,
       error_count: 0,
       updated_at_epoch: 1780343760
@@ -328,7 +328,7 @@ const demoImportHistory = {
         "expiration_date",
         "unit_cost"
       ],
-      message: "555 rows imported. Insights include this dataset.",
+      message: "555 rows imported.",
       rows_imported: 555,
       error_count: 0,
       updated_at_epoch: 1780343880
@@ -338,7 +338,7 @@ const demoImportHistory = {
       label: "Customers",
       status: "complete",
       required_columns: ["customer_id", "name", "region", "channel"],
-      message: "50 rows imported. Insights include this dataset.",
+      message: "50 rows imported.",
       rows_imported: 50,
       error_count: 0,
       updated_at_epoch: 1780343640
@@ -348,7 +348,7 @@ const demoImportHistory = {
       label: "Orders",
       status: "complete",
       required_columns: ["order_id", "customer_id", "order_date", "sku", "quantity"],
-      message: "5,434 rows imported. Insights include this dataset.",
+      message: "5,434 rows imported.",
       rows_imported: 5434,
       error_count: 0,
       updated_at_epoch: 1780344000
@@ -358,7 +358,7 @@ const demoImportHistory = {
       label: "Inbound shipments",
       status: "complete",
       required_columns: ["shipment_id", "sku", "quantity", "eta_date", "origin", "status"],
-      message: "25 rows imported. Insights include this dataset.",
+      message: "25 rows imported.",
       rows_imported: 25,
       error_count: 0,
       updated_at_epoch: 1780343520
@@ -371,7 +371,7 @@ const demoAuditEvents = {
     {
       action: "login_success",
       resource: "auth",
-      user: "pilot@inventory-ai.local",
+      user: "planner@inventory-ai.local",
       origin: "https://ott-inventory-ai.pages.dev",
       details: {},
       created_at_epoch: 1780344300
@@ -379,7 +379,7 @@ const demoAuditEvents = {
     {
       action: "import_previewed",
       resource: "orders",
-      user: "pilot@inventory-ai.local",
+      user: "planner@inventory-ai.local",
       origin: "https://ott-inventory-ai.pages.dev",
       details: { filename: "orders_ottogi_demo.csv", rows_seen: 5434, missing_mappings: [] },
       created_at_epoch: 1780344000
@@ -387,7 +387,7 @@ const demoAuditEvents = {
     {
       action: "import_committed",
       resource: "orders",
-      user: "pilot@inventory-ai.local",
+      user: "planner@inventory-ai.local",
       origin: "https://ott-inventory-ai.pages.dev",
       details: { rows_seen: 5434, mapped_columns: 5 },
       created_at_epoch: 1780343940
@@ -395,7 +395,7 @@ const demoAuditEvents = {
     {
       action: "query_answered",
       resource: "stockout_risk",
-      user: "pilot@inventory-ai.local",
+      user: "planner@inventory-ai.local",
       origin: "https://ott-inventory-ai.pages.dev",
       details: { question_preview: "Which SKUs will stock out in the next 30 days?", row_count: 7 },
       created_at_epoch: 1780343880

@@ -38,8 +38,8 @@ export default function QueryPage() {
     <>
       <header className="page-header">
         <div>
-          <h1>Natural-Language Query</h1>
-          <p>Planner questions over structured data, with safe templates instead of unrestricted SQL.</p>
+          <h1>Query</h1>
+          <p>Ask about inventory, demand, customers, and replenishment.</p>
         </div>
       </header>
 
@@ -82,11 +82,10 @@ export default function QueryPage() {
           <div className="panel-header">
             <div>
               <h2>{result.template.replaceAll("_", " ")}</h2>
-              <p>{result.explanation}</p>
             </div>
           </div>
+          <p>{result.explanation}</p>
           <DataTable columns={result.columns} rows={result.rows} emptyLabel="No matching rows" />
-          <p>Mode: {result.safe_query_mode}</p>
         </section>
       ) : null}
     </>
