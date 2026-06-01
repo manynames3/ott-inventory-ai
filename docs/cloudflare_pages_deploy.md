@@ -27,6 +27,11 @@ The included GitHub Actions workflow runs frontend type checking and a static bu
 
 The repo also includes `.github/workflows/cloudflare-pages-deploy.yml`. This workflow builds the static frontend from GitHub and deploys `frontend/out` to Cloudflare Pages with Wrangler.
 
+Current deployment:
+
+- GitHub: https://github.com/manynames3/ott-inventory-ai
+- Cloudflare Pages: https://ott-inventory-ai.pages.dev
+
 Add these GitHub repository secrets:
 
 | Secret | Purpose |
@@ -41,7 +46,7 @@ Optional repository variables:
 | `NEXT_PUBLIC_DEMO_MODE` | `true` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` |
 
-The workflow creates a Pages project named `inventory-ai` if it does not already exist, then deploys the static output to the `main` branch deployment.
+The workflow creates a Pages project named `ott-inventory-ai` if it does not already exist, then deploys the static output to the `main` branch deployment.
 
 ## Cloudflare Pages Settings
 
@@ -76,7 +81,7 @@ When the backend is hosted publicly, update:
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://<your-api-host>` |
 
-Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://inventory-ai.pages.dev`.
+Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://ott-inventory-ai.pages.dev`.
 
 ## Backend Hosting Note
 

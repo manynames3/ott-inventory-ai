@@ -56,7 +56,12 @@ Detailed no-Docker steps are in [docs/no_docker_local_dev.md](docs/no_docker_loc
 
 ## Cloudflare Pages Frontend
 
-The frontend is configured for static export and can be deployed from GitHub to Cloudflare Pages. Use:
+Live deployment:
+
+- GitHub: https://github.com/manynames3/ott-inventory-ai
+- Cloudflare Pages: https://ott-inventory-ai.pages.dev
+
+The frontend is configured for static export and deploys from GitHub to Cloudflare Pages. Use:
 
 - Root directory: `frontend`
 - Build command: `npm run build`
@@ -66,7 +71,7 @@ The frontend is configured for static export and can be deployed from GitHub to 
 
 Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md).
 
-For a GitHub Actions deployment instead of Cloudflare's dashboard Git integration, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub repository secrets. The included workflow builds `frontend/out` and deploys it to a Pages project named `inventory-ai`.
+For a GitHub Actions deployment instead of Cloudflare's dashboard Git integration, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub repository secrets. The included workflow builds `frontend/out` and deploys it to a Pages project named `ott-inventory-ai`.
 
 ## CSV Imports
 
