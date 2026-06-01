@@ -66,6 +66,8 @@ The frontend is configured for static export and can be deployed from GitHub to 
 
 Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md).
 
+For a GitHub Actions deployment instead of Cloudflare's dashboard Git integration, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub repository secrets. The included workflow builds `frontend/out` and deploys it to a Pages project named `inventory-ai`.
+
 ## CSV Imports
 
 The import page accepts CSVs for:

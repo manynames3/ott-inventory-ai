@@ -23,6 +23,26 @@ git push -u origin main
 
 The included GitHub Actions workflow runs frontend type checking and a static build on pushes and pull requests that touch `frontend/`.
 
+## GitHub Actions Deployment Option
+
+The repo also includes `.github/workflows/cloudflare-pages-deploy.yml`. This workflow builds the static frontend from GitHub and deploys `frontend/out` to Cloudflare Pages with Wrangler.
+
+Add these GitHub repository secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Token with Cloudflare Pages write access. |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID. |
+
+Optional repository variables:
+
+| Variable | Default |
+| --- | --- |
+| `NEXT_PUBLIC_DEMO_MODE` | `true` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` |
+
+The workflow creates a Pages project named `inventory-ai` if it does not already exist, then deploys the static output to the `main` branch deployment.
+
 ## Cloudflare Pages Settings
 
 In Cloudflare:
