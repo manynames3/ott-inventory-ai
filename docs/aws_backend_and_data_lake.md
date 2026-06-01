@@ -41,12 +41,19 @@ PostgreSQL remains useful for local development and later paid pilots because th
 ## Upload Flow
 
 ```text
-Planner uploads Excel/CSV
+Planner selects Excel/CSV in the Cloudflare Pages app
+        |
+        v
+Lambda API creates an authenticated presigned S3 URL
+        |
+        v
+Browser uploads the raw file directly to private S3
+        |
+        v
+S3 event invokes import Lambda
         |
         v
 Lambda validates entity and required columns
-        |
-        +--> S3 raw upload
         |
         v
 Normalize dates and numeric fields
@@ -61,7 +68,7 @@ DynamoDB materialized recommendation views
 Dashboard and natural-language query answers
 ```
 
-The API response tells the user:
+The import status endpoint tells the user:
 
 - how many rows were imported,
 - whether the raw file was stored in S3,
@@ -78,6 +85,14 @@ AUTH_USERNAME=planner@example.com
 AUTH_PASSWORD=<store in Secrets Manager or host secret settings>
 AUTH_SECRET_KEY=<long random signing secret>
 AUTH_TOKEN_TTL_MINUTES=720
+```
+
+For the Terraform Lambda path, store credentials in SSM Parameter Store and pass only the parameter names to Terraform:
+
+```bash
+auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
+auth_password_parameter_name   = "/inventory-ai/mvp/auth/password"
+auth_secret_key_parameter_name = "/inventory-ai/mvp/auth/secret-key"
 ```
 
 Optional S3 raw-file storage:
@@ -134,7 +149,7 @@ For the first hosted pilot:
    - `NEXT_PUBLIC_DEMO_MODE=false`
    - `NEXT_PUBLIC_API_BASE_URL=https://<backend-host>`
 9. Set backend `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`.
-10. Seed demo data by uploading the Ottogi-style CSV/Excel template set or by invoking a controlled demo seed Lambda.
+10. Seed demo data by uploading the files in `sample_data/ottogi_demo/`.
 
 ## Services To Avoid For The <$10 MVP
 

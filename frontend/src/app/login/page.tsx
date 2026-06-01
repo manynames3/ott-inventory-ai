@@ -42,7 +42,7 @@ export default function LoginPage() {
       <section className="panel auth-panel">
         {IS_DEMO_MODE ? (
           <div className="message ok">
-            Demo mode is active on the public frontend. Login is used when a hosted FastAPI backend is connected.
+            Demo mode is active on the public frontend. Login is used when a hosted backend is connected.
           </div>
         ) : null}
         <form className="form-grid" onSubmit={submit}>

@@ -194,19 +194,19 @@ resource "aws_dynamodb_table" "imports" {
 
 data "archive_file" "api_lambda" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda_src/api"
+  source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/api.zip"
 }
 
 data "archive_file" "import_worker_lambda" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda_src/import_worker"
+  source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/import_worker.zip"
 }
 
 data "archive_file" "refresh_worker_lambda" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda_src/refresh_worker"
+  source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/refresh_worker.zip"
 }
 
@@ -306,7 +306,7 @@ resource "aws_lambda_function" "api" {
   function_name = "${local.name_prefix}-api"
   description   = "Low-idle Inventory AI API endpoint for templates, upload URLs, and query reads."
   role          = aws_iam_role.lambda.arn
-  handler       = "index.handler"
+  handler       = "api.index.handler"
   runtime       = var.lambda_runtime
   architectures = ["arm64"]
   filename      = data.archive_file.api_lambda.output_path
@@ -327,7 +327,7 @@ resource "aws_lambda_function" "import_worker" {
   function_name = "${local.name_prefix}-import-worker"
   description   = "Low-idle Inventory AI import worker triggered by S3 raw upload events."
   role          = aws_iam_role.lambda.arn
-  handler       = "index.handler"
+  handler       = "import_worker.index.handler"
   runtime       = var.lambda_runtime
   architectures = ["arm64"]
   filename      = data.archive_file.import_worker_lambda.output_path
@@ -348,7 +348,7 @@ resource "aws_lambda_function" "refresh_worker" {
   function_name = "${local.name_prefix}-refresh-worker"
   description   = "Low-idle Inventory AI recommendation refresh worker."
   role          = aws_iam_role.lambda.arn
-  handler       = "index.handler"
+  handler       = "refresh_worker.index.handler"
   runtime       = var.lambda_runtime
   architectures = ["arm64"]
   filename      = data.archive_file.refresh_worker_lambda.output_path
@@ -372,7 +372,7 @@ resource "aws_lambda_function_url" "api" {
   cors {
     allow_credentials = false
     allow_headers     = ["authorization", "content-type"]
-    allow_methods     = ["GET", "POST", "OPTIONS"]
+    allow_methods     = ["GET", "POST"]
     allow_origins     = var.allowed_origins
     expose_headers    = ["date", "x-request-id"]
     max_age           = 300

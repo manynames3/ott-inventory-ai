@@ -14,9 +14,16 @@ Target monthly profile: near-zero idle cost and ideally under $10/month for ligh
 - Optional AWS Budget at the configured monthly threshold.
 - IAM roles and least-privilege policies for the above.
 
-The included Lambda handlers are placeholders. They prove the deploy shape and expose basic routes such as `/health`, `/api/import/requirements`, `/api/templates/{entity}.csv`, and `/api/uploads/presign`. The next implementation step is to port the existing FastAPI/Pandas import and recommendation logic into Lambda-friendly handlers or a shared Python package.
+The included Lambda handlers are intentionally lightweight and stdlib-first. They now cover the hosted MVP flow:
 
-Do not share the Lambda Function URL with a buyer until the real auth path is wired into the Lambda API. The Terraform endpoint is public by design because application auth is expected to happen inside the API handler.
+- Login through SSM-backed credentials.
+- CSV and Excel template downloads.
+- Authenticated presigned S3 uploads.
+- S3-triggered CSV/XLSX validation and import.
+- DynamoDB-backed dashboard, product, customer, SKU detail, FEFO, waste-risk, reorder, and natural-language query reads.
+- Import status polling so validation errors are visible after direct-to-S3 upload.
+
+The Lambda Function URL is public by design because application auth happens inside the API handler. Do not share the URL directly; share the Cloudflare Pages frontend after the SSM credentials and CORS origins are configured.
 
 ## Why Terraform
 
@@ -40,6 +47,32 @@ Edit `terraform.tfvars`:
 
 Do not commit `terraform.tfvars`. It is ignored by git.
 
+## Auth Parameters
+
+Create the SSM parameters before sharing the frontend with a pilot user:
+
+```bash
+aws ssm put-parameter \
+  --name /inventory-ai/mvp/auth/username \
+  --type String \
+  --value "pilot@inventory-ai.local" \
+  --overwrite
+
+aws ssm put-parameter \
+  --name /inventory-ai/mvp/auth/password \
+  --type SecureString \
+  --value "<generate-a-strong-password>" \
+  --overwrite
+
+aws ssm put-parameter \
+  --name /inventory-ai/mvp/auth/secret-key \
+  --type SecureString \
+  --value "$(openssl rand -hex 32)" \
+  --overwrite
+```
+
+Only the parameter names belong in Terraform variables. The secret values should stay in SSM.
+
 ## Plan And Apply
 
 ```bash
@@ -57,12 +90,14 @@ NEXT_PUBLIC_DEMO_MODE=false
 NEXT_PUBLIC_API_BASE_URL=<api_function_url>
 ```
 
+Then upload the demo CSV files from `sample_data/ottogi_demo/` in this order: products, customers, orders, inventory lots, inbound shipments. Each upload writes the raw file to S3, imports normalized rows into DynamoDB, and refreshes materialized insight views.
+
 ## Cost Controls
 
 The defaults are intentionally conservative:
 
 - DynamoDB uses `PAY_PER_REQUEST`.
-- Lambda functions use reserved concurrency caps.
+- Lambda functions can use reserved concurrency caps when the AWS account quota supports them. The default is `-1` because small/new accounts may reject reservations that reduce unreserved concurrency below AWS's minimum.
 - Scheduled refresh is disabled by default.
 - Raw file lifecycle expiration defaults to 365 days.
 - AWS Budget is enabled when `budget_email` is provided.

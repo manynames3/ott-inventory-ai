@@ -1,5 +1,5 @@
 const products = [
-  { sku: "OTG-001", name: "Hanbi Sesame On-the-Go Cups", category: "Ready Meals", case_size: 12, shelf_life_days: 180 },
+  { sku: "OTG-RAM-001", name: "Golden Kettle Mild Ramyeon Case", category: "Ready Meals", case_size: 12, shelf_life_days: 180 },
   { sku: "KIM-001", name: "Seorae Pear Kimchi Pouches", category: "Fermented", case_size: 8, shelf_life_days: 120 },
   { sku: "GOJ-001", name: "Namu Ginger Gochu Jars", category: "Sauce", case_size: 12, shelf_life_days: 365 },
   { sku: "RAM-001", name: "Dokkae Chili Ramyeon Bowls", category: "Noodles", case_size: 24, shelf_life_days: 240 },
@@ -24,7 +24,7 @@ export const demoDashboard = {
   charts: {
     demand_trend_by_sku: [
       {
-        sku: "OTG-001",
+        sku: "OTG-RAM-001",
         points: [
           { label: "2025-07", value: 820 },
           { label: "2025-08", value: 880 },
@@ -74,7 +74,7 @@ export const demoDashboard = {
   },
   recommendations: [
     {
-      sku: "OTG-001",
+      sku: "OTG-RAM-001",
       warehouse: "LA DC",
       status: "stockout risk",
       recommended_order_qty: 1800,
@@ -103,7 +103,7 @@ export const demoDashboard = {
   ],
   fefo: [
     {
-      sku: "OTG-001",
+      sku: "OTG-RAM-001",
       warehouse: "LA DC",
       ship_first_lot: "LOT-00124",
       expiration_date: "2026-07-16",
@@ -132,7 +132,7 @@ export const demoDashboard = {
       suggested_action: "Priority allocate to fastest-turning customers or discount immediately."
     },
     {
-      sku: "OTG-001",
+      sku: "OTG-RAM-001",
       lot_id: "LOT-00124",
       warehouse: "LA DC",
       quantity_at_risk: 420,
@@ -197,7 +197,7 @@ export function demoCustomerDetail(customerId: string) {
       last_order_date: "2026-05-19"
     },
     top_skus: [
-      { sku: "OTG-001", name: "Hanbi Sesame On-the-Go Cups", category: "Ready Meals", quantity: 6240 },
+      { sku: "OTG-RAM-001", name: "Golden Kettle Mild Ramyeon Case", category: "Ready Meals", quantity: 6240 },
       { sku: "KIM-001", name: "Seorae Pear Kimchi Pouches", category: "Fermented", quantity: 4160 },
       { sku: "RAM-001", name: "Dokkae Chili Ramyeon Bowls", category: "Noodles", quantity: 3720 }
     ],
@@ -213,11 +213,11 @@ export function demoCustomerDetail(customerId: string) {
 
 function demoQuery(question: string) {
   const normalized = question.toLowerCase();
-  if (normalized.includes("customer") && normalized.includes("otg-001")) {
+  if (normalized.includes("customer") && normalized.includes("otg-ram-001")) {
     return {
       question,
       template: "monthly_sku_buyers",
-      explanation: "Customers shown here buy OTG-001 with recurring monthly behavior in the loaded order history.",
+      explanation: "Customers shown here buy OTG-RAM-001 with recurring monthly behavior in the loaded order history.",
       columns: ["customer_id", "name", "region", "channel", "months_with_orders", "monthly_coverage", "avg_monthly_quantity"],
       rows: [
         { customer_id: "CUST-001", name: "H Mart Foods 1", region: "West", channel: "Retail", months_with_orders: 21, monthly_coverage: 0.88, avg_monthly_quantity: 260 },

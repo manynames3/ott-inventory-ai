@@ -42,7 +42,7 @@ The Terraform entry point is [../infra/terraform/README.md](../infra/terraform/R
 - Optional EventBridge Scheduler refresh.
 - Optional AWS Budget alerts.
 
-The Terraform-managed Lambda handlers are placeholders for the deploy shape. The next engineering step is to move the existing import, forecasting, FEFO, reorder, and natural-language routing logic into Lambda-friendly handlers or a shared Python package.
+The Terraform-managed Lambda handlers implement the hosted pilot flow without always-on services. The API Lambda handles login, templates, presigned uploads, dashboard reads, detail views, and safe natural-language query routing. The S3-triggered import Lambda parses CSV/XLSX files, validates required columns, stores canonical records in DynamoDB, and materializes the FEFO, waste-risk, stockout, reorder, dashboard, and query views needed for fast reads.
 
 ## Upload And Query Flow
 
@@ -69,7 +69,7 @@ Lambda validates file and normalizes rows
         +--> Store canonical rows in DynamoDB
         |
         v
-Forecast/recommendation Lambda refreshes materialized views
+Import Lambda refreshes materialized recommendation/query views
         |
         v
 Natural-language query Lambda maps user question to a safe view read
@@ -129,9 +129,9 @@ Small pilot usage should typically fit under $10/month, but that is not a guaran
 ## MVP Implementation Plan
 
 1. Keep Cloudflare Pages for the frontend.
-2. Replace the hosted FastAPI/App Runner target with Lambda Function URL for the live API.
-3. Add direct-to-S3 upload flow using presigned URLs so large Excel files do not pass through the frontend host.
-4. Parse Excel/CSV in an import Lambda.
+2. Use Lambda Function URL for the live API instead of a hosted FastAPI/App Runner target.
+3. Upload Excel/CSV directly to S3 with presigned URLs so large files do not pass through the frontend host.
+4. Parse Excel/CSV in an import Lambda and report status/errors through DynamoDB.
 5. Write canonical rows and materialized recommendation views to DynamoDB on-demand.
 6. Keep the current PostgreSQL/FastAPI path for local development and richer paid-pilot deployments.
 7. Add a feature flag so the frontend can point to either:

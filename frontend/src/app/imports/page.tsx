@@ -3,17 +3,24 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { FileDown, UploadCloud } from "lucide-react";
 
-import { API_BASE_URL, IS_DEMO_MODE, apiGet, apiUpload, authHeaders } from "@/lib/api";
+import { API_BASE_URL, IS_DEMO_MODE, apiGet, apiPost, apiUpload, authHeaders } from "@/lib/api";
 
 type Requirements = {
   csv_required_columns: Record<string, string[]>;
   erp_adapters: Record<string, string>;
   supported_upload_formats?: string[];
+  upload_mode?: "multipart" | "presigned_s3";
   raw_file_storage?: {
     service: string;
     enabled: boolean;
     bucket_configured: boolean;
+    bucket?: string;
     prefix: string;
+  };
+  query_store?: {
+    service: string;
+    records_table?: string;
+    views_table?: string;
   };
 };
 
@@ -33,6 +40,24 @@ type UploadResponse = {
     error?: string | null;
   };
   next_questions?: string[];
+};
+
+type PresignResponse = {
+  entity: string;
+  bucket: string;
+  key: string;
+  upload_url: string;
+  expires_in_seconds: number;
+  message: string;
+};
+
+type ImportStatus = {
+  status: "queued" | "processing" | "imported" | "failed";
+  message: string;
+  entity?: string;
+  rows_imported?: number;
+  errors?: string[];
+  view_counts?: Record<string, number>;
 };
 
 const fallbackEntities: Record<string, string[]> = {
@@ -70,6 +95,32 @@ export default function ImportsPage() {
       ...current,
       [entity]: event.target.files?.[0] || null
     }));
+  }
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  async function pollImportStatus(bucket: string, key: string): Promise<ImportStatus> {
+    const encodedBucket = encodeURIComponent(bucket);
+    const encodedKey = encodeURIComponent(key);
+    let lastStatus: ImportStatus = {
+      status: "queued",
+      message: "Upload received. Import worker has not reported status yet."
+    };
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const status = await apiGet<ImportStatus>(`/api/import-status?bucket=${encodedBucket}&key=${encodedKey}`);
+      lastStatus = status;
+      if (status.status === "imported" || status.status === "failed") {
+        return status;
+      }
+      await sleep(1500);
+    }
+
+    return lastStatus;
   }
 
   function demoTemplateRows(entity: string): Record<string, string | number> {
@@ -151,7 +202,7 @@ export default function ImportsPage() {
         ...current,
         [entity]: {
           type: "error",
-          text: "CSV uploads are disabled in demo mode until the FastAPI backend is connected."
+          text: "Uploads are disabled in demo mode until a live backend is connected."
         }
       }));
       return;
@@ -166,12 +217,55 @@ export default function ImportsPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
     setLoading((current) => ({ ...current, [entity]: true }));
     setMessages((current) => ({ ...current, [entity]: { type: "ok", text: "Uploading..." } }));
 
     try {
+      if (requirements?.upload_mode === "presigned_s3") {
+        const contentType = file.type || "application/octet-stream";
+        const presign = await apiPost<PresignResponse>("/api/uploads/presign", {
+          entity,
+          filename: file.name,
+          content_type: contentType
+        });
+        setMessages((current) => ({
+          ...current,
+          [entity]: { type: "ok", text: `Uploading raw file to S3 at ${presign.bucket}/${presign.key}...` }
+        }));
+        const uploadResponse = await fetch(presign.upload_url, {
+          method: "PUT",
+          headers: { "Content-Type": contentType },
+          body: file
+        });
+        if (!uploadResponse.ok) {
+          throw new Error(`S3 upload failed: ${uploadResponse.status}`);
+        }
+        setMessages((current) => ({
+          ...current,
+          [entity]: { type: "ok", text: "File uploaded. Validating rows and refreshing insights..." }
+        }));
+        const status = await pollImportStatus(presign.bucket, presign.key);
+        if (status.status === "failed") {
+          throw new Error([status.message, ...(status.errors || [])].join(" "));
+        }
+        const rowsText = status.rows_imported !== undefined ? ` Imported ${status.rows_imported} rows.` : "";
+        const countsText = status.view_counts
+          ? ` Query views refreshed from ${Object.entries(status.view_counts)
+              .map(([name, count]) => `${count} ${name.replaceAll("_", " ")}`)
+              .join(", ")}.`
+          : "";
+        setMessages((current) => ({
+          ...current,
+          [entity]: {
+            type: "ok",
+            text: `${status.message}${rowsText}${countsText} Raw file stored in S3 at ${presign.bucket}/${presign.key}.`
+          }
+        }));
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
       const body = await apiUpload<UploadResponse>(`/api/import/${entity}`, formData);
       const stored = body.raw_file_storage?.stored;
       const storageText = stored
@@ -208,13 +302,13 @@ export default function ImportsPage() {
       <section className="panel">
         {IS_DEMO_MODE ? (
           <div className="message ok">
-            Demo mode is active. CSV template downloads work here; Excel templates and uploads require a live FastAPI backend.
+            Demo mode is active. CSV template downloads work here; Excel templates and uploads require a live backend.
           </div>
         ) : null}
         {requirements?.raw_file_storage ? (
           <div className="message ok">
             Raw Excel/CSV storage: {requirements.raw_file_storage.enabled ? "S3 enabled" : "S3 not configured"}.
-            Query speed comes from importing normalized rows into the operational database after upload.
+            Query speed comes from importing normalized rows into {requirements.query_store?.service || "the query store"} after upload.
           </div>
         ) : null}
         {Object.entries(columns).map(([entity, required]) => (

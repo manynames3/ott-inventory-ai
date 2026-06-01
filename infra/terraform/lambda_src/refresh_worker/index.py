@@ -1,26 +1,18 @@
 from __future__ import annotations
 
 import json
-import os
-import time
 from typing import Any, Dict
 
-import boto3
-
-
-dynamodb = boto3.client("dynamodb")
+from import_worker.index import _materialize_views, _now, _put_view
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    now = int(time.time())
-    dynamodb.put_item(
-        TableName=os.environ["AWS_DYNAMODB_VIEWS_TABLE"],
-        Item={
-            "pk": {"S": "tenant#default"},
-            "sk": {"S": "refresh_status"},
-            "status": {"S": "ok"},
-            "message": {"S": "Refresh worker placeholder invoked. Recommendation materialization pending."},
-            "updated_at_epoch": {"N": str(now)},
-        },
-    )
-    return {"statusCode": 200, "body": json.dumps({"ok": True, "updated_at_epoch": now})}
+    counts = _materialize_views()
+    payload = {
+        "ok": True,
+        "updated_at_epoch": _now(),
+        "view_counts": counts,
+        "message": "Recommendation and natural-language query views refreshed.",
+    }
+    _put_view("refresh_status", payload)
+    return {"statusCode": 200, "body": json.dumps(payload, separators=(",", ":"))}

@@ -74,9 +74,9 @@ variable "job_lambda_timeout_seconds" {
 }
 
 variable "reserved_concurrency" {
-  description = "Reserved concurrency cap per Lambda to avoid surprise costs. Set to -1 to disable."
+  description = "Reserved concurrency cap per Lambda to avoid surprise costs. Keep -1 when the AWS account quota cannot support reservations."
   type        = number
-  default     = 5
+  default     = -1
 }
 
 variable "enable_refresh_schedule" {
@@ -118,19 +118,19 @@ variable "enable_point_in_time_recovery" {
 variable "auth_username_parameter_name" {
   description = "Optional SSM parameter name for the MVP login username."
   type        = string
-  default     = ""
+  default     = "/inventory-ai/mvp/auth/username"
 }
 
 variable "auth_password_parameter_name" {
   description = "Optional SSM parameter name for the MVP login password."
   type        = string
-  default     = ""
+  default     = "/inventory-ai/mvp/auth/password"
 }
 
 variable "auth_secret_key_parameter_name" {
   description = "Optional SSM parameter name for the bearer-token signing secret."
   type        = string
-  default     = ""
+  default     = "/inventory-ai/mvp/auth/secret-key"
 }
 
 variable "tags" {

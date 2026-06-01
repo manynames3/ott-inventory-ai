@@ -73,7 +73,7 @@ In Cloudflare:
 
 ## Environment Variables
 
-Use demo mode before the FastAPI backend has a public URL:
+Use demo mode before a live backend has a public URL:
 
 | Variable | Value |
 | --- | --- |
@@ -88,6 +88,8 @@ When the backend is hosted publicly, update:
 | `NEXT_PUBLIC_API_BASE_URL` | `https://<your-api-host>` |
 
 Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://ott-inventory-ai.pages.dev`.
+
+For the low-idle AWS pilot backend, use the Terraform output `api_function_url`. The frontend strips a trailing slash automatically, so the raw output value can be pasted as-is.
 
 ## Backend Hosting Note
 

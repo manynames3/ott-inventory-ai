@@ -128,6 +128,7 @@ The repo now includes the next pilot layer:
 - Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
 - Fast natural-language insights from normalized operational records and materialized recommendation views.
 - A resettable Ottogi-style demo seed script for controlled backend demos.
+- Exported Ottogi-style pilot CSVs in `sample_data/ottogi_demo/` for direct hosted uploads.
 
 Low-idle MVP hosting target:
 
@@ -154,7 +155,15 @@ The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 
 Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
 
-When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL; the low-idle hosted MVP should write canonical rows and materialized insight views to DynamoDB on-demand so dashboards and natural-language questions stay fast without an always-on database.
+When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL. The low-idle hosted MVP uses presigned S3 upload URLs, imports canonical rows into DynamoDB, and refreshes materialized insight views so dashboards and natural-language questions stay fast without an always-on database.
+
+For a controlled Ottogi-style pilot demo, use the generated files in `sample_data/ottogi_demo/`:
+
+```bash
+PYTHONPATH=backend backend/.venv/bin/python -m app.export_ottogi_demo_csvs
+```
+
+The exported set includes 100 SKUs, 505 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments.
 
 The worker also supports a file-drop import queue. Place a CSV in `import_queue/` using a filename that starts with the entity, such as `products__june.csv` or `orders__week_22.csv`. The worker validates and imports it, then moves it to `import_queue/processed/` or `import_queue/failed/`.
 
@@ -176,7 +185,7 @@ The query page uses safe rule-based templates rather than arbitrary SQL executio
 - "Who needs another order right now?"
 - "Which SKUs will stock out in the next 30 days?"
 - "Which inventory expires soon?"
-- "Which customers usually buy SKU OTG-001 every month?"
+- "Which customers usually buy SKU OTG-RAM-001 every month?"
 - "What should we reorder this week?"
 
 ## ERP Integration

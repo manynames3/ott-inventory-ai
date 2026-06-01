@@ -38,7 +38,7 @@ PRODUCT_LINES = [
 BRANDS = ["Golden Kettle", "Han Table", "Seoul Pantry", "Busan House", "Soban Select"]
 FLAVORS = ["Mild", "Spicy", "Sesame", "Garlic", "Yuzu", "Roasted", "Seaweed", "Ginger", "Kimchi", "Black Bean"]
 
-CUSTOMERS = [
+BASE_CUSTOMERS = [
     ("CUST-HMART-WEST", "H Mart West", "West", "Retail"),
     ("CUST-HMART-EAST", "H Mart East", "Northeast", "Retail"),
     ("CUST-COSTCO-WEST", "Costco West Grocery", "West", "Club"),
@@ -52,6 +52,28 @@ CUSTOMERS = [
     ("CUST-SOCAL-MART", "SoCal Neighborhood Market", "West", "Retail"),
     ("CUST-CANADA-DIST", "Canada Korean Food Importers", "Canada", "Distributor"),
 ]
+
+GENERATED_CUSTOMERS = [
+    (
+        f"CUST-PILOT-{index:03d}",
+        f"{region} {banner} {channel} {index}",
+        region,
+        channel,
+    )
+    for index, (region, channel, banner) in enumerate(
+        [
+            (
+                ["West", "Northeast", "South", "Midwest", "National", "Canada"][i % 6],
+                ["Retail", "Club", "Distributor", "Foodservice", "E-commerce"][i % 5],
+                ["K-Food Market", "Asian Grocery", "Pantry Supply", "Fresh Trading", "Meal Kit"][i % 5],
+            )
+            for i in range(38)
+        ],
+        start=13,
+    )
+]
+
+CUSTOMERS = BASE_CUSTOMERS + GENERATED_CUSTOMERS
 
 
 def build_products() -> list[Product]:

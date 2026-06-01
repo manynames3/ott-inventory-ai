@@ -1,0 +1,51 @@
+customer_id,name,region,channel
+CUST-HMART-WEST,H Mart West,West,Retail
+CUST-HMART-EAST,H Mart East,Northeast,Retail
+CUST-COSTCO-WEST,Costco West Grocery,West,Club
+CUST-AMZ-GROCERY,Amazon Grocery Marketplace,National,E-commerce
+CUST-PACIFIC-DIST,Pacific Korean Foods,West,Distributor
+CUST-NJ-KFOOD,New Jersey K-Food Distributors,Northeast,Distributor
+CUST-DALLAS-MART,Dallas Asian Market Group,South,Retail
+CUST-SEATTLE-GROC,Seattle Fresh Grocers,West,Retail
+CUST-RESTAURANT-1,Korean Kitchen Supply,National,Foodservice
+CUST-CLUB-MIDWEST,Midwest Club Grocery,Midwest,Club
+CUST-SOCAL-MART,SoCal Neighborhood Market,West,Retail
+CUST-CANADA-DIST,Canada Korean Food Importers,Canada,Distributor
+CUST-PILOT-013,West K-Food Market Retail 13,West,Retail
+CUST-PILOT-014,Northeast Asian Grocery Club 14,Northeast,Club
+CUST-PILOT-015,South Pantry Supply Distributor 15,South,Distributor
+CUST-PILOT-016,Midwest Fresh Trading Foodservice 16,Midwest,Foodservice
+CUST-PILOT-017,National Meal Kit E-commerce 17,National,E-commerce
+CUST-PILOT-018,Canada K-Food Market Retail 18,Canada,Retail
+CUST-PILOT-019,West Asian Grocery Club 19,West,Club
+CUST-PILOT-020,Northeast Pantry Supply Distributor 20,Northeast,Distributor
+CUST-PILOT-021,South Fresh Trading Foodservice 21,South,Foodservice
+CUST-PILOT-022,Midwest Meal Kit E-commerce 22,Midwest,E-commerce
+CUST-PILOT-023,National K-Food Market Retail 23,National,Retail
+CUST-PILOT-024,Canada Asian Grocery Club 24,Canada,Club
+CUST-PILOT-025,West Pantry Supply Distributor 25,West,Distributor
+CUST-PILOT-026,Northeast Fresh Trading Foodservice 26,Northeast,Foodservice
+CUST-PILOT-027,South Meal Kit E-commerce 27,South,E-commerce
+CUST-PILOT-028,Midwest K-Food Market Retail 28,Midwest,Retail
+CUST-PILOT-029,National Asian Grocery Club 29,National,Club
+CUST-PILOT-030,Canada Pantry Supply Distributor 30,Canada,Distributor
+CUST-PILOT-031,West Fresh Trading Foodservice 31,West,Foodservice
+CUST-PILOT-032,Northeast Meal Kit E-commerce 32,Northeast,E-commerce
+CUST-PILOT-033,South K-Food Market Retail 33,South,Retail
+CUST-PILOT-034,Midwest Asian Grocery Club 34,Midwest,Club
+CUST-PILOT-035,National Pantry Supply Distributor 35,National,Distributor
+CUST-PILOT-036,Canada Fresh Trading Foodservice 36,Canada,Foodservice
+CUST-PILOT-037,West Meal Kit E-commerce 37,West,E-commerce
+CUST-PILOT-038,Northeast K-Food Market Retail 38,Northeast,Retail
+CUST-PILOT-039,South Asian Grocery Club 39,South,Club
+CUST-PILOT-040,Midwest Pantry Supply Distributor 40,Midwest,Distributor
+CUST-PILOT-041,National Fresh Trading Foodservice 41,National,Foodservice
+CUST-PILOT-042,Canada Meal Kit E-commerce 42,Canada,E-commerce
+CUST-PILOT-043,West K-Food Market Retail 43,West,Retail
+CUST-PILOT-044,Northeast Asian Grocery Club 44,Northeast,Club
+CUST-PILOT-045,South Pantry Supply Distributor 45,South,Distributor
+CUST-PILOT-046,Midwest Fresh Trading Foodservice 46,Midwest,Foodservice
+CUST-PILOT-047,National Meal Kit E-commerce 47,National,E-commerce
+CUST-PILOT-048,Canada K-Food Market Retail 48,Canada,Retail
+CUST-PILOT-049,West Asian Grocery Club 49,West,Club
+CUST-PILOT-050,Northeast Pantry Supply Distributor 50,Northeast,Distributor

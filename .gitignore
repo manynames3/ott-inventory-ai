@@ -9,6 +9,7 @@ __pycache__/
 node_modules/
 .next/
 out/
+.wrangler/
 tsconfig.tsbuildinfo
 dist/
 build/

@@ -10,7 +10,7 @@ const examples = [
   "Who needs another order right now?",
   "Which SKUs will stock out in the next 30 days?",
   "Which inventory expires soon?",
-  "Which customers usually buy SKU OTG-001 every month?",
+  "Which customers usually buy SKU OTG-RAM-001 every month?",
   "What should we reorder this week?"
 ];
 

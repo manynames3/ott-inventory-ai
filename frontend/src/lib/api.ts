@@ -1,7 +1,8 @@
 import { getDemoGet, getDemoPost } from "@/lib/demo-data";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
@@ -99,8 +100,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     }
     return response.json() as Promise<T>;
   } catch (error) {
-    const demo = getDemoGet(path);
-    if (demo) return demo as T;
+    if (IS_DEMO_MODE) {
+      const demo = getDemoGet(path);
+      if (demo) return demo as T;
+    }
     throw error;
   }
 }
@@ -127,8 +130,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     }
     return response.json() as Promise<T>;
   } catch (error) {
-    const demo = getDemoPost(path, body);
-    if (demo) return demo as T;
+    if (IS_DEMO_MODE) {
+      const demo = getDemoPost(path, body);
+      if (demo) return demo as T;
+    }
     throw error;
   }
 }
