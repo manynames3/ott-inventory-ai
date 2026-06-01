@@ -368,15 +368,6 @@ resource "aws_lambda_function" "refresh_worker" {
 resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
   authorization_type = "NONE"
-
-  cors {
-    allow_credentials = false
-    allow_headers     = ["authorization", "content-type"]
-    allow_methods     = ["GET", "POST"]
-    allow_origins     = var.allowed_origins
-    expose_headers    = ["date", "x-request-id"]
-    max_age           = 300
-  }
 }
 
 resource "aws_lambda_permission" "allow_s3_import_worker" {
