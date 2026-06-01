@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { LockKeyhole, LogIn } from "lucide-react";
+import { DatabaseZap, KeyRound, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
 
 import { IS_DEMO_MODE, login } from "@/lib/api";
 
@@ -69,6 +69,30 @@ export default function LoginPage() {
             Sign in
           </button>
         </form>
+      </section>
+
+      <section className="grid-3 login-security-grid">
+        <div className="insight-card">
+          <span className="insight-icon planner">
+            <ShieldCheck size={18} />
+          </span>
+          <h2>Private Pilot Access</h2>
+          <p>Access is limited to approved pilot users. The public frontend cannot read operational data without a token.</p>
+        </div>
+        <div className="insight-card">
+          <span className="insight-icon stockout">
+            <KeyRound size={18} />
+          </span>
+          <h2>Secret Storage</h2>
+          <p>Credentials and token-signing keys are stored in AWS SSM Parameter Store, not hardcoded in the frontend.</p>
+        </div>
+        <div className="insight-card">
+          <span className="insight-icon waste">
+            <DatabaseZap size={18} />
+          </span>
+          <h2>No ERP Writeback</h2>
+          <p>Uploaded files feed a read-only decision layer. The MVP does not post transactions back into SAP or Oracle.</p>
+        </div>
       </section>
     </>
   );

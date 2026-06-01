@@ -54,6 +54,38 @@ export type QueryResponse = {
   safe_query_mode: string;
 };
 
+export type ImportChecklistItem = {
+  entity: string;
+  label: string;
+  status: "complete" | "missing" | "needs_fix" | "processing";
+  required_columns: string[];
+  message: string;
+  rows_imported: number;
+  error_count: number;
+  updated_at_epoch?: number;
+};
+
+export type ImportHistoryRow = {
+  entity?: string;
+  status?: string;
+  message?: string;
+  rows_seen?: number;
+  rows_imported?: number;
+  errors?: string[];
+  bucket?: string;
+  key?: string;
+  filename?: string;
+  view_counts?: Record<string, number>;
+  updated_at_epoch?: number;
+  source_key?: string;
+};
+
+export type ImportHistoryResponse = {
+  rows: ImportHistoryRow[];
+  count: number;
+  checklist: ImportChecklistItem[];
+};
+
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);

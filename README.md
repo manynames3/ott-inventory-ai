@@ -116,6 +116,8 @@ The frontend is configured for static export and deploys from GitHub to Cloudfla
 
 Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md).
 
+Custom domain and pilot security hardening steps are documented in [docs/custom_domain_and_security.md](docs/custom_domain_and_security.md).
+
 The included Cloudflare Pages workflow is a manual fallback, not the primary push deploy path. Cloudflare's Git integration deploys pushes to `main`; the manual workflow requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets before it can be run.
 
 ## Low-Idle Hosted Backend, Login, And AWS File Intake
@@ -124,6 +126,8 @@ The repo now includes the next pilot layer:
 
 - Login endpoints backed by environment variables and bearer tokens.
 - Downloadable CSV and Excel templates for every import entity.
+- First-run import checklist with upload history and validation errors.
+- Downloadable executive ROI report from the dashboard.
 - Excel/CSV upload support through the same validated import path.
 - Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
 - Fast natural-language insights from normalized operational records and materialized recommendation views.
@@ -154,6 +158,8 @@ The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 - `inbound_shipments`: `shipment_id`, `sku`, `quantity`, `eta_date`, `origin`, `status`
 
 Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
+
+The hosted MVP also exposes `/api/import-history`, which powers the first-run checklist, import audit table, and validation error view in the frontend.
 
 When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL. The low-idle hosted MVP uses presigned S3 upload URLs, imports canonical rows into DynamoDB, and refreshes materialized insight views so dashboards and natural-language questions stay fast without an always-on database.
 

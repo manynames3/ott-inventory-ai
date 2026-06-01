@@ -48,6 +48,14 @@ REQUIRED_COLUMNS = {
     "inbound_shipments": ["shipment_id", "sku", "quantity", "eta_date", "origin", "status"],
 }
 
+ENTITY_LABELS = {
+    "products": "Products",
+    "inventory_lots": "Inventory lots",
+    "customers": "Customers",
+    "orders": "Orders",
+    "inbound_shipments": "Inbound shipments",
+}
+
 SAMPLE_ROWS = {
     "products": {
         "sku": "OTG-RAM-001",
@@ -385,6 +393,88 @@ def _import_status(event: Dict[str, Any]) -> Dict[str, Any]:
     return _json(event, 200, json.loads(item["data"]["S"]))
 
 
+def _load_import_history(limit: int = 100) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    start_key = None
+    while len(rows) < limit:
+        kwargs: Dict[str, Any] = {
+            "TableName": os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+            "Limit": min(100, limit - len(rows)),
+        }
+        if start_key:
+            kwargs["ExclusiveStartKey"] = start_key
+        response = dynamodb.scan(**kwargs)
+        for item in response.get("Items", []):
+            try:
+                row = json.loads(item.get("data", {}).get("S", "{}"))
+            except json.JSONDecodeError:
+                continue
+            row.setdefault("source_key", item.get("pk", {}).get("S", "").replace("import#", "", 1))
+            rows.append(row)
+        start_key = response.get("LastEvaluatedKey")
+        if not start_key:
+            break
+    rows.sort(key=lambda row: float(row.get("updated_at_epoch", 0) or 0), reverse=True)
+    return rows[:limit]
+
+
+def _import_checklist(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    latest_by_entity: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        entity = str(row.get("entity", ""))
+        if entity in REQUIRED_COLUMNS and entity not in latest_by_entity:
+            latest_by_entity[entity] = row
+
+    checklist = []
+    for entity, required in REQUIRED_COLUMNS.items():
+        row = latest_by_entity.get(entity)
+        if not row:
+            checklist.append(
+                {
+                    "entity": entity,
+                    "label": ENTITY_LABELS.get(entity, entity.replace("_", " ").title()),
+                    "status": "missing",
+                    "required_columns": required,
+                    "message": "Upload this file to complete the pilot dataset.",
+                    "rows_imported": 0,
+                    "error_count": 0,
+                }
+            )
+            continue
+        import_status = str(row.get("status", "queued"))
+        errors = row.get("errors") if isinstance(row.get("errors"), list) else []
+        if import_status == "imported":
+            checklist_status = "complete"
+            message = f"{row.get('rows_imported', 0)} rows imported. Insights include this dataset."
+        elif import_status == "failed":
+            checklist_status = "needs_fix"
+            message = row.get("message") or "Fix validation errors and re-upload."
+        else:
+            checklist_status = "processing"
+            message = row.get("message") or "Import worker is still processing this file."
+        checklist.append(
+            {
+                "entity": entity,
+                "label": ENTITY_LABELS.get(entity, entity.replace("_", " ").title()),
+                "status": checklist_status,
+                "required_columns": required,
+                "message": message,
+                "rows_imported": row.get("rows_imported", 0),
+                "error_count": len(errors),
+                "updated_at_epoch": row.get("updated_at_epoch"),
+            }
+        )
+    return checklist
+
+
+def _import_history(event: Dict[str, Any]) -> Dict[str, Any]:
+    if not _require_user(event):
+        return _json(event, 401, {"detail": "Login required."})
+    limit = _parse_limit(event, default=100, maximum=250)
+    rows = _load_import_history(limit=limit)
+    return _json(event, 200, {"rows": rows, "count": len(rows), "checklist": _import_checklist(rows)})
+
+
 def _presign_upload(event: Dict[str, Any]) -> Dict[str, Any]:
     user = _require_user(event)
     if not user:
@@ -656,6 +746,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _presign_upload(event)
     if method == "GET" and path == "/api/import-status":
         return _import_status(event)
+    if method == "GET" and path == "/api/import-history":
+        return _import_history(event)
     if method == "GET" and path == "/api/dashboard":
         return _protected_json(event, _get_view("dashboard") or _empty_dashboard())
     if method == "GET" and path == "/api/products":

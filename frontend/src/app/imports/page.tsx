@@ -1,9 +1,20 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { FileDown, UploadCloud } from "lucide-react";
+import { CheckCircle2, CircleAlert, Clock, FileDown, RefreshCw, UploadCloud } from "lucide-react";
 
-import { API_BASE_URL, IS_DEMO_MODE, apiGet, apiPost, apiUpload, authHeaders } from "@/lib/api";
+import { DataTable } from "@/components/data-table";
+import {
+  API_BASE_URL,
+  IS_DEMO_MODE,
+  ImportChecklistItem,
+  ImportHistoryResponse,
+  ImportHistoryRow,
+  apiGet,
+  apiPost,
+  apiUpload,
+  authHeaders
+} from "@/lib/api";
 
 type Requirements = {
   csv_required_columns: Record<string, string[]>;
@@ -81,14 +92,34 @@ export default function ImportsPage() {
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [messages, setMessages] = useState<Record<string, { type: "ok" | "error"; text: string }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [history, setHistory] = useState<ImportHistoryResponse | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<Requirements>("/api/import/requirements")
       .then(setRequirements)
       .catch(() => setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} }));
+    void loadHistory();
   }, []);
 
   const columns = requirements?.csv_required_columns || fallbackEntities;
+  const checklist = history?.checklist || fallbackChecklist(columns);
+  const failedImports = (history?.rows || []).filter((row) => row.status === "failed");
+  const historyRows = (history?.rows || []).map(formatHistoryRow);
+
+  async function loadHistory() {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const body = await apiGet<ImportHistoryResponse>("/api/import-history?limit=100");
+      setHistory(body);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "Import history is not available.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
 
   function onFile(entity: string, event: ChangeEvent<HTMLInputElement>) {
     setFiles((current) => ({
@@ -101,6 +132,47 @@ export default function ImportsPage() {
     return new Promise((resolve) => {
       window.setTimeout(resolve, ms);
     });
+  }
+
+  function fallbackChecklist(currentColumns: Record<string, string[]>): ImportChecklistItem[] {
+    return Object.entries(currentColumns).map(([entity, required]) => ({
+      entity,
+      label: entity.replaceAll("_", " "),
+      status: "missing",
+      required_columns: required,
+      message: "Upload this file to complete the first-run dataset.",
+      rows_imported: 0,
+      error_count: 0
+    }));
+  }
+
+  function formatDate(epoch?: number) {
+    if (!epoch) return "";
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    }).format(epoch * 1000);
+  }
+
+  function formatHistoryRow(row: ImportHistoryRow): Record<string, unknown> {
+    return {
+      entity: row.entity || "",
+      status: row.status || "queued",
+      rows_imported: row.rows_imported,
+      rows_seen: row.rows_seen,
+      filename: row.filename || row.key?.split("/").pop() || "",
+      updated_at: formatDate(row.updated_at_epoch),
+      message: row.message || "",
+      errors: row.errors?.join(" | ") || ""
+    };
+  }
+
+  function checklistIcon(status: ImportChecklistItem["status"]) {
+    if (status === "complete") return <CheckCircle2 size={18} />;
+    if (status === "needs_fix") return <CircleAlert size={18} />;
+    return <Clock size={18} />;
   }
 
   async function pollImportStatus(bucket: string, key: string): Promise<ImportStatus> {
@@ -261,6 +333,7 @@ export default function ImportsPage() {
             text: `${status.message}${rowsText}${countsText} Raw file stored in S3 at ${presign.bucket}/${presign.key}.`
           }
         }));
+        void loadHistory();
         return;
       }
 
@@ -280,11 +353,13 @@ export default function ImportsPage() {
         ...current,
         [entity]: { type: "ok", text: `${body.message || "Import complete."}${storageText}${questionText}` }
       }));
+      void loadHistory();
     } catch (error) {
       setMessages((current) => ({
         ...current,
         [entity]: { type: "error", text: error instanceof Error ? error.message : "Import failed." }
       }));
+      void loadHistory();
     } finally {
       setLoading((current) => ({ ...current, [entity]: false }));
     }
@@ -297,7 +372,38 @@ export default function ImportsPage() {
           <h1>File Imports</h1>
           <p>Validated CSV and Excel exports for products, lots, orders, customers, and inbound containers.</p>
         </div>
+        <div className="toolbar">
+          <button className="button secondary" type="button" onClick={loadHistory} disabled={historyLoading}>
+            <RefreshCw size={17} />
+            Refresh history
+          </button>
+        </div>
       </header>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>First-Run Import Checklist</h2>
+            <p>Load these five files once to make the dashboard, recommendations, and natural-language queries credible.</p>
+          </div>
+        </div>
+        <div className="checklist-grid">
+          {checklist.map((item) => (
+            <div className={`checklist-item checklist-${item.status}`} key={item.entity}>
+              <span>{checklistIcon(item.status)}</span>
+              <div>
+                <h3>{item.label}</h3>
+                <p>{item.message}</p>
+                <small>
+                  {item.rows_imported ? `${item.rows_imported.toLocaleString()} rows` : "Waiting for upload"}
+                  {item.error_count ? ` - ${item.error_count} validation errors` : ""}
+                  {item.updated_at_epoch ? ` - ${formatDate(item.updated_at_epoch)}` : ""}
+                </small>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="panel">
         {IS_DEMO_MODE ? (
@@ -345,6 +451,45 @@ export default function ImportsPage() {
           </div>
         ))}
       </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Import History And Validation</h2>
+            <p>Every upload leaves a status record so planners can see whether insights are running on clean data.</p>
+          </div>
+        </div>
+        {historyError ? <div className="message error">{historyError}</div> : null}
+        <DataTable
+          columns={["entity", "status", "rows_imported", "rows_seen", "filename", "updated_at", "message", "errors"]}
+          rows={historyRows}
+          emptyLabel={historyLoading ? "Loading import history" : "No imports have been processed yet"}
+        />
+      </section>
+
+      {failedImports.length ? (
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Validation Errors To Fix</h2>
+              <p>Correct the source file and upload again. Successful uploads automatically refresh dashboard insights.</p>
+            </div>
+          </div>
+          <div className="validation-list">
+            {failedImports.map((row, index) => (
+              <div className="validation-card" key={`${row.key || row.filename || row.entity}-${index}`}>
+                <h3>{row.entity?.replaceAll("_", " ") || "Import file"}</h3>
+                <p>{row.message || "Import failed validation."}</p>
+                <ul>
+                  {(row.errors?.length ? row.errors : ["No row-level error detail was returned."]).map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="panel">
         <div className="panel-header">

@@ -145,6 +145,122 @@ export const demoDashboard = {
     "Recoverable waste opportunity estimates margin that can be protected by moving at-risk lots through FEFO allocation, transfer, promotion, or discount action before they become distressed."
 };
 
+const demoImportHistory = {
+  rows: [
+    {
+      entity: "orders",
+      status: "imported",
+      message: "Imported 5,446 order rows and refreshed materialized insights.",
+      rows_seen: 5446,
+      rows_imported: 5446,
+      errors: [],
+      filename: "orders_ottogi_demo.csv",
+      updated_at_epoch: 1780344000
+    },
+    {
+      entity: "inventory_lots",
+      status: "imported",
+      message: "Imported 505 lot rows and refreshed FEFO/waste risk views.",
+      rows_seen: 505,
+      rows_imported: 505,
+      errors: [],
+      filename: "inventory_lots_ottogi_demo.csv",
+      updated_at_epoch: 1780343880
+    },
+    {
+      entity: "products",
+      status: "imported",
+      message: "Imported 100 products.",
+      rows_seen: 100,
+      rows_imported: 100,
+      errors: [],
+      filename: "products_ottogi_demo.csv",
+      updated_at_epoch: 1780343760
+    },
+    {
+      entity: "customers",
+      status: "imported",
+      message: "Imported 50 customers.",
+      rows_seen: 50,
+      rows_imported: 50,
+      errors: [],
+      filename: "customers_ottogi_demo.csv",
+      updated_at_epoch: 1780343640
+    },
+    {
+      entity: "inbound_shipments",
+      status: "imported",
+      message: "Imported 25 inbound shipments.",
+      rows_seen: 25,
+      rows_imported: 25,
+      errors: [],
+      filename: "inbound_shipments_ottogi_demo.csv",
+      updated_at_epoch: 1780343520
+    }
+  ],
+  count: 5,
+  checklist: [
+    {
+      entity: "products",
+      label: "Products",
+      status: "complete",
+      required_columns: ["sku", "name", "category", "case_size", "shelf_life_days"],
+      message: "100 rows imported. Insights include this dataset.",
+      rows_imported: 100,
+      error_count: 0,
+      updated_at_epoch: 1780343760
+    },
+    {
+      entity: "inventory_lots",
+      label: "Inventory lots",
+      status: "complete",
+      required_columns: [
+        "lot_id",
+        "sku",
+        "warehouse",
+        "quantity_on_hand",
+        "received_date",
+        "expiration_date",
+        "unit_cost"
+      ],
+      message: "505 rows imported. Insights include this dataset.",
+      rows_imported: 505,
+      error_count: 0,
+      updated_at_epoch: 1780343880
+    },
+    {
+      entity: "customers",
+      label: "Customers",
+      status: "complete",
+      required_columns: ["customer_id", "name", "region", "channel"],
+      message: "50 rows imported. Insights include this dataset.",
+      rows_imported: 50,
+      error_count: 0,
+      updated_at_epoch: 1780343640
+    },
+    {
+      entity: "orders",
+      label: "Orders",
+      status: "complete",
+      required_columns: ["order_id", "customer_id", "order_date", "sku", "quantity"],
+      message: "5,446 rows imported. Insights include this dataset.",
+      rows_imported: 5446,
+      error_count: 0,
+      updated_at_epoch: 1780344000
+    },
+    {
+      entity: "inbound_shipments",
+      label: "Inbound shipments",
+      status: "complete",
+      required_columns: ["shipment_id", "sku", "quantity", "eta_date", "origin", "status"],
+      message: "25 rows imported. Insights include this dataset.",
+      rows_imported: 25,
+      error_count: 0,
+      updated_at_epoch: 1780343520
+    }
+  ]
+};
+
 export function demoSkuDetail(sku: string) {
   const product = products.find((item) => item.sku === sku) || products[0];
   return {
@@ -248,6 +364,7 @@ function demoQuery(question: string) {
 
 export function getDemoGet(path: string) {
   if (path.startsWith("/api/dashboard")) return demoDashboard;
+  if (path.startsWith("/api/import-history")) return demoImportHistory;
   if (path.startsWith("/api/products")) return { rows: products, count: products.length };
   if (path.startsWith("/api/customers?")) return { rows: customers, count: customers.length };
   if (path.startsWith("/api/sku/")) return demoSkuDetail(decodeURIComponent(path.split("/api/sku/")[1]));
