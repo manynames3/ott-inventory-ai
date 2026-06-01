@@ -336,6 +336,26 @@ export default function ImportsPage() {
     window.URL.revokeObjectURL(url);
   }
 
+  async function downloadExport(entity: string) {
+    const url = IS_DEMO_MODE
+      ? `/sample_data/ottogi_demo/${entity}.csv`
+      : `${API_BASE_URL}/api/exports/${entity}.csv`;
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: IS_DEMO_MODE ? undefined : authHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(`Could not download ${entity} export.`);
+    }
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `${entity}_export.csv`;
+    link.click();
+    window.URL.revokeObjectURL(objectUrl);
+  }
+
   async function previewImport(entity: string) {
     if (IS_DEMO_MODE) {
       setMessages((current) => ({
@@ -544,14 +564,18 @@ export default function ImportsPage() {
               onChange={(event) => onFile(entity, event)}
             />
             <div className="template-actions">
+              <button className="button secondary" type="button" onClick={() => downloadExport(entity)}>
+                <FileDown size={16} />
+                Export CSV
+              </button>
               <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "csv")}>
                 <FileDown size={16} />
-                CSV
+                CSV Template
               </button>
               {!IS_DEMO_MODE ? (
                 <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "xlsx")}>
                   <FileDown size={16} />
-                  Excel
+                  Excel Template
                 </button>
               ) : null}
             </div>

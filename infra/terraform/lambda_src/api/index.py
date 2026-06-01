@@ -361,8 +361,49 @@ def _template_response(event: Dict[str, Any], path: str) -> Dict[str, Any]:
     return _json(event, 404, {"detail": "Template format must be csv or xlsx."})
 
 
+def _csv_export(entity: str, rows: List[Dict[str, Any]]) -> bytes:
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=REQUIRED_COLUMNS[entity], lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({column: row.get(column, "") for column in REQUIRED_COLUMNS[entity]})
+    return output.getvalue().encode("utf-8")
+
+
+def _export_response(event: Dict[str, Any], path: str) -> Dict[str, Any]:
+    user = _require_user(event)
+    if not user:
+        return _json(event, 401, {"detail": "Login required."})
+    filename = path.rsplit("/", 1)[-1]
+    entity, _, extension = filename.partition(".")
+    if entity not in REQUIRED_COLUMNS or extension != "csv":
+        return _json(event, 404, {"detail": "Export format must be a supported entity CSV."})
+    rows = _query_all_records(entity)
+    _audit_event(event, "export_downloaded", entity, {"rows": len(rows), "format": "csv"}, user.get("sub"))
+    return _text(event, 200, _csv_export(entity, rows), "text/csv", f"{entity}_export.csv")
+
+
 def _record_pk(entity: str) -> str:
     return f"{TENANT_PK}#entity#{entity}"
+
+
+def _query_all_records(entity: str) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    start_key = None
+    while True:
+        kwargs: Dict[str, Any] = {
+            "TableName": os.environ["AWS_DYNAMODB_RECORDS_TABLE"],
+            "KeyConditionExpression": "pk = :pk",
+            "ExpressionAttributeValues": {":pk": {"S": _record_pk(entity)}},
+        }
+        if start_key:
+            kwargs["ExclusiveStartKey"] = start_key
+        response = dynamodb.query(**kwargs)
+        for item in response.get("Items", []):
+            rows.append(json.loads(item.get("data", {}).get("S", "{}")))
+        start_key = response.get("LastEvaluatedKey")
+        if not start_key:
+            return rows
 
 
 def _query_records(entity: str, limit: int = 500) -> List[Dict[str, Any]]:
@@ -1044,6 +1085,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 },
             },
         )
+    if method == "GET" and path.startswith("/api/exports/"):
+        return _export_response(event, path)
     if method == "GET" and path.startswith("/api/templates/"):
         return _template_response(event, path)
     if method == "POST" and path == "/api/uploads/presign":
