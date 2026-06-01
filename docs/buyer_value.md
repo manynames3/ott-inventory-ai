@@ -27,6 +27,26 @@ Inventory AI turns existing operational exports into daily actions:
 
 The product is not pitched as abstract AI. It is pitched as a planner workflow that protects margin and service levels.
 
+## Relationship To SAP And Oracle
+
+Inventory AI is not a replacement for SAP, Oracle, or a WMS. It is a decision layer over systems that already contain valuable operational data.
+
+The buyer-safe positioning is:
+
+> SAP and Oracle remain the system of record. Inventory AI turns ERP/WMS exports into expiration-aware actions, plain-language answers, and ROI explanations for planners.
+
+That distinction matters because SAP and Oracle can already support lot tracking, shelf-life data, batch controls, replenishment planning, and inventory exceptions when configured. Inventory AI's wedge is not "ERP cannot do this." The wedge is "operators need a faster way to decide what to do with the data."
+
+The app is useful when a planner needs to quickly answer:
+
+- Which lots should ship first, and what is the business reason?
+- Which inventory is about to become a margin problem?
+- Which SKUs will stock out before inbound supply arrives?
+- Which recurring customers can absorb at-risk inventory?
+- What should be reordered this week, and what should wait?
+
+See [erp_positioning.md](erp_positioning.md) for the detailed SAP/Oracle comparison.
+
 ## ROI Levers
 
 Inventory AI supports five measurable ROI levers:

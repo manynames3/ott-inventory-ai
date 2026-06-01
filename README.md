@@ -26,6 +26,14 @@ The product is designed to prove ROI quickly in a pilot:
 - Align customer allocation with buying cadence so high-velocity customers receive constrained inventory first.
 - Create a clean path from CSV exports to ERP-ready adapters without requiring live SAP or Oracle access on day one.
 
+## ERP Positioning
+
+Inventory AI does not replace SAP or Oracle. Those systems remain the system of record for transactions, master data, purchasing, financial controls, inventory movements, and formal planning workflows.
+
+Inventory AI sits above ERP/WMS data as an expiration-aware decision layer. It helps planners answer "what should we ship, transfer, promote, discount, or reorder this week, and why?" using plain-language explanations that connect lot expiration, demand, inbound supply, lead time, customer buying cadence, and inventory value.
+
+See [docs/erp_positioning.md](docs/erp_positioning.md) for the buyer-facing comparison.
+
 ## Pilot Framing
 
 For a target account such as Ottogi USA / Ottogi America, the pilot should be scoped around one warehouse or a focused set of imported SKUs:
@@ -36,7 +44,7 @@ For a target account such as Ottogi USA / Ottogi America, the pilot should be sc
 - Validate whether recommendations match planner judgment and quantify preventable write-off or stockout exposure.
 - Expand only after the team trusts the explanations and the CSV field contract.
 
-See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
+See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative, [docs/erp_positioning.md](docs/erp_positioning.md) for SAP/Oracle positioning, and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
 
 ## Stack
 
@@ -170,7 +178,7 @@ The query page uses safe rule-based templates rather than arbitrary SQL executio
 
 ## ERP Integration
 
-CSV is the first adapter. SAP and Oracle placeholders are included without live connections or credentials. The expected ERP field contract is documented in [docs/erp_integration.md](docs/erp_integration.md).
+CSV is the first adapter. SAP and Oracle placeholders are included without live connections or credentials. The expected ERP field contract is documented in [docs/erp_integration.md](docs/erp_integration.md), and the positioning against SAP/Oracle is documented in [docs/erp_positioning.md](docs/erp_positioning.md).
 
 ## Tests
 
