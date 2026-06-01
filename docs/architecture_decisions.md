@@ -6,7 +6,7 @@ Inventory AI is designed as a pragmatic MVP: prove the business workflow first, 
 
 - Deliver a public buyer-facing frontend quickly.
 - Keep operational logic in a backend that can run close to PostgreSQL and Python forecasting libraries.
-- Support CSV first while leaving room for ERP adapters.
+- Support Excel/CSV first while leaving room for ERP adapters.
 - Make recommendations explainable enough for planner review.
 - Avoid hardcoded credentials and keep deployment environment-specific.
 - Keep forecasting and reorder logic modular so more advanced models can replace the first-pass algorithms.
@@ -21,6 +21,8 @@ Cloudflare Pages static frontend
         |
         v
 FastAPI backend
+        |
+        +--> Optional Amazon S3 raw Excel/CSV storage
         |
         v
 PostgreSQL operational schema
@@ -88,19 +90,20 @@ Tradeoff:
 
 - The MVP worker is simple. A production pilot should add job status, retries, and observability.
 
-## Adapter Pattern: CSV First, ERP Later
+## File Intake: Excel/CSV First, ERP Later
 
-Decision: implement CSV as the first adapter and add SAP/Oracle placeholders.
+Decision: implement Excel/CSV uploads as the first adapter path and add SAP/Oracle placeholders.
 
 Reasoning:
 
 - Pilots should not depend on live ERP credentials or lengthy IT approvals.
-- CSV exports are enough to validate decision quality.
+- Excel and CSV exports are enough to validate decision quality.
+- S3 can retain the raw uploaded file while PostgreSQL serves fast operational queries.
 - A shared field contract keeps future SAP, Oracle, EDI, or WMS adapters from changing downstream logic.
 
 Tradeoff:
 
-- CSV is batch-oriented. Live integration will be needed for daily or intra-day operations.
+- Excel/CSV is batch-oriented. Live integration will be needed for daily or intra-day operations.
 
 ## Forecasting: Simple, Explainable Baseline
 
@@ -155,9 +158,16 @@ Reasoning:
 - Secrets can live in Cloudflare, backend host settings, or CI secrets.
 - The repo can stay public without exposing credentials.
 
+Current MVP additions:
+
+- Environment-backed login with signed bearer tokens for controlled demos.
+- Template downloads for every import entity.
+- Optional S3 raw-file storage for uploaded Excel/CSV files.
+
 Production pilot additions:
 
-- Authentication and role-based access.
+- Cognito, SSO, or another identity provider for production authentication.
+- Tenant isolation and role-based access.
 - Audit logs for imports, exports, and accepted recommendations.
 - Data retention and deletion controls.
 - Separate demo, staging, and production environments.
@@ -177,8 +187,8 @@ Possible future Cloudflare additions:
 ## Production Readiness Path
 
 1. Host FastAPI and PostgreSQL.
-2. Add login, tenant isolation, and role-based access.
-3. Add downloadable CSV templates and import validation reports.
+2. Configure login secrets and optional S3 raw import storage.
+3. Add tenant isolation, role-based access, and audit logs.
 4. Add job status, retries, and worker observability.
 5. Add pilot reporting for waste avoided, stockouts flagged, and reorder dollars recommended.
 6. Add ERP/WMS adapter implementations after the CSV pilot validates the workflow.

@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BarChart3, Database, Search, UploadCloud } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BarChart3, Database, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
+
+import { clearAuthToken, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
@@ -9,6 +14,21 @@ const navItems = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    function syncToken() {
+      setHasToken(Boolean(getAuthToken()));
+    }
+    syncToken();
+    window.addEventListener("inventory-ai-auth", syncToken);
+    window.addEventListener("storage", syncToken);
+    return () => {
+      window.removeEventListener("inventory-ai-auth", syncToken);
+      window.removeEventListener("storage", syncToken);
+    };
+  }, []);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -31,6 +51,17 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          {IS_DEMO_MODE || !hasToken ? (
+            <Link href="/login" className="nav-item">
+              <LogIn size={18} />
+              <span>Login</span>
+            </Link>
+          ) : (
+            <button className="nav-item nav-button" type="button" onClick={clearAuthToken}>
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          )}
         </nav>
       </aside>
       <main className="content">{children}</main>

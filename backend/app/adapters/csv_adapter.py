@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date
+from io import BytesIO
+from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
@@ -41,15 +43,34 @@ class CSVImportAdapter(InventoryImportAdapter):
         return REQUIRED_COLUMNS
 
     def load_csv(self, entity: str, file_obj) -> ImportResult:
+        try:
+            content = file_obj.read()
+        except Exception as exc:
+            result = ImportResult(entity=entity)
+            result.errors.append(f"Could not read upload: {exc}")
+            return result
+        return self.load_file(entity, "upload.csv", content)
+
+    def load_file(self, entity: str, filename: str, content: bytes) -> ImportResult:
         result = ImportResult(entity=entity)
         if entity not in REQUIRED_COLUMNS:
             result.errors.append(f"Unsupported import entity '{entity}'.")
             return result
 
+        suffix = Path(filename).suffix.lower()
         try:
-            df = pd.read_csv(file_obj)
+            if suffix == ".csv" or not suffix:
+                df = pd.read_csv(BytesIO(content))
+            elif suffix in {".xlsx", ".xlsm"}:
+                df = pd.read_excel(BytesIO(content), engine="openpyxl")
+            elif suffix == ".xls":
+                result.errors.append("Legacy .xls files are not supported. Save the workbook as .xlsx or CSV.")
+                return result
+            else:
+                result.errors.append("Unsupported file type. Upload a .csv or .xlsx file.")
+                return result
         except Exception as exc:
-            result.errors.append(f"Could not read CSV: {exc}")
+            result.errors.append(f"Could not read {suffix or 'uploaded'} file: {exc}")
             return result
 
         result.rows_seen = len(df)
@@ -115,4 +136,3 @@ class CSVImportAdapter(InventoryImportAdapter):
             session.rollback()
             result.errors.append(f"Database import failed: {exc}")
         return result
-

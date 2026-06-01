@@ -109,9 +109,30 @@ Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudfla
 
 For a GitHub Actions deployment instead of Cloudflare's dashboard Git integration, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub repository secrets. The included workflow builds `frontend/out` and deploys it to a Pages project named `ott-inventory-ai`.
 
+## Hosted Backend, Login, And AWS File Intake
+
+The repo now includes the next pilot layer:
+
+- Login endpoints backed by environment variables and bearer tokens.
+- Downloadable CSV and Excel templates for every import entity.
+- Excel/CSV upload support through the same validated import path.
+- Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
+- Fast natural-language insights by loading normalized rows into PostgreSQL after upload.
+- A resettable Ottogi-style demo seed script for controlled backend demos.
+
+Recommended AWS pilot architecture:
+
+- FastAPI backend on AWS App Runner, ECS Fargate, or another Python-capable host.
+- Amazon S3 for raw Excel/CSV upload retention.
+- Amazon RDS or Aurora PostgreSQL for fast dashboard and natural-language query responses.
+- AWS Secrets Manager or SSM Parameter Store for environment variables.
+- Amazon Cognito or company SSO as the production replacement for MVP env-based login.
+
+Details are in [docs/aws_backend_and_data_lake.md](docs/aws_backend_and_data_lake.md).
+
 ## CSV Imports
 
-The import page accepts CSVs for:
+The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 
 - `products`: `sku`, `name`, `category`, `case_size`, `shelf_life_days`
 - `inventory_lots`: `lot_id`, `sku`, `warehouse`, `quantity_on_hand`, `received_date`, `expiration_date`, `unit_cost`
@@ -119,7 +140,9 @@ The import page accepts CSVs for:
 - `orders`: `order_id`, `customer_id`, `order_date`, `sku`, `quantity`
 - `inbound_shipments`: `shipment_id`, `sku`, `quantity`, `eta_date`, `origin`, `status`
 
-Validation errors are returned by the backend with missing or invalid columns.
+Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
+
+When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3, then imports normalized rows into PostgreSQL so dashboards and natural-language questions stay fast.
 
 The worker also supports a file-drop import queue. Place a CSV in `import_queue/` using a filename that starts with the entity, such as `products__june.csv` or `orders__week_22.csv`. The worker validates and imports it, then moves it to `import_queue/processed/` or `import_queue/failed/`.
 
@@ -186,6 +209,15 @@ Secrets and database credentials are read from `.env`. Do not commit `.env`.
 - `DATABASE_URL`
 - `NEXT_PUBLIC_API_BASE_URL`
 - `CORS_ORIGINS`
+- `AUTH_ENABLED`
+- `AUTH_USERNAME`
+- `AUTH_PASSWORD`
+- `AUTH_SECRET_KEY`
+- `AUTH_TOKEN_TTL_MINUTES`
 - `SUPPLIER_LEAD_TIME_DAYS`
 - `FORECAST_INTERVAL_SECONDS`
 - `IMPORT_QUEUE_DIR`
+- `AWS_REGION`
+- `AWS_S3_RAW_IMPORT_BUCKET`
+- `AWS_S3_IMPORT_PREFIX`
+- `ALLOW_DEMO_SEED`

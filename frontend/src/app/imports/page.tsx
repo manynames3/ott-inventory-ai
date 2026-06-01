@@ -1,13 +1,38 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { FileDown, UploadCloud } from "lucide-react";
 
-import { API_BASE_URL, IS_DEMO_MODE } from "@/lib/api";
+import { API_BASE_URL, IS_DEMO_MODE, apiGet, apiUpload, authHeaders } from "@/lib/api";
 
 type Requirements = {
   csv_required_columns: Record<string, string[]>;
   erp_adapters: Record<string, string>;
+  supported_upload_formats?: string[];
+  raw_file_storage?: {
+    service: string;
+    enabled: boolean;
+    bucket_configured: boolean;
+    prefix: string;
+  };
+};
+
+type UploadResponse = {
+  entity: string;
+  rows_seen: number;
+  rows_imported: number;
+  message: string;
+  raw_file_storage?: {
+    enabled: boolean;
+    stored?: {
+      service: string;
+      bucket: string;
+      key: string;
+      region: string;
+    } | null;
+    error?: string | null;
+  };
+  next_questions?: string[];
 };
 
 const fallbackEntities: Record<string, string[]> = {
@@ -33,8 +58,7 @@ export default function ImportsPage() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/import/requirements`)
-      .then((response) => response.json())
+    apiGet<Requirements>("/api/import/requirements")
       .then(setRequirements)
       .catch(() => setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} }));
   }, []);
@@ -46,6 +70,79 @@ export default function ImportsPage() {
       ...current,
       [entity]: event.target.files?.[0] || null
     }));
+  }
+
+  function demoTemplateRows(entity: string): Record<string, string | number> {
+    const samples: Record<string, Record<string, string | number>> = {
+      products: {
+        sku: "OTG-RAM-001",
+        name: "Golden Kettle Mild Ramyeon Case",
+        category: "Noodles",
+        case_size: 24,
+        shelf_life_days: 270
+      },
+      inventory_lots: {
+        lot_id: "LOT-LA-240601-001",
+        sku: "OTG-RAM-001",
+        warehouse: "LA DC",
+        quantity_on_hand: 840,
+        received_date: "2026-04-15",
+        expiration_date: "2026-08-30",
+        unit_cost: 18.75
+      },
+      customers: {
+        customer_id: "CUST-HMART-WEST",
+        name: "H Mart West",
+        region: "West",
+        channel: "Retail"
+      },
+      orders: {
+        order_id: "ORD-20260531-001",
+        customer_id: "CUST-HMART-WEST",
+        order_date: "2026-05-31",
+        sku: "OTG-RAM-001",
+        quantity: 120
+      },
+      inbound_shipments: {
+        shipment_id: "INB-BUSAN-001",
+        sku: "OTG-RAM-001",
+        quantity: 1800,
+        eta_date: "2026-06-28",
+        origin: "Busan",
+        status: "in_transit"
+      }
+    };
+    return samples[entity] || {};
+  }
+
+  async function downloadTemplate(entity: string, format: "csv" | "xlsx") {
+    if (IS_DEMO_MODE) {
+      const row = demoTemplateRows(entity);
+      const headers = columns[entity];
+      const csv = `${headers.join(",")}\n${headers.map((header) => row[header] ?? "").join(",")}\n`;
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${entity}_template.csv`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/templates/${entity}.${format}`, {
+      headers: authHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(`Could not download ${entity} template.`);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${entity}_template.${format}`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   }
 
   async function upload(entity: string) {
@@ -64,7 +161,7 @@ export default function ImportsPage() {
     if (!file) {
       setMessages((current) => ({
         ...current,
-        [entity]: { type: "error", text: "Choose a CSV file first." }
+        [entity]: { type: "error", text: "Choose a CSV or Excel file first." }
       }));
       return;
     }
@@ -75,18 +172,19 @@ export default function ImportsPage() {
     setMessages((current) => ({ ...current, [entity]: { type: "ok", text: "Uploading..." } }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/import/${entity}`, {
-        method: "POST",
-        body: formData
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        const errors = body?.detail?.errors?.join(" ") || body?.detail || "Import failed.";
-        throw new Error(errors);
-      }
+      const body = await apiUpload<UploadResponse>(`/api/import/${entity}`, formData);
+      const stored = body.raw_file_storage?.stored;
+      const storageText = stored
+        ? ` Raw file stored in ${stored.service.toUpperCase()} at ${stored.bucket}/${stored.key}.`
+        : body.raw_file_storage?.enabled
+          ? " Raw file storage is configured but did not return an object key."
+          : " Raw S3 storage is not configured; rows were imported into the query store.";
+      const questionText = body.next_questions?.length
+        ? ` Try asking: ${body.next_questions.join(" | ")}`
+        : "";
       setMessages((current) => ({
         ...current,
-        [entity]: { type: "ok", text: body.message || "Import complete." }
+        [entity]: { type: "ok", text: `${body.message || "Import complete."}${storageText}${questionText}` }
       }));
     } catch (error) {
       setMessages((current) => ({
@@ -102,15 +200,21 @@ export default function ImportsPage() {
     <>
       <header className="page-header">
         <div>
-          <h1>CSV Imports</h1>
-          <p>Validated ERP/WMS exports for products, lots, orders, customers, and inbound containers.</p>
+          <h1>File Imports</h1>
+          <p>Validated CSV and Excel exports for products, lots, orders, customers, and inbound containers.</p>
         </div>
       </header>
 
       <section className="panel">
         {IS_DEMO_MODE ? (
           <div className="message ok">
-            Demo mode is active. CSV templates are shown, but uploads require a live FastAPI backend.
+            Demo mode is active. CSV template downloads work here; Excel templates and uploads require a live FastAPI backend.
+          </div>
+        ) : null}
+        {requirements?.raw_file_storage ? (
+          <div className="message ok">
+            Raw Excel/CSV storage: {requirements.raw_file_storage.enabled ? "S3 enabled" : "S3 not configured"}.
+            Query speed comes from importing normalized rows into the operational database after upload.
           </div>
         ) : null}
         {Object.entries(columns).map(([entity, required]) => (
@@ -119,7 +223,24 @@ export default function ImportsPage() {
               <strong>{entity.replaceAll("_", " ")}</strong>
               <p>{required.join(", ")}</p>
             </div>
-            <input className="input" type="file" accept=".csv,text/csv" onChange={(event) => onFile(entity, event)} />
+            <input
+              className="input"
+              type="file"
+              accept=".csv,text/csv,.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(event) => onFile(entity, event)}
+            />
+            <div className="template-actions">
+              <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "csv")}>
+                <FileDown size={16} />
+                CSV
+              </button>
+              {!IS_DEMO_MODE ? (
+                <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "xlsx")}>
+                  <FileDown size={16} />
+                  Excel
+                </button>
+              ) : null}
+            </div>
             <button className="button" type="button" disabled={loading[entity]} onClick={() => upload(entity)}>
               <UploadCloud size={17} />
               Upload

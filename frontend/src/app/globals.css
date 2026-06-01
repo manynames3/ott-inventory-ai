@@ -112,6 +112,14 @@ select {
   color: #36413c;
 }
 
+.nav-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
 .nav-item:hover {
   background: #edf2ee;
 }
@@ -469,7 +477,7 @@ select {
 
 .upload-row {
   display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   padding: 12px 0;
@@ -482,6 +490,16 @@ select {
 
 .upload-row .message {
   grid-column: 1 / -1;
+}
+
+.template-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-panel {
+  max-width: 520px;
 }
 
 .message {

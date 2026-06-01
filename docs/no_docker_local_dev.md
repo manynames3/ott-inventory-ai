@@ -20,6 +20,10 @@ For a local PostgreSQL instance, `DATABASE_URL` should look like:
 ```bash
 export DATABASE_URL="postgresql+psycopg://inventory_ai_local:your_password@localhost:5432/inventory_ai"
 export CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+export AUTH_ENABLED=true
+export AUTH_USERNAME="planner@example.com"
+export AUTH_PASSWORD="replace_with_a_demo_password"
+export AUTH_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
 export SUPPLIER_LEAD_TIME_DAYS=30
 export FORECAST_INTERVAL_SECONDS=3600
 export IMPORT_QUEUE_DIR="../import_queue"
@@ -32,6 +36,8 @@ For a managed PostgreSQL database, use that provider's SQLAlchemy-compatible con
 ```bash
 python -m app.migrate
 python -m app.seed
+# or load the buyer-demo dataset
+python -m app.seed_ottogi_demo
 ```
 
 4. Start the API:
@@ -57,4 +63,3 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
 If Node/npm is not installed locally, Cloudflare Pages can build the frontend from GitHub. Set `NEXT_PUBLIC_DEMO_MODE=true` until the backend API has a public URL.
-

@@ -19,6 +19,19 @@ class Settings:
     supplier_lead_time_days: int
     forecast_interval_seconds: int
     import_queue_dir: str
+    auth_enabled: bool
+    auth_username: str
+    auth_password: str
+    auth_secret_key: str
+    auth_token_ttl_minutes: int
+    aws_region: str
+    aws_s3_raw_import_bucket: str
+    aws_s3_import_prefix: str
+    allow_demo_seed: bool
+
+
+def _get_bool(name: str, default: str = "false") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def get_settings() -> Settings:
@@ -29,4 +42,13 @@ def get_settings() -> Settings:
         supplier_lead_time_days=int(os.getenv("SUPPLIER_LEAD_TIME_DAYS", "30")),
         forecast_interval_seconds=int(os.getenv("FORECAST_INTERVAL_SECONDS", "3600")),
         import_queue_dir=os.getenv("IMPORT_QUEUE_DIR", "/app/import_queue"),
+        auth_enabled=_get_bool("AUTH_ENABLED", "true"),
+        auth_username=os.getenv("AUTH_USERNAME", ""),
+        auth_password=os.getenv("AUTH_PASSWORD", ""),
+        auth_secret_key=os.getenv("AUTH_SECRET_KEY", ""),
+        auth_token_ttl_minutes=int(os.getenv("AUTH_TOKEN_TTL_MINUTES", "720")),
+        aws_region=os.getenv("AWS_REGION", "us-west-2"),
+        aws_s3_raw_import_bucket=os.getenv("AWS_S3_RAW_IMPORT_BUCKET", ""),
+        aws_s3_import_prefix=os.getenv("AWS_S3_IMPORT_PREFIX", "inventory-ai/raw-imports"),
+        allow_demo_seed=_get_bool("ALLOW_DEMO_SEED", "false"),
     )
