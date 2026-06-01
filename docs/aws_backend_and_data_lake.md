@@ -117,6 +117,24 @@ For the first hosted pilot:
 6. Set backend `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`.
 7. Seed demo data with `python -m app.seed_ottogi_demo`, or enable `ALLOW_DEMO_SEED=true` only in a controlled demo environment and call `/api/demo/seed-ottogi`.
 
+### App Runner Source Deployment
+
+The repo includes `backend/apprunner.yaml` for a no-local-Docker backend deploy. In App Runner, connect the GitHub repo and set the source directory to `backend`.
+
+Runtime configuration to set in App Runner:
+
+- `DATABASE_URL`: RDS/Aurora PostgreSQL connection string.
+- `AUTH_ENABLED=true`
+- `AUTH_USERNAME`, `AUTH_PASSWORD`, `AUTH_SECRET_KEY`: from Secrets Manager or App Runner secrets.
+- `AWS_REGION`, `AWS_S3_RAW_IMPORT_BUCKET`, `AWS_S3_IMPORT_PREFIX`: for raw Excel/CSV retention.
+- `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`
+
+The `apprunner.yaml` file installs Python dependencies and runs:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
 ## Natural-Language Query Strategy
 
 The MVP uses rule-based templates over structured tables, not unrestricted SQL generation. This is deliberate:

@@ -119,6 +119,7 @@ The repo now includes the next pilot layer:
 - Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
 - Fast natural-language insights by loading normalized rows into PostgreSQL after upload.
 - A resettable Ottogi-style demo seed script for controlled backend demos.
+- `backend/apprunner.yaml` for AWS App Runner source deployment without local Docker.
 
 Recommended AWS pilot architecture:
 
@@ -130,7 +131,7 @@ Recommended AWS pilot architecture:
 
 Details are in [docs/aws_backend_and_data_lake.md](docs/aws_backend_and_data_lake.md).
 
-## CSV Imports
+## File Imports
 
 The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 
