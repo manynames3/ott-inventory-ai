@@ -13,3 +13,19 @@ tsconfig.tsbuildinfo
 dist/
 build/
 postgres_data/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+!infra/terraform/build/
+!infra/terraform/build/.gitkeep
+infra/terraform/build/*.zip

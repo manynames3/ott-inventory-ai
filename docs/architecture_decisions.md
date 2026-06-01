@@ -5,13 +5,14 @@ Inventory AI is designed as a pragmatic MVP: prove the business workflow first, 
 ## Architecture Goals
 
 - Deliver a public buyer-facing frontend quickly.
-- Keep operational logic in a backend that can run close to PostgreSQL and Python forecasting libraries.
+- Keep operational logic in a backend that can run forecasting and import logic without creating high idle cost.
 - Support Excel/CSV first while leaving room for ERP adapters.
 - Make recommendations explainable enough for planner review.
 - Avoid hardcoded credentials and keep deployment environment-specific.
+- Keep hosted MVP idle cost ideally under $10/month.
 - Keep forecasting and reorder logic modular so more advanced models can replace the first-pass algorithms.
 
-## Current Deployment Shape
+## Current Local / Reference Deployment Shape
 
 ```text
 Buyer / planner browser
@@ -31,7 +32,33 @@ PostgreSQL operational schema
 Python worker for imports and recommendation refreshes
 ```
 
-The Cloudflare Pages deployment currently runs the frontend in demo mode. A production pilot should add a hosted FastAPI backend and managed PostgreSQL database, then set `NEXT_PUBLIC_DEMO_MODE=false` and `NEXT_PUBLIC_API_BASE_URL` to the backend URL.
+The Cloudflare Pages deployment currently runs the frontend in demo mode. The local/reference backend uses FastAPI and PostgreSQL because that is straightforward for development and relational logic.
+
+## Low-Idle Hosted MVP Deployment Shape
+
+```text
+Buyer / planner browser
+        |
+        v
+Cloudflare Pages static frontend
+        |
+        v
+AWS Lambda Function URL API
+        |
+        +--> Amazon S3 raw Excel/CSV storage
+        |
+        +--> DynamoDB on-demand canonical records
+        |
+        v
+DynamoDB materialized recommendation/query views
+        |
+        v
+S3 event / EventBridge Scheduler triggered Lambda jobs
+```
+
+The first hosted MVP should avoid ECS Fargate, App Runner, RDS, Aurora, Application Load Balancer, and NAT Gateway. Those services can be useful later, but they create baseline cost before buyer usage proves value.
+
+Infrastructure for this path is managed with Terraform in [../infra/terraform](../infra/terraform), not CloudFormation.
 
 ## Frontend: Next.js Static Export
 
@@ -50,7 +77,7 @@ Tradeoff:
 
 ## Backend: FastAPI
 
-Decision: use FastAPI for business APIs, imports, natural-language query routing, and recommendation endpoints.
+Decision: use FastAPI for local/reference business APIs, imports, natural-language query routing, and recommendation endpoints. For the low-idle hosted MVP, expose equivalent endpoints with AWS Lambda Function URLs.
 
 Reasoning:
 
@@ -60,25 +87,28 @@ Reasoning:
 
 Tradeoff:
 
-- FastAPI needs a Python-capable host. Cloudflare Pages handles only the frontend in this MVP.
+- FastAPI needs a Python-capable host if deployed directly. The low-idle hosted path should avoid always-on Python containers until a paid pilot justifies them.
 
-## Database: PostgreSQL
+## Data Store: PostgreSQL Locally, DynamoDB Hosted
 
-Decision: use PostgreSQL as the system of record for products, lots, customers, orders, inbound shipments, recommendations, and alerts.
+Decision: use PostgreSQL as the local/reference model for products, lots, customers, orders, inbound shipments, recommendations, and alerts. Use DynamoDB on-demand plus materialized views for the low-idle hosted MVP.
 
 Reasoning:
 
 - The data is relational and operational.
 - SQL is the right fit for joining SKUs, lots, customers, orders, and shipments.
 - PostgreSQL is familiar to enterprise teams and easy to map from ERP exports.
+- DynamoDB on-demand is a better hosted MVP fit when the goal is near-zero idle cost.
+- Materialized recommendation views keep natural-language responses fast without arbitrary queries.
 
 Tradeoff:
 
-- Local setup needs either Docker or a reachable Postgres instance. The repo includes no-Docker instructions for managed development databases.
+- PostgreSQL is more natural for ad-hoc joins, but hosted RDS/Aurora introduces baseline cost.
+- DynamoDB requires designing access patterns and precomputing the specific views the app needs.
 
 ## Worker: Python Background Process
 
-Decision: keep import and forecasting refresh work in a separate Python worker.
+Decision: keep import and forecasting refresh work separate from user-facing requests. Locally this is a Python worker; in the low-idle hosted MVP it should be S3 event or EventBridge Scheduler triggered Lambda jobs.
 
 Reasoning:
 
@@ -88,7 +118,7 @@ Reasoning:
 
 Tradeoff:
 
-- The MVP worker is simple. A production pilot should add job status, retries, and observability.
+- The MVP worker is simple. A production pilot should add job status, retries, dead-letter queues, and observability.
 
 ## File Intake: Excel/CSV First, ERP Later
 
@@ -98,7 +128,8 @@ Reasoning:
 
 - Pilots should not depend on live ERP credentials or lengthy IT approvals.
 - Excel and CSV exports are enough to validate decision quality.
-- S3 can retain the raw uploaded file while PostgreSQL serves fast operational queries.
+- S3 can retain the raw uploaded file while DynamoDB materialized views serve fast hosted MVP queries.
+- PostgreSQL remains available for local/reference workflows and richer paid-pilot deployments.
 - A shared field contract keeps future SAP, Oracle, EDI, or WMS adapters from changing downstream logic.
 
 Tradeoff:
@@ -163,6 +194,7 @@ Current MVP additions:
 - Environment-backed login with signed bearer tokens for controlled demos.
 - Template downloads for every import entity.
 - Optional S3 raw-file storage for uploaded Excel/CSV files.
+- Low-idle hosted target using Lambda Function URL, S3, DynamoDB on-demand, and event-driven jobs.
 
 Production pilot additions:
 
@@ -186,9 +218,10 @@ Possible future Cloudflare additions:
 
 ## Production Readiness Path
 
-1. Host FastAPI and PostgreSQL.
-2. Configure login secrets and optional S3 raw import storage.
+1. Host the low-idle MVP with Cloudflare Pages, Lambda Function URL, S3, DynamoDB on-demand, and event-driven Lambda jobs.
+2. Configure login secrets, private S3 upload storage, and AWS Budget alerts at $5 and $10.
 3. Add tenant isolation, role-based access, and audit logs.
-4. Add job status, retries, and worker observability.
+4. Add job status, retries, dead-letter queues, and observability.
 5. Add pilot reporting for waste avoided, stockouts flagged, and reorder dollars recommended.
 6. Add ERP/WMS adapter implementations after the CSV pilot validates the workflow.
+7. Upgrade to PostgreSQL/RDS/App Runner/ECS only after paid usage justifies the baseline cost.

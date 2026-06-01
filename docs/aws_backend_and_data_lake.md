@@ -1,34 +1,42 @@
 # AWS Backend And Excel Intake Architecture
 
-This build adds the pilot path a buyer can actually evaluate: a hosted backend with login, downloadable templates, Excel/CSV uploads, S3 raw-file retention, and fast natural-language insights over normalized operational data.
+This build adds the pilot path a buyer can actually evaluate: login, downloadable templates, Excel/CSV uploads, S3 raw-file retention, and fast natural-language insights over normalized operational data.
+
+For the MVP, the hosted architecture must keep idle cost near zero. Do not use always-on compute or databases for the first hosted demo. See [low_idle_mvp_architecture.md](low_idle_mvp_architecture.md) for the target <$10/month design.
+
+Provision this path with Terraform from [../infra/terraform](../infra/terraform). Do not use CloudFormation for the MVP infrastructure.
 
 ## Recommended AWS Services
 
-| Need | Recommended AWS Service | Why |
+| Need | Low-Idle MVP Service | Why |
 | --- | --- | --- |
-| Hosted FastAPI backend | AWS App Runner or ECS Fargate | Runs Python, Pandas, NumPy, and API code without forcing the backend into an edge runtime. |
-| Fast operational queries | Amazon RDS PostgreSQL or Aurora PostgreSQL | Low-latency joins across products, lots, orders, customers, and inbound shipments. |
+| Hosted API | AWS Lambda Function URL | Runs only when invoked and avoids API Gateway cost for the first simple API. |
+| Fast operational queries | Amazon DynamoDB on-demand | Pay-per-request query store with no provisioned idle throughput. |
 | Raw Excel/CSV retention | Amazon S3 | Durable, low-cost storage for original uploads and audit trail. |
-| Secrets | AWS Secrets Manager or SSM Parameter Store | Keeps credentials and signing secrets out of code. |
-| Production login | Amazon Cognito or company SSO | Replaces MVP env-based login for real users. |
-| Ad-hoc lake analytics | AWS Glue + Athena | Optional later layer for raw S3 data exploration. |
+| Import jobs | S3 event -> Lambda | Runs validation and recommendation refresh only after file upload. |
+| Scheduled refreshes | EventBridge Scheduler -> Lambda | Optional timed jobs with no always-on worker. |
+| Secrets | Lambda env vars, SSM Parameter Store, or Secrets Manager | Keeps credentials and signing secrets out of code. |
+| Production login | Cloudflare Access, Cognito, or company SSO | Replaces MVP env-based login when a real buyer needs managed identity. |
+| Ad-hoc lake analytics | Athena or Glue | Optional later layer for raw S3 data exploration. |
 | AI-assisted query expansion | Amazon Bedrock | Optional later layer for permissioned text-to-SQL or query suggestions. |
 
-## Why S3 Plus PostgreSQL
+## Why S3 Plus DynamoDB For The Hosted MVP
 
 The user uploads Excel files, but Excel is not the fast query layer.
 
-Inventory AI uses two layers:
+For the low-idle hosted MVP, Inventory AI uses three layers:
 
 1. **S3 raw zone**: Stores the original `.csv`, `.xlsx`, or `.xlsm` file exactly as uploaded. This supports auditability, reprocessing, and future data-lake workflows.
-2. **PostgreSQL serving layer**: Stores normalized rows in relational tables for low-latency dashboard and natural-language query responses.
+2. **DynamoDB canonical records**: Stores normalized products, lots, orders, customers, and inbound shipments in a pay-per-request serving store.
+3. **Materialized insight views**: Stores precomputed dashboard KPIs, FEFO recommendations, waste-risk alerts, stockout risks, reorder recommendations, and customer-SKU cadence records.
 
 This keeps the pilot fast and defensible:
 
 - S3 answers "what source file did the user provide?"
-- PostgreSQL answers "which SKUs will stock out, which lots expire soon, and what should we reorder?"
+- DynamoDB answers "which precomputed recommendation or canonical record should I return?"
+- Lambda answers "how do I map this natural-language question to a safe view read?"
 
-Athena is useful for ad-hoc analytics over large S3 partitions, but the planner workflow needs responsive application queries. That is why the MVP imports into PostgreSQL immediately after upload.
+PostgreSQL remains useful for local development and later paid pilots because the domain is relational. It should not be the first hosted choice when the budget target is under $10/month. Athena is useful for ad-hoc analytics over large S3 partitions, but the planner workflow needs responsive application queries. That is why the MVP should materialize high-value views after upload.
 
 ## Upload Flow
 
@@ -36,18 +44,18 @@ Athena is useful for ad-hoc analytics over large S3 partitions, but the planner 
 Planner uploads Excel/CSV
         |
         v
-FastAPI validates entity and required columns
+Lambda validates entity and required columns
         |
-        +--> Optional S3 raw upload
-        |
-        v
-Pandas normalizes dates and numeric fields
+        +--> S3 raw upload
         |
         v
-PostgreSQL merge/upsert by business key
+Normalize dates and numeric fields
         |
         v
-Recommendation refresh
+DynamoDB canonical records
+        |
+        v
+DynamoDB materialized recommendation views
         |
         v
 Dashboard and natural-language query answers
@@ -80,7 +88,15 @@ AWS_S3_RAW_IMPORT_BUCKET=<your-private-raw-import-bucket>
 AWS_S3_IMPORT_PREFIX=inventory-ai/raw-imports
 ```
 
-The backend uses the default AWS credential chain. On AWS, prefer an IAM role attached to App Runner/ECS instead of static access keys.
+Low-idle DynamoDB tables:
+
+```bash
+AWS_DYNAMODB_RECORDS_TABLE=inventory_ai_records
+AWS_DYNAMODB_VIEWS_TABLE=inventory_ai_views
+AWS_DYNAMODB_IMPORTS_TABLE=inventory_ai_imports
+```
+
+The backend uses the default AWS credential chain. On AWS, prefer an IAM role attached to Lambda instead of static access keys.
 
 ## S3 Bucket Policy Guidance
 
@@ -103,37 +119,35 @@ Minimum permissions for the backend role:
 
 Add encryption, lifecycle rules, and object lock according to customer data-retention requirements.
 
-## Hosted Backend Deployment Shape
+## Low-Idle Hosted Backend Deployment Shape
 
 For the first hosted pilot:
 
-1. Create an RDS/Aurora PostgreSQL database.
-2. Run `backend/migrations/001_init.sql`.
-3. Deploy the FastAPI backend to App Runner or ECS Fargate.
-4. Configure environment variables from Secrets Manager or App Runner secret references.
-5. Set Cloudflare Pages variables:
+1. Keep the frontend on Cloudflare Pages static hosting.
+2. Create a private S3 bucket for raw Excel/CSV uploads.
+3. Create DynamoDB on-demand tables for canonical records, materialized insight views, and import status.
+4. Deploy a Lambda API behind a Lambda Function URL.
+5. Add an import Lambda triggered by S3 object-created events.
+6. Add optional EventBridge Scheduler refreshes if recommendations need periodic recalculation.
+7. Configure environment variables from Lambda env vars, SSM Parameter Store, or Secrets Manager.
+8. Set Cloudflare Pages variables:
    - `NEXT_PUBLIC_DEMO_MODE=false`
    - `NEXT_PUBLIC_API_BASE_URL=https://<backend-host>`
-6. Set backend `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`.
-7. Seed demo data with `python -m app.seed_ottogi_demo`, or enable `ALLOW_DEMO_SEED=true` only in a controlled demo environment and call `/api/demo/seed-ottogi`.
+9. Set backend `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`.
+10. Seed demo data by uploading the Ottogi-style CSV/Excel template set or by invoking a controlled demo seed Lambda.
 
-### App Runner Source Deployment
+## Services To Avoid For The <$10 MVP
 
-The repo includes `backend/apprunner.yaml` for a no-local-Docker backend deploy. In App Runner, connect the GitHub repo and set the source directory to `backend`.
+Do not use these as the default hosted MVP path:
 
-Runtime configuration to set in App Runner:
+- ECS Fargate
+- App Runner
+- RDS PostgreSQL
+- Aurora PostgreSQL
+- Application Load Balancer
+- NAT Gateway
 
-- `DATABASE_URL`: RDS/Aurora PostgreSQL connection string.
-- `AUTH_ENABLED=true`
-- `AUTH_USERNAME`, `AUTH_PASSWORD`, `AUTH_SECRET_KEY`: from Secrets Manager or App Runner secrets.
-- `AWS_REGION`, `AWS_S3_RAW_IMPORT_BUCKET`, `AWS_S3_IMPORT_PREFIX`: for raw Excel/CSV retention.
-- `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`
-
-The `apprunner.yaml` file installs Python dependencies and runs:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+Those services can be appropriate later, but they create baseline cost before usage is proven. Use them only after a paid pilot requires relational SQL, longer-running jobs, private networking, or heavier workloads.
 
 ## Natural-Language Query Strategy
 
@@ -150,7 +164,7 @@ The MVP uses rule-based templates over structured tables, not unrestricted SQL g
 Future versions can add Bedrock-assisted text-to-SQL with guardrails:
 
 - read-only database role,
-- table allowlist,
+- table/view allowlist,
 - row limits,
 - query timeout,
 - SQL explanation before execution,

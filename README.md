@@ -50,7 +50,8 @@ See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative, [
 
 - Frontend: Next.js + TypeScript
 - Backend: FastAPI
-- Database: PostgreSQL
+- Local/reference database: PostgreSQL
+- Low-idle hosted MVP store: S3 + DynamoDB on-demand materialized views
 - Forecasting: Pandas + NumPy
 - Worker: Python background process for recommendation refresh jobs
 - Local development: Docker Compose
@@ -117,7 +118,7 @@ Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudfla
 
 The included Cloudflare Pages workflow is a manual fallback, not the primary push deploy path. Cloudflare's Git integration deploys pushes to `main`; the manual workflow requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets before it can be run.
 
-## Hosted Backend, Login, And AWS File Intake
+## Low-Idle Hosted Backend, Login, And AWS File Intake
 
 The repo now includes the next pilot layer:
 
@@ -125,19 +126,21 @@ The repo now includes the next pilot layer:
 - Downloadable CSV and Excel templates for every import entity.
 - Excel/CSV upload support through the same validated import path.
 - Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
-- Fast natural-language insights by loading normalized rows into PostgreSQL after upload.
+- Fast natural-language insights from normalized operational records and materialized recommendation views.
 - A resettable Ottogi-style demo seed script for controlled backend demos.
-- `backend/apprunner.yaml` for AWS App Runner source deployment without local Docker.
 
-Recommended AWS pilot architecture:
+Low-idle MVP hosting target:
 
-- FastAPI backend on AWS App Runner, ECS Fargate, or another Python-capable host.
+- Cloudflare Pages for the static frontend.
+- AWS Lambda Function URL for the live API instead of an always-on container.
 - Amazon S3 for raw Excel/CSV upload retention.
-- Amazon RDS or Aurora PostgreSQL for fast dashboard and natural-language query responses.
-- AWS Secrets Manager or SSM Parameter Store for environment variables.
-- Amazon Cognito or company SSO as the production replacement for MVP env-based login.
+- Amazon DynamoDB on-demand for canonical records and materialized recommendation/query views.
+- S3 events and/or EventBridge Scheduler to run import and forecast jobs only when needed.
+- SSM Parameter Store, Secrets Manager, or Lambda environment variables for secrets.
 
-Details are in [docs/aws_backend_and_data_lake.md](docs/aws_backend_and_data_lake.md).
+The MVP should avoid ECS Fargate, App Runner, RDS, Aurora, Application Load Balancers, and NAT Gateway until a paid pilot justifies their idle cost. Details are in [docs/low_idle_mvp_architecture.md](docs/low_idle_mvp_architecture.md) and [docs/aws_backend_and_data_lake.md](docs/aws_backend_and_data_lake.md).
+
+Terraform for the low-idle AWS MVP lives in [infra/terraform](infra/terraform). The repo does not use CloudFormation for this path.
 
 ## File Imports
 
@@ -151,7 +154,7 @@ The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 
 Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
 
-When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3, then imports normalized rows into PostgreSQL so dashboards and natural-language questions stay fast.
+When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL; the low-idle hosted MVP should write canonical rows and materialized insight views to DynamoDB on-demand so dashboards and natural-language questions stay fast without an always-on database.
 
 The worker also supports a file-drop import queue. Place a CSV in `import_queue/` using a filename that starts with the entity, such as `products__june.csv` or `orders__week_22.csv`. The worker validates and imports it, then moves it to `import_queue/processed/` or `import_queue/failed/`.
 

@@ -36,6 +36,9 @@ TEST_SETTINGS = Settings(
     aws_region="us-west-2",
     aws_s3_raw_import_bucket="",
     aws_s3_import_prefix="inventory-ai/raw-imports",
+    aws_dynamodb_records_table="inventory_ai_records",
+    aws_dynamodb_views_table="inventory_ai_views",
+    aws_dynamodb_imports_table="inventory_ai_imports",
     allow_demo_seed=False,
 )
 

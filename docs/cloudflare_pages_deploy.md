@@ -91,4 +91,4 @@ Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages dom
 
 ## Backend Hosting Note
 
-Cloudflare Pages hosts the frontend. The MVP backend remains FastAPI + PostgreSQL and should be hosted separately on a Python-capable platform or exposed temporarily with a secure tunnel for demos. The static frontend will still render demo data when the API is unavailable.
+Cloudflare Pages hosts the frontend. For the low-idle hosted MVP, point `NEXT_PUBLIC_API_BASE_URL` at the Lambda Function URL created by Terraform in [../infra/terraform](../infra/terraform). The FastAPI + PostgreSQL backend remains useful for local development and richer paid-pilot deployments, but it is not the default <$10/month hosting path.
