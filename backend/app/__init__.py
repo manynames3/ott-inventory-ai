@@ -1,0 +1,2 @@
+"""Inventory AI backend package."""
+
