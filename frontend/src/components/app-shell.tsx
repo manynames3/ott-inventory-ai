@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { BarChart3, Database, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
@@ -16,6 +17,8 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [hasToken, setHasToken] = useState(false);
+  const pathname = usePathname();
+  const isMarketingPage = pathname === "/sales" || pathname === "/sales/" || pathname === "/landing" || pathname === "/landing/";
 
   useEffect(() => {
     function syncToken() {
@@ -29,6 +32,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", syncToken);
     };
   }, []);
+
+  if (isMarketingPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="app-shell">
