@@ -3,7 +3,8 @@ environment = "mvp"
 
 allowed_origins = [
   "https://ott-inventory-ai.pages.dev",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
 ]
 
 # Leave empty to derive a globally unique bucket name from project, account, and region.

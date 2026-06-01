@@ -21,7 +21,8 @@ variable "allowed_origins" {
   type        = list(string)
   default = [
     "https://ott-inventory-ai.pages.dev",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
   ]
 }
 
