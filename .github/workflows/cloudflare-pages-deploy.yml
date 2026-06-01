@@ -19,7 +19,7 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || 'true' }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://api.example.com' }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws' }}
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler pages project create ott-inventory-ai --production-branch=main || true
         env:

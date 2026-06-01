@@ -1,6 +1,7 @@
 import { getDemoGet, getDemoPost } from "@/lib/demo-data";
 
-const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const HOSTED_API_BASE_URL = "https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws";
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || HOSTED_API_BASE_URL;
 
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
