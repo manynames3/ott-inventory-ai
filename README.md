@@ -171,7 +171,7 @@ For a controlled Ottogi-style pilot demo, use the generated files in `sample_dat
 PYTHONPATH=backend backend/.venv/bin/python -m app.export_ottogi_demo_csvs
 ```
 
-The exported set includes 100 SKUs, 505 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments.
+The exported set includes 110 Ottogi-inspired SKUs, 555 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments. The product catalog is grounded in Ottogi's public global sales catalog and product/category pages for ramen, curry, sauces, oils, vinegar, rice, retort meals, soup, frozen, tea, tuna, and seaweed items; SKU codes and operating data are demo-specific.
 
 The worker also supports a file-drop import queue. Place a CSV in `import_queue/` using a filename that starts with the entity, such as `products__june.csv` or `orders__week_22.csv`. The worker validates and imports it, then moves it to `import_queue/processed/` or `import_queue/failed/`.
 

@@ -26,6 +26,7 @@ Use the hosted pilot:
 - Frontend: `https://ott-inventory-ai.pages.dev`
 - Login: use the current pilot credential stored outside the repo.
 - Demo files: `sample_data/ottogi_demo/`
+- Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories; SKU IDs, lots, demand, costs, and customers are demo-specific.
 
 Load these files through the Imports page:
 
@@ -153,4 +154,3 @@ Keep the first buyer pilot narrow:
 - Weekly review cadence for four weeks.
 
 Expansion should happen only after planners agree that recommendations are useful and explainable.
-

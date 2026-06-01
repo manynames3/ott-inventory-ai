@@ -35,7 +35,7 @@ def _value(row: Any, field: str) -> Any:
 def _write_csv(path: Path, fields: list[str], rows: Iterable[Any]) -> int:
     count = 0
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: _value(row, field) for field in fields})
