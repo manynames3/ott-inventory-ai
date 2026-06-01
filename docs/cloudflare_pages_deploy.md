@@ -23,16 +23,22 @@ git push -u origin main
 
 The included GitHub Actions workflow runs frontend type checking and a static build on pushes and pull requests that touch `frontend/`.
 
-## GitHub Actions Deployment Option
+## Primary Deployment: Cloudflare Git Integration
 
-The repo also includes `.github/workflows/cloudflare-pages-deploy.yml`. This workflow builds the static frontend from GitHub and deploys `frontend/out` to Cloudflare Pages with Wrangler.
+The active production path is Cloudflare Pages connected directly to this GitHub repository. Pushes to `main` that touch the frontend trigger a Cloudflare `github:push` deployment without needing GitHub Actions secrets.
+
+This keeps future pushes from depending on a developer laptop or a GitHub-hosted Wrangler login.
+
+## Manual GitHub Actions Deployment Option
+
+The repo also includes `.github/workflows/cloudflare-pages-deploy.yml` as a manual fallback. It does not run on every push because the Cloudflare Git integration already handles production deploys, and GitHub Actions needs Cloudflare credentials that should not be hardcoded.
 
 Current deployment:
 
 - GitHub: https://github.com/manynames3/ott-inventory-ai
 - Cloudflare Pages: https://ott-inventory-ai.pages.dev
 
-Add these GitHub repository secrets:
+To use the manual fallback, add these GitHub repository secrets and run the workflow with `workflow_dispatch`:
 
 | Secret | Purpose |
 | --- | --- |
