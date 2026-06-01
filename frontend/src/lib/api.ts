@@ -86,6 +86,48 @@ export type ImportHistoryResponse = {
   checklist: ImportChecklistItem[];
 };
 
+export type ImportPreviewResponse = {
+  entity: string;
+  bucket: string;
+  key: string;
+  filename: string;
+  row_count_estimate: number;
+  detected_columns: string[];
+  required_columns: string[];
+  suggested_mapping: Record<string, string>;
+  sample_rows: Record<string, unknown>[];
+  mapped_sample_rows: Record<string, unknown>[];
+  validation: {
+    missing_mappings: string[];
+    sample_errors: string[];
+    status: "ready" | "needs_mapping";
+  };
+};
+
+export type ImportCommitResponse = {
+  entity: string;
+  bucket: string;
+  key: string;
+  status: "queued";
+  rows_seen: number;
+  message: string;
+};
+
+export type AuditEventRow = {
+  action: string;
+  resource: string;
+  user: string;
+  origin?: string;
+  source_ip?: string;
+  details?: Record<string, unknown>;
+  created_at_epoch: number;
+};
+
+export type AuditEventsResponse = {
+  rows: AuditEventRow[];
+  count: number;
+};
+
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);
@@ -158,7 +200,14 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     if (!response.ok) {
       handleUnauthorized(response.status);
       const errorBody = await response.json().catch(() => null);
-      throw new Error(errorBody?.detail || `API request failed: ${response.status}`);
+      const detail = errorBody?.detail;
+      if (typeof detail === "object" && detail?.errors) {
+        throw new Error(detail.errors.join(" "));
+      }
+      if (typeof detail === "object" && detail?.message) {
+        throw new Error(String(detail.message));
+      }
+      throw new Error(typeof detail === "string" ? detail : `API request failed: ${response.status}`);
     }
     return response.json() as Promise<T>;
   } catch (error) {

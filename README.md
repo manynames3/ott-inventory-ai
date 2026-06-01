@@ -44,7 +44,7 @@ For a target account such as Ottogi USA / Ottogi America, the pilot should be sc
 - Validate whether recommendations match planner judgment and quantify preventable write-off or stockout exposure.
 - Expand only after the team trusts the explanations and the CSV field contract.
 
-See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative, [docs/erp_positioning.md](docs/erp_positioning.md) for SAP/Oracle positioning, and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
+See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative, [docs/erp_positioning.md](docs/erp_positioning.md) for SAP/Oracle positioning, [docs/ottogi_pilot_demo_script.md](docs/ottogi_pilot_demo_script.md) for the guided buyer demo, and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
 
 ## Stack
 
@@ -128,6 +128,8 @@ The repo now includes the next pilot layer:
 - Downloadable CSV and Excel templates for every import entity.
 - First-run import checklist with upload history and validation errors.
 - Downloadable executive ROI report from the dashboard.
+- Column mapping preview and approval before files change live recommendations.
+- Per-user audit trail for login, upload, preview, commit, import, and query actions.
 - Excel/CSV upload support through the same validated import path.
 - Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
 - Fast natural-language insights from normalized operational records and materialized recommendation views.
@@ -159,7 +161,7 @@ The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 
 Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
 
-The hosted MVP also exposes `/api/import-history`, which powers the first-run checklist, import audit table, and validation error view in the frontend.
+The hosted MVP also exposes `/api/import-history`, which powers the first-run checklist, import audit table, and validation error view in the frontend. The upload flow stages files for preview first, suggests a source-to-target column mapping, validates sample rows, and only commits the import after the user approves the mapping.
 
 When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL. The low-idle hosted MVP uses presigned S3 upload URLs, imports canonical rows into DynamoDB, and refreshes materialized insight views so dashboards and natural-language questions stay fast without an always-on database.
 

@@ -81,6 +81,7 @@ Why this is acceptable for a pilot:
 - The backend is the only component that can read SSM secrets.
 - The public Cloudflare Pages site cannot fetch live operational data without a valid token.
 - Raw uploads land in a private S3 bucket and are processed into normalized query tables.
+- Login, upload URL creation, import preview, import commit, and query actions are written to the audit trail.
 - The MVP has no ERP writeback path, so it cannot create purchase orders, shipments, or financial transactions.
 
 ## Security Hardening Before A Paid Pilot
@@ -120,4 +121,3 @@ Recommended path:
 Use this concise explanation in sales or onboarding:
 
 > Inventory AI is a read-only decision layer for pilot evaluation. Users upload ERP/WMS exports, the system validates them, stores raw files privately, and turns the data into FEFO, waste-risk, stockout, reorder, and customer-cadence recommendations. The MVP does not write back to SAP or Oracle. Access is limited by login today and can be upgraded to Cloudflare Access or buyer SSO before a paid rollout.
-

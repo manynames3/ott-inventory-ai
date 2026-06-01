@@ -261,6 +261,44 @@ const demoImportHistory = {
   ]
 };
 
+const demoAuditEvents = {
+  rows: [
+    {
+      action: "login_success",
+      resource: "auth",
+      user: "pilot@inventory-ai.local",
+      origin: "https://ott-inventory-ai.pages.dev",
+      details: {},
+      created_at_epoch: 1780344300
+    },
+    {
+      action: "import_previewed",
+      resource: "orders",
+      user: "pilot@inventory-ai.local",
+      origin: "https://ott-inventory-ai.pages.dev",
+      details: { filename: "orders_ottogi_demo.csv", rows_seen: 5446, missing_mappings: [] },
+      created_at_epoch: 1780344000
+    },
+    {
+      action: "import_committed",
+      resource: "orders",
+      user: "pilot@inventory-ai.local",
+      origin: "https://ott-inventory-ai.pages.dev",
+      details: { rows_seen: 5446, mapped_columns: 5 },
+      created_at_epoch: 1780343940
+    },
+    {
+      action: "query_answered",
+      resource: "stockout_risk",
+      user: "pilot@inventory-ai.local",
+      origin: "https://ott-inventory-ai.pages.dev",
+      details: { question_preview: "Which SKUs will stock out in the next 30 days?", row_count: 7 },
+      created_at_epoch: 1780343880
+    }
+  ],
+  count: 4
+};
+
 export function demoSkuDetail(sku: string) {
   const product = products.find((item) => item.sku === sku) || products[0];
   return {
@@ -365,6 +403,7 @@ function demoQuery(question: string) {
 export function getDemoGet(path: string) {
   if (path.startsWith("/api/dashboard")) return demoDashboard;
   if (path.startsWith("/api/import-history")) return demoImportHistory;
+  if (path.startsWith("/api/audit-events")) return demoAuditEvents;
   if (path.startsWith("/api/products")) return { rows: products, count: products.length };
   if (path.startsWith("/api/customers?")) return { rows: customers, count: customers.length };
   if (path.startsWith("/api/sku/")) return demoSkuDetail(decodeURIComponent(path.split("/api/sku/")[1]));

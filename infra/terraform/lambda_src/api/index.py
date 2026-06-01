@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+import uuid
 import zipfile
 from io import BytesIO, StringIO
 from typing import Any, Dict, List, Optional
@@ -54,6 +55,30 @@ ENTITY_LABELS = {
     "customers": "Customers",
     "orders": "Orders",
     "inbound_shipments": "Inbound shipments",
+}
+
+COLUMN_ALIASES = {
+    "sku": ["sku", "item", "itemcode", "itemnumber", "productsku", "productcode", "material", "materialnumber"],
+    "name": ["name", "productname", "itemname", "description", "productdescription", "itemdescription"],
+    "category": ["category", "productcategory", "family", "class", "department"],
+    "case_size": ["casesize", "casepack", "packsize", "unitspercase", "caseqty", "casequantity"],
+    "shelf_life_days": ["shelflifedays", "shelflife", "daysshelflife", "expirationdays"],
+    "lot_id": ["lotid", "lot", "lotnumber", "batch", "batchnumber", "productionlot"],
+    "warehouse": ["warehouse", "wh", "dc", "facility", "location", "inventorylocation"],
+    "quantity_on_hand": ["quantityonhand", "qtyonhand", "qoh", "availableqty", "availablequantity", "onhand"],
+    "received_date": ["receiveddate", "receiptdate", "dateReceived", "arrivaldate", "inbounddate"],
+    "expiration_date": ["expirationdate", "expirydate", "expdate", "bestby", "bestbefore", "sellbydate"],
+    "unit_cost": ["unitcost", "cost", "casecost", "standardcost", "landedcost"],
+    "customer_id": ["customerid", "customer", "account", "accountid", "customercode", "soldto"],
+    "region": ["region", "market", "territory", "salesregion"],
+    "channel": ["channel", "saleschannel", "customerchannel", "classoftrade"],
+    "order_id": ["orderid", "salesorder", "salesordernumber", "invoice", "invoicenumber", "ordernumber"],
+    "order_date": ["orderdate", "shipdate", "invoicedate", "transactiondate", "date"],
+    "quantity": ["quantity", "qty", "orderqty", "orderedquantity", "cases", "casequantity"],
+    "shipment_id": ["shipmentid", "shipment", "ponumber", "purchaseorder", "container", "containernumber"],
+    "eta_date": ["etadate", "eta", "arrivaldate", "expectedarrival", "expectedreceiptdate"],
+    "origin": ["origin", "source", "countryoforigin", "portoforigin", "supplierorigin"],
+    "status": ["status", "shipmentstatus", "inboundstatus", "poStatus"],
 }
 
 SAMPLE_ROWS = {
@@ -246,7 +271,9 @@ def _login(event: Dict[str, Any]) -> Dict[str, Any]:
     username = str(body.get("username", ""))
     password = str(body.get("password", ""))
     if not hmac.compare_digest(username, config["username"]) or not hmac.compare_digest(password, config["password"]):
+        _audit_event(event, "login_failed", "auth", {"username": username}, username or "unknown")
         return _json(event, 401, {"detail": "Invalid username or password."})
+    _audit_event(event, "login_success", "auth", {}, username)
     return _json(
         event,
         200,
@@ -375,6 +402,257 @@ def _get_view(sk: str) -> Optional[Dict[str, Any]]:
     return json.loads(item["data"]["S"]) if item and "data" in item else None
 
 
+def _worker_helpers():
+    from import_worker.index import _normalize, _parse_content, _put_import_status
+
+    return _parse_content, _normalize, _put_import_status
+
+
+def _safe_filename(filename: str) -> str:
+    safe = unquote(filename or "upload.csv").replace("/", "_").replace("\\", "_")
+    return safe or "upload.csv"
+
+
+def _s3_preview_prefix() -> str:
+    parts = os.environ["AWS_S3_IMPORT_PREFIX"].strip("/").split("/")
+    if parts and parts[-1] == "incoming":
+        parts[-1] = "preview"
+    else:
+        parts.append("preview")
+    return "/".join(parts) + "/"
+
+
+def _canonical_column(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _suggest_mapping(entity: str, detected_columns: List[str]) -> Dict[str, str]:
+    canonical_sources = {_canonical_column(column): column for column in detected_columns}
+    used = set()
+    mapping: Dict[str, str] = {}
+    for required in REQUIRED_COLUMNS[entity]:
+        candidates = [_canonical_column(required), *[_canonical_column(alias) for alias in COLUMN_ALIASES.get(required, [])]]
+        selected = ""
+        for candidate in candidates:
+            source = canonical_sources.get(candidate)
+            if source and source not in used:
+                selected = source
+                break
+        if selected:
+            used.add(selected)
+        mapping[required] = selected
+    return mapping
+
+
+def _apply_mapping(entity: str, rows: List[Dict[str, Any]], mapping: Dict[str, str]) -> List[Dict[str, Any]]:
+    return [{column: row.get(mapping.get(column, ""), "") for column in REQUIRED_COLUMNS[entity]} for row in rows]
+
+
+def _mapped_csv(entity: str, rows: List[Dict[str, Any]]) -> bytes:
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=REQUIRED_COLUMNS[entity])
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue().encode("utf-8")
+
+
+def _client_ip(event: Dict[str, Any]) -> str:
+    return (
+        event.get("requestContext", {}).get("http", {}).get("sourceIp")
+        or event.get("requestContext", {}).get("identity", {}).get("sourceIp")
+        or ""
+    )
+
+
+def _audit_event(
+    event: Dict[str, Any],
+    action: str,
+    resource: str,
+    details: Optional[Dict[str, Any]] = None,
+    subject: Optional[str] = None,
+) -> None:
+    try:
+        user = subject or (_require_user(event) or {}).get("sub") or "anonymous"
+        now_ms = int(time.time() * 1000)
+        payload = {
+            "record_type": "audit",
+            "action": action,
+            "resource": resource,
+            "user": user,
+            "origin": _origin(event),
+            "source_ip": _client_ip(event),
+            "details": details or {},
+            "created_at_epoch": int(now_ms / 1000),
+        }
+        dynamodb.put_item(
+            TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+            Item={
+                "pk": {"S": f"audit#{TENANT_PK}"},
+                "sk": {"S": f"{now_ms:013d}#{uuid.uuid4().hex[:8]}"},
+                "data": {"S": json.dumps(payload, separators=(",", ":"), default=str)},
+                "ttl_epoch": {"N": str(int(now_ms / 1000) + 180 * 24 * 60 * 60)},
+            },
+        )
+    except Exception:
+        return
+
+
+def _load_audit_events(limit: int = 100) -> List[Dict[str, Any]]:
+    response = dynamodb.query(
+        TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+        KeyConditionExpression="pk = :pk",
+        ExpressionAttributeValues={":pk": {"S": f"audit#{TENANT_PK}"}},
+        Limit=limit,
+        ScanIndexForward=False,
+    )
+    return [json.loads(item.get("data", {}).get("S", "{}")) for item in response.get("Items", [])]
+
+
+def _audit_events(event: Dict[str, Any]) -> Dict[str, Any]:
+    if not _require_user(event):
+        return _json(event, 401, {"detail": "Login required."})
+    limit = _parse_limit(event, default=100, maximum=250)
+    rows = _load_audit_events(limit=limit)
+    return _json(event, 200, {"rows": rows, "count": len(rows)})
+
+
+def _read_staged_rows(entity: str, bucket: str, key: str) -> List[Dict[str, str]]:
+    if entity not in REQUIRED_COLUMNS:
+        raise ValueError("Unsupported import entity.")
+    if bucket != os.environ["AWS_S3_RAW_IMPORT_BUCKET"]:
+        raise ValueError("Preview bucket does not match the configured raw import bucket.")
+    obj = s3.get_object(Bucket=bucket, Key=key)
+    content = obj["Body"].read()
+    parse_content, _, _ = _worker_helpers()
+    return parse_content(key, content)
+
+
+def _import_preview(event: Dict[str, Any]) -> Dict[str, Any]:
+    user = _require_user(event)
+    if not user:
+        return _json(event, 401, {"detail": "Login required."})
+    body = _body(event)
+    entity = str(body.get("entity", ""))
+    bucket = str(body.get("bucket", ""))
+    key = str(body.get("key", ""))
+    filename = str(body.get("filename", "")) or key.rsplit("/", 1)[-1]
+    if entity not in REQUIRED_COLUMNS or not bucket or not key:
+        return _json(event, 400, {"detail": "entity, bucket, and key are required."})
+    try:
+        rows = _read_staged_rows(entity, bucket, key)
+    except Exception as exc:
+        _audit_event(event, "import_preview_failed", entity, {"key": key, "error": str(exc)}, user.get("sub"))
+        return _json(event, 400, {"detail": str(exc)})
+    detected_columns = list(rows[0].keys()) if rows else []
+    mapping = _suggest_mapping(entity, detected_columns)
+    mapped_sample = _apply_mapping(entity, rows[:5], mapping)
+    _, normalize, _ = _worker_helpers()
+    _, errors = normalize(entity, _apply_mapping(entity, rows[:25], mapping))
+    missing_mappings = [column for column in REQUIRED_COLUMNS[entity] if not mapping.get(column)]
+    _audit_event(
+        event,
+        "import_previewed",
+        entity,
+        {"filename": filename, "key": key, "rows_seen": len(rows), "missing_mappings": missing_mappings},
+        user.get("sub"),
+    )
+    return _json(
+        event,
+        200,
+        {
+            "entity": entity,
+            "bucket": bucket,
+            "key": key,
+            "filename": filename,
+            "row_count_estimate": len(rows),
+            "detected_columns": detected_columns,
+            "required_columns": REQUIRED_COLUMNS[entity],
+            "suggested_mapping": mapping,
+            "sample_rows": rows[:5],
+            "mapped_sample_rows": mapped_sample,
+            "validation": {
+                "missing_mappings": missing_mappings,
+                "sample_errors": errors[:10],
+                "status": "needs_mapping" if missing_mappings or errors else "ready",
+            },
+        },
+    )
+
+
+def _commit_import(event: Dict[str, Any]) -> Dict[str, Any]:
+    user = _require_user(event)
+    if not user:
+        return _json(event, 401, {"detail": "Login required."})
+    body = _body(event)
+    entity = str(body.get("entity", ""))
+    bucket = str(body.get("bucket", ""))
+    key = str(body.get("key", ""))
+    mapping = body.get("mapping") if isinstance(body.get("mapping"), dict) else {}
+    if entity not in REQUIRED_COLUMNS or not bucket or not key:
+        return _json(event, 400, {"detail": "entity, bucket, and key are required."})
+    missing_mappings = [column for column in REQUIRED_COLUMNS[entity] if not str(mapping.get(column, "")).strip()]
+    if missing_mappings:
+        return _json(event, 400, {"detail": f"Missing mappings for: {', '.join(missing_mappings)}"})
+    try:
+        rows = _read_staged_rows(entity, bucket, key)
+        mapped_rows = _apply_mapping(entity, rows, {str(k): str(v) for k, v in mapping.items()})
+        _, normalize, put_import_status = _worker_helpers()
+        normalized, errors = normalize(entity, mapped_rows)
+    except Exception as exc:
+        _audit_event(event, "import_commit_failed", entity, {"key": key, "error": str(exc)}, user.get("sub"))
+        return _json(event, 400, {"detail": str(exc)})
+    if errors:
+        put_import_status(bucket, key, "failed", "Mapped import validation failed.", entity=entity, rows_seen=len(rows), errors=errors[:100])
+        _audit_event(
+            event,
+            "import_commit_failed",
+            entity,
+            {"key": key, "rows_seen": len(rows), "error_count": len(errors)},
+            user.get("sub"),
+        )
+        return _json(event, 400, {"detail": {"message": "Mapped import validation failed.", "errors": errors[:100]}})
+
+    target_key = (
+        f"{os.environ['AWS_S3_IMPORT_PREFIX'].rstrip('/')}/{entity}/"
+        f"{int(time.time())}-{uuid.uuid4().hex[:8]}-mapped-{_safe_filename(key.rsplit('/', 1)[-1])}.csv"
+    )
+    put_import_status(
+        bucket,
+        target_key,
+        "queued",
+        f"Mapping approved for {entity}. Import worker is queued.",
+        entity=entity,
+        rows_seen=len(rows),
+        source_key=key,
+    )
+    s3.put_object(
+        Bucket=bucket,
+        Key=target_key,
+        Body=_mapped_csv(entity, normalized),
+        ContentType="text/csv",
+        Metadata={"entity": entity, "mapped-from": key[-900:]},
+    )
+    _audit_event(
+        event,
+        "import_committed",
+        entity,
+        {"source_key": key, "target_key": target_key, "rows_seen": len(rows), "mapped_columns": len(mapping)},
+        user.get("sub"),
+    )
+    return _json(
+        event,
+        200,
+        {
+            "entity": entity,
+            "bucket": bucket,
+            "key": target_key,
+            "status": "queued",
+            "rows_seen": len(rows),
+            "message": "Mapping approved. The import worker will validate, import, and refresh insights.",
+        },
+    )
+
+
 def _import_status(event: Dict[str, Any]) -> Dict[str, Any]:
     if not _require_user(event):
         return _json(event, 401, {"detail": "Login required."})
@@ -405,9 +683,13 @@ def _load_import_history(limit: int = 100) -> List[Dict[str, Any]]:
             kwargs["ExclusiveStartKey"] = start_key
         response = dynamodb.scan(**kwargs)
         for item in response.get("Items", []):
+            if item.get("pk", {}).get("S", "").startswith("audit#"):
+                continue
             try:
                 row = json.loads(item.get("data", {}).get("S", "{}"))
             except json.JSONDecodeError:
+                continue
+            if row.get("record_type") == "audit":
                 continue
             row.setdefault("source_key", item.get("pk", {}).get("S", "").replace("import#", "", 1))
             rows.append(row)
@@ -483,14 +765,25 @@ def _presign_upload(event: Dict[str, Any]) -> Dict[str, Any]:
     entity = body.get("entity", "")
     filename = body.get("filename", "upload.csv")
     content_type = body.get("content_type", "application/octet-stream")
+    mode = str(body.get("mode", "import")).lower()
     if entity not in REQUIRED_COLUMNS:
         return _json(event, 400, {"detail": "Unsupported import entity."})
-    safe_filename = unquote(filename).replace("/", "_").replace("\\", "_")
-    key = f"{os.environ['AWS_S3_IMPORT_PREFIX'].rstrip('/')}/{entity}/{int(time.time())}-{safe_filename}"
+    if mode not in {"import", "preview"}:
+        return _json(event, 400, {"detail": "Upload mode must be import or preview."})
+    safe_filename = _safe_filename(filename)
+    prefix = _s3_preview_prefix() if mode == "preview" else os.environ["AWS_S3_IMPORT_PREFIX"]
+    key = f"{prefix.rstrip('/')}/{entity}/{int(time.time())}-{safe_filename}"
     upload_url = s3.generate_presigned_url(
         "put_object",
         Params={"Bucket": os.environ["AWS_S3_RAW_IMPORT_BUCKET"], "Key": key, "ContentType": content_type},
         ExpiresIn=900,
+    )
+    _audit_event(
+        event,
+        "upload_url_created",
+        str(entity),
+        {"mode": mode, "filename": safe_filename, "key": key},
+        user.get("sub"),
     )
     return _json(
         event,
@@ -501,7 +794,12 @@ def _presign_upload(event: Dict[str, Any]) -> Dict[str, Any]:
             "key": key,
             "upload_url": upload_url,
             "expires_in_seconds": 900,
-            "message": "Upload URL created. The file will be imported automatically after upload.",
+            "mode": mode,
+            "message": (
+                "Upload URL created for preview. The file will not import until the mapping is approved."
+                if mode == "preview"
+                else "Upload URL created. The file will be imported automatically after upload."
+            ),
         },
     )
 
@@ -722,6 +1020,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "supported_upload_formats": [".csv", ".xlsx", ".xlsm"],
                 "template_formats": ["csv", "xlsx"],
                 "upload_mode": "presigned_s3",
+                "import_workflow": "preview_map_commit",
+                "mapping_preview": {
+                    "enabled": True,
+                    "preview_prefix": _s3_preview_prefix(),
+                    "commit_endpoint": "/api/imports/commit",
+                },
                 "raw_file_storage": {
                     "service": "s3",
                     "enabled": True,
@@ -744,10 +1048,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _template_response(event, path)
     if method == "POST" and path == "/api/uploads/presign":
         return _presign_upload(event)
+    if method == "POST" and path == "/api/import-preview":
+        return _import_preview(event)
+    if method == "POST" and path == "/api/imports/commit":
+        return _commit_import(event)
     if method == "GET" and path == "/api/import-status":
         return _import_status(event)
     if method == "GET" and path == "/api/import-history":
         return _import_history(event)
+    if method == "GET" and path == "/api/audit-events":
+        return _audit_events(event)
     if method == "GET" and path == "/api/dashboard":
         return _protected_json(event, _get_view("dashboard") or _empty_dashboard())
     if method == "GET" and path == "/api/products":
@@ -769,9 +1079,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if method == "GET" and path == "/api/reorder-recommendations":
         return _protected_json(event, {"rows": (_get_view("reorder_recommendations") or {}).get("rows", [])})
     if method == "POST" and path == "/api/query":
-        if not _require_user(event):
+        user = _require_user(event)
+        if not user:
             return _json(event, 401, {"detail": "Login required."})
-        return _json(event, 200, _query_answer(str(_body(event).get("question", ""))))
+        question = str(_body(event).get("question", ""))
+        answer = _query_answer(question)
+        _audit_event(
+            event,
+            "query_answered",
+            str(answer.get("template", "unsupported")),
+            {"question_preview": question[:160], "row_count": len(answer.get("rows", []))},
+            user.get("sub"),
+        )
+        return _json(event, 200, answer)
     if method == "GET" and path.startswith("/api/views/"):
         return _protected_json(event, _get_view(path.rsplit("/", 1)[-1]) or {"rows": []})
     return _json(event, 404, {"detail": "Route not implemented in the low-idle Lambda API.", "path": path})

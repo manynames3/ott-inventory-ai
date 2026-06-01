@@ -302,6 +302,25 @@ select {
   background: var(--teal-soft);
 }
 
+.scenario-card {
+  min-height: 150px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+
+.scenario-card h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.scenario-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .grid-2,
 .grid-3 {
   display: grid;
@@ -547,6 +566,51 @@ select {
   grid-column: 1 / -1;
 }
 
+.mapping-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+
+.mapping-panel .panel-header {
+  margin-bottom: 0;
+}
+
+.mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.mapping-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.mapping-grid span,
+.column-list span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.column-list {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.column-list p {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
 .template-actions {
   display: flex;
   gap: 8px;
@@ -707,7 +771,8 @@ select {
 
   .grid-2,
   .grid-3,
-  .checklist-grid {
+  .checklist-grid,
+  .mapping-grid {
     grid-template-columns: 1fr;
   }
 }

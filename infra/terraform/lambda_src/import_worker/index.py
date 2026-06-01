@@ -686,17 +686,28 @@ def _parse_content(key: str, content: bytes) -> List[Dict[str, str]]:
 
 def _process_file(bucket: str, key: str) -> Dict[str, Any]:
     entity = _entity_from_key(key)
-    _put_import_status(bucket, key, "processing", f"Validating and importing {entity}.", entity=entity)
+    filename = key.rsplit("/", 1)[-1]
+    _put_import_status(bucket, key, "processing", f"Validating and importing {entity}.", entity=entity, filename=filename)
     obj = s3.get_object(Bucket=bucket, Key=key)
     content = obj["Body"].read()
     rows = _parse_content(key, content)
     normalized, errors = _normalize(entity, rows)
     if errors:
-        _put_import_status(bucket, key, "failed", "Import validation failed.", entity=entity, errors=errors)
+        _put_import_status(bucket, key, "failed", "Import validation failed.", entity=entity, filename=filename, rows_seen=len(rows), errors=errors)
         return {"entity": entity, "status": "failed", "errors": errors}
     _write_records(entity, normalized)
     counts = _materialize_views()
-    _put_import_status(bucket, key, "imported", f"Imported {len(normalized)} {entity} rows.", entity=entity, rows_imported=len(normalized), view_counts=counts)
+    _put_import_status(
+        bucket,
+        key,
+        "imported",
+        f"Imported {len(normalized)} {entity} rows.",
+        entity=entity,
+        filename=filename,
+        rows_seen=len(rows),
+        rows_imported=len(normalized),
+        view_counts=counts,
+    )
     return {"entity": entity, "status": "imported", "rows_imported": len(normalized), "view_counts": counts}
 
 

@@ -50,6 +50,16 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
     2,
     Math.round((dashboard.recommendations.length + dashboard.waste_risk_alerts.length + dashboard.fefo.length) * 0.2)
   );
+  const topRecommendation = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
+  const topFefoAction = dashboard.fefo[0];
+  const topWasteAction = dashboard.waste_risk_alerts[0];
+  const recoveryLow = dashboard.kpis.inventory_at_risk_value * 0.2;
+  const recoveryBase = dashboard.kpis.waste_reduction_opportunity;
+  const recoveryHigh = dashboard.kpis.inventory_at_risk_value * 0.5;
+  const plannerValue = plannerHours * 75;
+  const topStockout = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
+  const topWaste = dashboard.waste_risk_alerts[0];
+  const topFefo = dashboard.fefo[0];
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -68,8 +78,12 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
     th, td { border-bottom: 1px solid #dfe5df; padding: 8px; text-align: left; vertical-align: top; }
     th { color: #66736d; text-transform: capitalize; }
     .callout { background: #f5f6f3; border: 1px solid #dfe5df; border-radius: 8px; padding: 16px; }
+    .scorecard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+    .scorecard div { border: 1px solid #dfe5df; border-radius: 8px; padding: 14px; }
+    .scorecard span { color: #66736d; display: block; font-size: 12px; margin-bottom: 6px; }
+    .scorecard strong { display: block; font-size: 20px; }
     .empty { color: #66736d; }
-    @media print { body { margin: 22px; } .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media print { body { margin: 22px; } .grid, .scorecard { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
 <body>
@@ -82,6 +96,15 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
     )} replenishment actions are flagged as stockout exposure, and approximately ${escapeHtml(
       String(plannerHours)
     )} planner triage hours are being concentrated into a prioritized exception queue.
+  </div>
+  <h2>Pilot ROI Scorecard</h2>
+  <div class="scorecard">
+    <div><span>Low recovery case</span><strong>${escapeHtml(formatCurrency(recoveryLow))}</strong><p class="muted">20% of expiration-risk value protected.</p></div>
+    <div><span>Base recovery case</span><strong>${escapeHtml(formatCurrency(recoveryBase))}</strong><p class="muted">Current model assumption from FEFO, transfer, promotion, and discount action.</p></div>
+    <div><span>High recovery case</span><strong>${escapeHtml(formatCurrency(recoveryHigh))}</strong><p class="muted">50% of expiration-risk value protected in a disciplined pilot.</p></div>
+    <div><span>Planner triage value</span><strong>${escapeHtml(formatCurrency(plannerValue))}</strong><p class="muted">${escapeHtml(String(plannerHours))} focused hours at $75/hour planning cost.</p></div>
+    <div><span>Fill-rate exceptions</span><strong>${escapeHtml(String(stockoutActions))}</strong><p class="muted">SKUs/warehouses where replenishment or allocation should be reviewed now.</p></div>
+    <div><span>Inventory risk share</span><strong>${escapeHtml(String(riskShare))}%</strong><p class="muted">Expiration-risk value divided by current inventory value.</p></div>
   </div>
   <div class="grid">
     <div class="metric"><span>Total inventory value</span><strong>${escapeHtml(
@@ -100,13 +123,37 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
       formatCurrency(dashboard.kpis.waste_reduction_opportunity)
     )}</strong></div>
   </div>
+  <h2>Executive Action Narrative</h2>
+  <table><tbody>
+    <tr><th>Waste control</th><td>${escapeHtml(
+      topWaste
+        ? `${String(topWaste.sku ?? "")} lot ${String(topWaste.lot_id ?? "")} has ${String(topWaste.quantity_at_risk ?? "")} units at risk by ${String(topWaste.expiration_date ?? "")}; suggested action: ${String(topWaste.suggested_action ?? "")}`
+        : "No waste-risk lots are currently listed."
+    )}</td></tr>
+    <tr><th>FEFO discipline</th><td>${escapeHtml(
+      topFefo
+        ? `${String(topFefo.sku ?? "")} should ship lot ${String(topFefo.ship_first_lot ?? "")} first in ${String(topFefo.warehouse ?? "")}; reason: ${String(topFefo.reason ?? "")}`
+        : "No FEFO recommendation is currently listed."
+    )}</td></tr>
+    <tr><th>Fill-rate protection</th><td>${escapeHtml(
+      topStockout
+        ? `${String(topStockout.sku ?? "")} in ${String(topStockout.warehouse ?? "")} is flagged as ${String(topStockout.status ?? "")}; reason: ${String(topStockout.reason ?? "")}`
+        : "No stockout-risk recommendation is currently listed."
+    )}</td></tr>
+  </tbody></table>
   <h2>What To Reorder This Week</h2>
   ${reportRows(dashboard.recommendations, ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason"])}
   <h2>What To Ship First</h2>
   ${reportRows(dashboard.fefo, ["sku", "warehouse", "ship_first_lot", "expiration_date", "risk_bucket", "reason"])}
   <h2>Waste-Risk Actions</h2>
   ${reportRows(dashboard.waste_risk_alerts, ["sku", "lot_id", "warehouse", "quantity_at_risk", "expiration_date", "suggested_action"])}
-  <p class="muted">Assumptions: pilot calculations use current on-hand inventory, inbound ETAs, historical order demand, expiration windows, safety stock, and configured supplier lead time. Recommendations are decision support, not ERP writeback.</p>
+  <h2>Assumptions And Data Controls</h2>
+  <table><tbody>
+    <tr><th>Waste recovery</th><td>Base case uses current recoverable waste opportunity from the model; low and high cases use 20% and 50% of expiration-risk value.</td></tr>
+    <tr><th>Planner time</th><td>Planner focus estimate counts ranked FEFO, waste-risk, and reorder exceptions, valued at $75/hour for executive comparison.</td></tr>
+    <tr><th>Forecasting</th><td>Demand uses historical order exports, simple moving averages, exponential smoothing, and trend placeholders.</td></tr>
+    <tr><th>Controls</th><td>Recommendations are decision support only. The MVP stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
+  </tbody></table>
 </body>
 </html>`;
   const blob = new Blob([html], { type: "text/html" });
@@ -189,6 +236,9 @@ export default function DashboardPage() {
     2,
     Math.round((dashboard.recommendations.length + dashboard.waste_risk_alerts.length + dashboard.fefo.length) * 0.2)
   );
+  const topRecommendation = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
+  const topFefoAction = dashboard.fefo[0];
+  const topWasteAction = dashboard.waste_risk_alerts[0];
 
   return (
     <>
@@ -286,6 +336,39 @@ export default function DashboardPage() {
           proof point for a buyer is whether planners agree with the reasons and can act before waste or service failures
           show up in ERP reports.
         </p>
+      </section>
+
+      <section className="grid-3 buyer-value-grid">
+        <div className="scenario-card">
+          <h2>Waste Scenario</h2>
+          <p>
+            {topWasteAction
+              ? `${String(topWasteAction.sku ?? "")} lot ${String(topWasteAction.lot_id ?? "")} has ${String(
+                  topWasteAction.quantity_at_risk ?? ""
+                )} units at risk before ${String(topWasteAction.expiration_date ?? "")}.`
+              : "No current waste-risk scenario is available."}
+          </p>
+        </div>
+        <div className="scenario-card">
+          <h2>FEFO Scenario</h2>
+          <p>
+            {topFefoAction
+              ? `${String(topFefoAction.sku ?? "")} should ship lot ${String(topFefoAction.ship_first_lot ?? "")} first from ${String(
+                  topFefoAction.warehouse ?? ""
+                )}.`
+              : "No current FEFO scenario is available."}
+          </p>
+        </div>
+        <div className="scenario-card">
+          <h2>Fill-Rate Scenario</h2>
+          <p>
+            {topRecommendation
+              ? `${String(topRecommendation.sku ?? "")} is flagged for ${String(topRecommendation.status ?? "")} because ${String(
+                  topRecommendation.reason ?? ""
+                )}`
+              : "No current fill-rate scenario is available."}
+          </p>
+        </div>
       </section>
 
       <section className="grid-2">

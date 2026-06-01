@@ -1,15 +1,19 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { CheckCircle2, CircleAlert, Clock, FileDown, RefreshCw, UploadCloud } from "lucide-react";
+import { CheckCheck, CheckCircle2, CircleAlert, Clock, Eye, FileDown, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
 import {
   API_BASE_URL,
+  AuditEventsResponse,
+  AuditEventRow,
   IS_DEMO_MODE,
+  ImportCommitResponse,
   ImportChecklistItem,
   ImportHistoryResponse,
   ImportHistoryRow,
+  ImportPreviewResponse,
   apiGet,
   apiPost,
   apiUpload,
@@ -59,6 +63,7 @@ type PresignResponse = {
   key: string;
   upload_url: string;
   expires_in_seconds: number;
+  mode?: "import" | "preview";
   message: string;
 };
 
@@ -95,18 +100,25 @@ export default function ImportsPage() {
   const [history, setHistory] = useState<ImportHistoryResponse | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, ImportPreviewResponse | null>>({});
+  const [mappings, setMappings] = useState<Record<string, Record<string, string>>>({});
+  const [audit, setAudit] = useState<AuditEventsResponse | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<Requirements>("/api/import/requirements")
       .then(setRequirements)
       .catch(() => setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} }));
     void loadHistory();
+    void loadAudit();
   }, []);
 
   const columns = requirements?.csv_required_columns || fallbackEntities;
   const checklist = history?.checklist || fallbackChecklist(columns);
   const failedImports = (history?.rows || []).filter((row) => row.status === "failed");
   const historyRows = (history?.rows || []).map(formatHistoryRow);
+  const auditRows = (audit?.rows || []).map(formatAuditRow);
 
   async function loadHistory() {
     setHistoryLoading(true);
@@ -121,11 +133,26 @@ export default function ImportsPage() {
     }
   }
 
+  async function loadAudit() {
+    setAuditLoading(true);
+    setAuditError(null);
+    try {
+      const body = await apiGet<AuditEventsResponse>("/api/audit-events?limit=75");
+      setAudit(body);
+    } catch (error) {
+      setAuditError(error instanceof Error ? error.message : "Audit trail is not available.");
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
   function onFile(entity: string, event: ChangeEvent<HTMLInputElement>) {
     setFiles((current) => ({
       ...current,
       [entity]: event.target.files?.[0] || null
     }));
+    setPreviews((current) => ({ ...current, [entity]: null }));
+    setMappings((current) => ({ ...current, [entity]: {} }));
   }
 
   function sleep(ms: number) {
@@ -167,6 +194,47 @@ export default function ImportsPage() {
       message: row.message || "",
       errors: row.errors?.join(" | ") || ""
     };
+  }
+
+  function formatAuditRow(row: AuditEventRow): Record<string, unknown> {
+    return {
+      time: formatDate(row.created_at_epoch),
+      user: row.user,
+      action: row.action.replaceAll("_", " "),
+      resource: row.resource,
+      origin: row.origin || "",
+      details: row.details
+        ? Object.entries(row.details)
+            .map(([key, value]) => `${key}: ${String(value)}`)
+            .join(" | ")
+        : ""
+    };
+  }
+
+  function mappedPreviewRows(entity: string): Record<string, unknown>[] {
+    const preview = previews[entity];
+    if (!preview) return [];
+    const mapping = mappings[entity] || preview.suggested_mapping;
+    return preview.sample_rows.map((row) =>
+      Object.fromEntries(preview.required_columns.map((column) => [column, row[mapping[column]] ?? ""]))
+    );
+  }
+
+  function missingMappings(entity: string): string[] {
+    const preview = previews[entity];
+    if (!preview) return [];
+    const mapping = mappings[entity] || {};
+    return preview.required_columns.filter((column) => !mapping[column]);
+  }
+
+  function setMapping(entity: string, targetColumn: string, sourceColumn: string) {
+    setMappings((current) => ({
+      ...current,
+      [entity]: {
+        ...(current[entity] || {}),
+        [targetColumn]: sourceColumn
+      }
+    }));
   }
 
   function checklistIcon(status: ImportChecklistItem["status"]) {
@@ -268,13 +336,13 @@ export default function ImportsPage() {
     window.URL.revokeObjectURL(url);
   }
 
-  async function upload(entity: string) {
+  async function previewImport(entity: string) {
     if (IS_DEMO_MODE) {
       setMessages((current) => ({
         ...current,
         [entity]: {
           type: "error",
-          text: "Uploads are disabled in demo mode until a live backend is connected."
+          text: "Mapping previews and imports require the live backend."
         }
       }));
       return;
@@ -290,7 +358,7 @@ export default function ImportsPage() {
     }
 
     setLoading((current) => ({ ...current, [entity]: true }));
-    setMessages((current) => ({ ...current, [entity]: { type: "ok", text: "Uploading..." } }));
+    setMessages((current) => ({ ...current, [entity]: { type: "ok", text: "Uploading file for mapping preview..." } }));
 
     try {
       if (requirements?.upload_mode === "presigned_s3") {
@@ -298,11 +366,12 @@ export default function ImportsPage() {
         const presign = await apiPost<PresignResponse>("/api/uploads/presign", {
           entity,
           filename: file.name,
-          content_type: contentType
+          content_type: contentType,
+          mode: "preview"
         });
         setMessages((current) => ({
           ...current,
-          [entity]: { type: "ok", text: `Uploading raw file to S3 at ${presign.bucket}/${presign.key}...` }
+          [entity]: { type: "ok", text: `Uploading preview file to S3 at ${presign.bucket}/${presign.key}...` }
         }));
         const uploadResponse = await fetch(presign.upload_url, {
           method: "PUT",
@@ -314,26 +383,30 @@ export default function ImportsPage() {
         }
         setMessages((current) => ({
           ...current,
-          [entity]: { type: "ok", text: "File uploaded. Validating rows and refreshing insights..." }
+          [entity]: { type: "ok", text: "File uploaded. Detecting columns and validating sample rows..." }
         }));
-        const status = await pollImportStatus(presign.bucket, presign.key);
-        if (status.status === "failed") {
-          throw new Error([status.message, ...(status.errors || [])].join(" "));
-        }
-        const rowsText = status.rows_imported !== undefined ? ` Imported ${status.rows_imported} rows.` : "";
-        const countsText = status.view_counts
-          ? ` Query views refreshed from ${Object.entries(status.view_counts)
-              .map(([name, count]) => `${count} ${name.replaceAll("_", " ")}`)
-              .join(", ")}.`
+        const preview = await apiPost<ImportPreviewResponse>("/api/import-preview", {
+          entity,
+          bucket: presign.bucket,
+          key: presign.key,
+          filename: file.name
+        });
+        setPreviews((current) => ({ ...current, [entity]: preview }));
+        setMappings((current) => ({ ...current, [entity]: preview.suggested_mapping }));
+        const mappingText = preview.validation.missing_mappings.length
+          ? ` Map ${preview.validation.missing_mappings.join(", ")} before importing.`
+          : " Mapping is ready to approve.";
+        const errorText = preview.validation.sample_errors.length
+          ? ` Sample validation warnings: ${preview.validation.sample_errors.slice(0, 2).join(" ")}`
           : "";
         setMessages((current) => ({
           ...current,
           [entity]: {
             type: "ok",
-            text: `${status.message}${rowsText}${countsText} Raw file stored in S3 at ${presign.bucket}/${presign.key}.`
+            text: `Previewed ${preview.row_count_estimate.toLocaleString()} rows and ${preview.detected_columns.length} detected columns.${mappingText}${errorText}`
           }
         }));
-        void loadHistory();
+        void loadAudit();
         return;
       }
 
@@ -360,6 +433,65 @@ export default function ImportsPage() {
         [entity]: { type: "error", text: error instanceof Error ? error.message : "Import failed." }
       }));
       void loadHistory();
+    } finally {
+      setLoading((current) => ({ ...current, [entity]: false }));
+    }
+  }
+
+  async function commitImport(entity: string) {
+    const preview = previews[entity];
+    if (!preview) {
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "error", text: "Preview and map this file before importing." }
+      }));
+      return;
+    }
+    const missing = missingMappings(entity);
+    if (missing.length) {
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "error", text: `Map required columns first: ${missing.join(", ")}.` }
+      }));
+      return;
+    }
+    setLoading((current) => ({ ...current, [entity]: true }));
+    setMessages((current) => ({
+      ...current,
+      [entity]: { type: "ok", text: "Approving mapping and queueing the import worker..." }
+    }));
+    try {
+      const body = await apiPost<ImportCommitResponse>("/api/imports/commit", {
+        entity,
+        bucket: preview.bucket,
+        key: preview.key,
+        mapping: mappings[entity]
+      });
+      const status = await pollImportStatus(body.bucket, body.key);
+      if (status.status === "failed") {
+        throw new Error([status.message, ...(status.errors || [])].join(" "));
+      }
+      const rowsText = status.rows_imported !== undefined ? ` Imported ${status.rows_imported} rows.` : "";
+      const countsText = status.view_counts
+        ? ` Query views refreshed from ${Object.entries(status.view_counts)
+            .map(([name, count]) => `${count} ${name.replaceAll("_", " ")}`)
+            .join(", ")}.`
+        : "";
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "ok", text: `${status.message}${rowsText}${countsText}` }
+      }));
+      setPreviews((current) => ({ ...current, [entity]: null }));
+      setMappings((current) => ({ ...current, [entity]: {} }));
+      void loadHistory();
+      void loadAudit();
+    } catch (error) {
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "error", text: error instanceof Error ? error.message : "Import failed." }
+      }));
+      void loadHistory();
+      void loadAudit();
     } finally {
       setLoading((current) => ({ ...current, [entity]: false }));
     }
@@ -417,7 +549,10 @@ export default function ImportsPage() {
             Query speed comes from importing normalized rows into {requirements.query_store?.service || "the query store"} after upload.
           </div>
         ) : null}
-        {Object.entries(columns).map(([entity, required]) => (
+        {Object.entries(columns).map(([entity, required]) => {
+          const preview = previews[entity];
+          const missing = missingMappings(entity);
+          return (
           <div className="upload-row" key={entity}>
             <div>
               <strong>{entity.replaceAll("_", " ")}</strong>
@@ -441,15 +576,68 @@ export default function ImportsPage() {
                 </button>
               ) : null}
             </div>
-            <button className="button" type="button" disabled={loading[entity]} onClick={() => upload(entity)}>
-              <UploadCloud size={17} />
-              Upload
+            <button className="button" type="button" disabled={loading[entity]} onClick={() => previewImport(entity)}>
+              <Eye size={17} />
+              Preview
             </button>
+            {preview ? (
+              <div className="mapping-panel">
+                <div className="panel-header">
+                  <div>
+                    <h3>Mapping Preview</h3>
+                    <p>
+                      {preview.row_count_estimate.toLocaleString()} rows detected from {preview.filename}. Confirm the
+                      source column for each required field before importing.
+                    </p>
+                  </div>
+                  <button className="button" type="button" disabled={loading[entity] || missing.length > 0} onClick={() => commitImport(entity)}>
+                    <CheckCheck size={17} />
+                    Approve import
+                  </button>
+                </div>
+                <div className="column-list">
+                  <span>Detected columns</span>
+                  <p>{preview.detected_columns.join(", ") || "No columns detected"}</p>
+                </div>
+                <div className="mapping-grid">
+                  {preview.required_columns.map((column) => (
+                    <label key={column}>
+                      <span>{column.replaceAll("_", " ")}</span>
+                      <select
+                        className="input"
+                        value={(mappings[entity] || {})[column] || ""}
+                        onChange={(event) => setMapping(entity, column, event.target.value)}
+                      >
+                        <option value="">Not mapped</option>
+                        {preview.detected_columns.map((sourceColumn) => (
+                          <option value={sourceColumn} key={sourceColumn}>
+                            {sourceColumn}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                {missing.length ? (
+                  <div className="message error">Missing mappings: {missing.join(", ")}</div>
+                ) : preview.validation.sample_errors.length ? (
+                  <div className="message error">{preview.validation.sample_errors.slice(0, 4).join(" ")}</div>
+                ) : (
+                  <div className="message ok">Sample rows validate against the canonical Inventory AI schema.</div>
+                )}
+                <DataTable
+                  columns={preview.required_columns}
+                  rows={mappedPreviewRows(entity)}
+                  emptyLabel="No sample rows are available"
+                />
+              </div>
+            ) : null}
             {messages[entity] ? (
               <div className={`message ${messages[entity].type}`}>{messages[entity].text}</div>
             ) : null}
           </div>
-        ))}
+          );
+        })}
       </section>
 
       <section className="panel">
@@ -490,6 +678,25 @@ export default function ImportsPage() {
           </div>
         </section>
       ) : null}
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Audit Trail</h2>
+            <p>Recent login, upload, preview, commit, import, and query actions for buyer-reviewable traceability.</p>
+          </div>
+          <button className="button secondary" type="button" onClick={loadAudit} disabled={auditLoading}>
+            <ShieldCheck size={17} />
+            Refresh audit
+          </button>
+        </div>
+        {auditError ? <div className="message error">{auditError}</div> : null}
+        <DataTable
+          columns={["time", "user", "action", "resource", "origin", "details"]}
+          rows={auditRows}
+          emptyLabel={auditLoading ? "Loading audit trail" : "No audit events yet"}
+        />
+      </section>
 
       <section className="panel">
         <div className="panel-header">
