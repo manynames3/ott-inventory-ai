@@ -180,35 +180,52 @@ export const demoDashboard = {
   recommendations: [
     {
       sku: "OTG-RAM-001",
+      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      category: "Noodles",
       warehouse: "LA DC",
       status: "stockout risk",
       recommended_order_qty: 1800,
+      estimated_order_value: 34200,
       reorder_by_date: "2026-06-01",
+      action: "Order replenishment and prioritize allocation until inbound supply arrives.",
       confidence: 0.88,
+      confidence_reason: "High confidence: demand history is broad and recent variability is manageable.",
       reason: "Stockout risk due to 30-day ocean freight lead time: effective inventory is below lead-time demand after excluding units expiring before replenishment."
     },
     {
       sku: "OTG-RAM-002",
+      product_name: "Ottogi Jin Ramen Mild Multi-Pack",
+      category: "Noodles",
       warehouse: "NJ DC",
       status: "reorder now",
       recommended_order_qty: 960,
+      estimated_order_value: 17760,
       reorder_by_date: "2026-06-03",
+      action: "Place replenishment order this week.",
       confidence: 0.82,
+      confidence_reason: "Medium confidence: demand history is usable, but variability should be reviewed.",
       reason: "Reorder now because inventory position is at the reorder point based on average daily demand plus safety stock."
     },
     {
       sku: "OTG-SOU-005",
+      product_name: "Ottogi Kimchi Stew",
+      category: "Soup & HMR",
       warehouse: "Dallas DC",
       status: "overstocked",
       recommended_order_qty: 0,
+      estimated_order_value: 0,
       reorder_by_date: "2026-06-30",
+      action: "Pause buying and move older lots through transfer, promotion, or discount.",
       confidence: 0.74,
+      confidence_reason: "Medium confidence: lot and expiration data are strong; demand variability requires planner review.",
       reason: "Overstocked with more than 90 days of supply and near-expiring soup inventory; prioritize FEFO allocation and regional transfer."
     }
   ],
   fefo: [
     {
       sku: "OTG-RAM-001",
+      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      category: "Noodles",
       warehouse: "LA DC",
       ship_first_lot: "LOT-00124",
       expiration_date: "2026-07-16",
@@ -218,6 +235,8 @@ export const demoDashboard = {
     },
     {
       sku: "OTG-SOU-005",
+      product_name: "Ottogi Kimchi Stew",
+      category: "Soup & HMR",
       warehouse: "Dallas DC",
       ship_first_lot: "LOT-00047",
       expiration_date: "2026-06-24",
@@ -229,18 +248,24 @@ export const demoDashboard = {
   waste_risk_alerts: [
     {
       sku: "OTG-SOU-005",
+      product_name: "Ottogi Kimchi Stew",
+      category: "Soup & HMR",
       lot_id: "LOT-00047",
       warehouse: "Dallas DC",
       quantity_at_risk: 640,
+      at_risk_value: 21120,
       expiration_date: "2026-06-24",
       risk_bucket: "0-30 days",
       suggested_action: "Priority allocate to fastest-turning customers or discount immediately."
     },
     {
       sku: "OTG-RAM-001",
+      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      category: "Noodles",
       lot_id: "LOT-00124",
       warehouse: "LA DC",
       quantity_at_risk: 420,
+      at_risk_value: 7980,
       expiration_date: "2026-07-16",
       risk_bucket: "31-60 days",
       suggested_action: "Transfer to higher-demand warehouse or attach to near-term promotions."
@@ -477,6 +502,11 @@ function demoQuery(question: string) {
       question,
       template: "monthly_sku_buyers",
       explanation: "Customers shown here buy OTG-RAM-001 with recurring monthly behavior in the loaded order history.",
+      action_summary: [
+        "2 customers show recurring monthly demand for OTG-RAM-001.",
+        "Top recurring buyer: H Mart Foods 1.",
+        "Use this list to protect allocation when supply is constrained."
+      ],
       columns: ["customer_id", "name", "region", "channel", "months_with_orders", "monthly_coverage", "avg_monthly_quantity"],
       rows: [
         { customer_id: "CUST-001", name: "H Mart Foods 1", region: "West", channel: "Retail", months_with_orders: 21, monthly_coverage: 0.88, avg_monthly_quantity: 260 },
@@ -490,7 +520,12 @@ function demoQuery(question: string) {
       question,
       template: "expiring_inventory",
       explanation: "These lots expire within 90 days and should be prioritized before newer inventory.",
-      columns: ["sku", "lot_id", "warehouse", "quantity_at_risk", "expiration_date", "risk_bucket", "suggested_action"],
+      action_summary: [
+        "2 lots are inside the 90-day expiration action window.",
+        "Oldest priority: lot LOT-00047 for OTG-SOU-005 Ottogi Kimchi Stew in Dallas DC.",
+        "Use FEFO allocation, transfer, promotion, or discount before newer lots ship."
+      ],
+      columns: ["sku", "product_name", "category", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "risk_bucket", "suggested_action"],
       rows: demoDashboard.waste_risk_alerts,
       safe_query_mode: "demo_rule_based_templates_only"
     };
@@ -499,7 +534,12 @@ function demoQuery(question: string) {
     question,
     template: "reorder_this_week",
     explanation: "These replenishment actions are due within the next 7 days based on stock position and lead-time demand.",
-    columns: ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason", "confidence"],
+    action_summary: [
+      "2 replenishment actions are due this week.",
+      "Top buy: OTG-RAM-001 Ottogi Jin Ramen Spicy Multi-Pack for LA DC at 1800 cases.",
+      "Quantities include lead-time demand, safety stock, inbound supply, and expiration risk."
+    ],
+    columns: ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence", "confidence_reason"],
     rows: demoDashboard.recommendations,
     safe_query_mode: "demo_rule_based_templates_only"
   };

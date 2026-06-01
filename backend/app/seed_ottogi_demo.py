@@ -21,6 +21,47 @@ random.seed(87)
 
 WAREHOUSES = ["LA DC", "NJ DC", "Dallas DC", "Seattle DC"]
 ORIGINS = ["Busan", "Incheon", "Pyeongtaek", "Los Angeles Co-Pack"]
+REGION_WAREHOUSE = {
+    "West": ["LA DC", "Seattle DC"],
+    "Northeast": ["NJ DC"],
+    "South": ["Dallas DC", "LA DC"],
+    "Midwest": ["Dallas DC", "NJ DC"],
+    "National": WAREHOUSES,
+    "Canada": ["Seattle DC", "NJ DC"],
+}
+CHANNEL_ORDER_PROFILE = {
+    "Retail": {"orders": (3, 5), "qty": [48, 72, 96, 120, 180, 240]},
+    "Club": {"orders": (2, 4), "qty": [180, 240, 360, 480, 720]},
+    "Distributor": {"orders": (3, 6), "qty": [120, 180, 240, 360, 540]},
+    "Foodservice": {"orders": (2, 4), "qty": [24, 48, 72, 96, 144]},
+    "E-commerce": {"orders": (4, 7), "qty": [12, 24, 48, 72, 96]},
+}
+CATEGORY_COST_RANGE = {
+    "Noodles": (14.0, 23.0),
+    "Curry": (18.0, 34.0),
+    "Ready Rice": (19.0, 38.0),
+    "Ready Meals": (22.0, 42.0),
+    "Sauce": (16.0, 31.0),
+    "Oil & Vinegar": (24.0, 58.0),
+    "Seasoning": (12.0, 24.0),
+    "Mix & Powder": (15.0, 30.0),
+    "Soup & HMR": (18.0, 36.0),
+    "Frozen": (28.0, 65.0),
+    "Snacks": (10.0, 21.0),
+    "Beverage": (13.0, 29.0),
+    "Canned": (21.0, 44.0),
+    "Seaweed": (12.0, 26.0),
+}
+CATEGORY_SEASONALITY = {
+    "Noodles": {11: 1.2, 12: 1.28, 1: 1.25, 2: 1.18, 7: 0.92},
+    "Soup & HMR": {11: 1.28, 12: 1.35, 1: 1.3, 2: 1.2, 6: 0.86, 7: 0.82},
+    "Curry": {8: 1.18, 9: 1.2, 10: 1.12},
+    "Sauce": {5: 1.12, 6: 1.18, 7: 1.2, 8: 1.12},
+    "Oil & Vinegar": {9: 1.12, 10: 1.1, 11: 1.08},
+    "Ready Rice": {8: 1.12, 9: 1.15, 1: 1.08},
+    "Frozen": {11: 1.18, 12: 1.24, 1: 1.16},
+    "Beverage": {6: 1.18, 7: 1.28, 8: 1.22},
+}
 
 PRODUCT_CATALOG = [
     ("OTG-RAM-001", "Ottogi Jin Ramen Spicy Multi-Pack", "Noodles", 20, 270),
@@ -173,6 +214,29 @@ GENERATED_CUSTOMERS = [
 CUSTOMERS = BASE_CUSTOMERS + GENERATED_CUSTOMERS
 
 
+def _month_start(today: date, months_back: int) -> date:
+    month_index = today.year * 12 + today.month - 1 - months_back
+    year = month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, 1)
+
+
+def _category_multiplier(category: str, month: int) -> float:
+    return CATEGORY_SEASONALITY.get(category, {}).get(month, 1.0)
+
+
+def _unit_cost(category: str) -> float:
+    low, high = CATEGORY_COST_RANGE.get(category, (12.0, 38.0))
+    return round(random.uniform(low, high), 2)
+
+
+def _weighted_warehouse(region: str) -> str:
+    preferred = REGION_WAREHOUSE.get(region, WAREHOUSES)
+    if random.random() < 0.78:
+        return random.choice(preferred)
+    return random.choice(WAREHOUSES)
+
+
 def build_products() -> list[Product]:
     return [
         Product(
@@ -196,31 +260,56 @@ def build_customers() -> list[Customer]:
 def build_orders(products: list[Product], customers: list[Customer]) -> list[CustomerOrder]:
     today = date.today()
     high_velocity = ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+    products_by_sku = {product.sku: product for product in products}
     all_skus = [product.sku for product in products]
+    category_skus: dict[str, list[str]] = {}
+    for product in products:
+        category_skus.setdefault(product.category, []).append(product.sku)
     orders: list[CustomerOrder] = []
     counter = 1
 
     for customer in customers:
-        if customer.channel in {"Retail", "Club", "E-commerce"}:
-            preferred = high_velocity + random.sample(all_skus, 8)
+        if customer.channel in {"Retail", "Club"}:
+            pool = (
+                category_skus["Noodles"]
+                + category_skus["Ready Rice"]
+                + category_skus["Curry"]
+                + category_skus["Sauce"]
+                + category_skus["Seaweed"]
+            )
+            preferred = high_velocity + random.sample(pool, 10)
+        elif customer.channel == "E-commerce":
+            pool = category_skus["Noodles"] + category_skus["Ready Rice"] + category_skus["Snacks"] + category_skus["Beverage"]
+            preferred = high_velocity[:3] + random.sample(pool, 9)
+        elif customer.channel == "Foodservice":
+            pool = category_skus["Sauce"] + category_skus["Oil & Vinegar"] + category_skus["Mix & Powder"] + category_skus["Frozen"]
+            preferred = random.sample(pool, 12)
         else:
-            preferred = random.sample(all_skus, 12)
+            preferred = high_velocity + random.sample(all_skus, 14)
 
         for month_back in range(24, 0, -1):
-            month_start = today.replace(day=1) - timedelta(days=month_back * 30)
-            monthly_orders = random.randint(3, 6)
+            month_start = _month_start(today, month_back)
+            profile = CHANNEL_ORDER_PROFILE[customer.channel]
+            monthly_orders = random.randint(*profile["orders"])
+            if customer.channel == "Distributor" and random.random() < 0.12:
+                monthly_orders += 2
             for order_index in range(monthly_orders):
                 sku = random.choice(preferred if random.random() < 0.82 else all_skus)
-                base_qty = random.choice([24, 48, 72, 96, 120, 180])
+                product = products_by_sku[sku]
+                base_qty = random.choice(profile["qty"])
                 if sku in high_velocity:
-                    base_qty *= random.choice([2, 3])
+                    base_qty *= random.choice([2, 2, 3])
+                seasonal_qty = int(round(base_qty * _category_multiplier(product.category, month_start.month)))
+                promo_lift = 1.35 if customer.channel in {"Club", "E-commerce"} and random.random() < 0.08 else 1.0
+                quantity = max(product.case_size, int(round(seasonal_qty * promo_lift / product.case_size)) * product.case_size)
+                order_day = min(27, 2 + order_index * 4 + random.randint(0, 3))
                 orders.append(
                     CustomerOrder(
                         order_id=f"OTG-ORD-{counter:06d}",
                         customer_id=customer.customer_id,
-                        order_date=month_start + timedelta(days=min(27, 3 + order_index * 5)),
+                        order_date=month_start + timedelta(days=order_day),
                         sku=sku,
-                        quantity=base_qty,
+                        quantity=quantity,
                     )
                 )
                 counter += 1
@@ -234,9 +323,9 @@ def build_inventory_lots(products: list[Product]) -> list[InventoryLot]:
     counter = 1
 
     critical_lots = [
-        ("OTG-RAM-001", "LA DC", 320, 18),
-        ("OTG-CUR-001", "NJ DC", 440, 26),
-        ("OTG-RIC-001", "Dallas DC", 280, 42),
+        ("OTG-RAM-001", "LA DC", 840, 18),
+        ("OTG-CUR-001", "NJ DC", 720, 26),
+        ("OTG-RIC-001", "Dallas DC", 640, 42),
         ("OTG-OIL-001", "LA DC", 510, 58),
         ("OTG-SAU-001", "Seattle DC", 620, 82),
     ]
@@ -252,26 +341,35 @@ def build_inventory_lots(products: list[Product]) -> list[InventoryLot]:
                 quantity_on_hand=quantity,
                 received_date=received,
                 expiration_date=expiration,
-                unit_cost=round(random.uniform(12.5, 42.0), 2),
+                unit_cost=_unit_cost(product.category),
             )
         )
         counter += 1
 
     for product in products:
         for _ in range(5):
-            warehouse = random.choice(WAREHOUSES)
-            age = random.randint(20, min(product.shelf_life_days - 15, 420))
+            warehouse = _weighted_warehouse("West" if product.category in {"Noodles", "Ready Rice", "Seaweed"} else random.choice(list(REGION_WAREHOUSE)))
+            if random.random() < 0.18:
+                age = random.randint(max(20, product.shelf_life_days - 110), max(21, product.shelf_life_days - 20))
+            else:
+                age = random.randint(20, min(product.shelf_life_days - 120, 360)) if product.shelf_life_days > 180 else random.randint(20, product.shelf_life_days - 45)
             received = today - timedelta(days=age)
             expiration = received + timedelta(days=product.shelf_life_days)
+            if product.category in {"Noodles", "Curry", "Ready Rice", "Oil & Vinegar"}:
+                quantity = random.choice([360, 480, 600, 720, 960, 1200, 1440])
+            elif product.category in {"Frozen", "Sauce", "Soup & HMR"}:
+                quantity = random.choice([144, 240, 360, 480, 720, 960])
+            else:
+                quantity = random.choice([48, 96, 144, 240, 360, 480])
             lots.append(
                 InventoryLot(
                     lot_id=f"OTG-LOT-{counter:05d}",
                     sku=product.sku,
                     warehouse=warehouse,
-                    quantity_on_hand=random.randint(48, 1200),
+                    quantity_on_hand=quantity,
                     received_date=received,
                     expiration_date=expiration,
-                    unit_cost=round(random.uniform(7.5, 65.0), 2),
+                    unit_cost=_unit_cost(product.category),
                 )
             )
             counter += 1
@@ -281,13 +379,16 @@ def build_inventory_lots(products: list[Product]) -> list[InventoryLot]:
 def build_inbound_shipments(products: list[Product]) -> list[InboundShipment]:
     today = date.today()
     shipments: list[InboundShipment] = []
+    products_by_sku = {product.sku: product for product in products}
     priority = ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
     for index, sku in enumerate(priority):
+        product = products_by_sku[sku]
+        quantity = random.choice([60, 90, 120, 150]) * product.case_size
         shipments.append(
             InboundShipment(
                 shipment_id=f"OTG-INB-PRIORITY-{index + 1:03d}",
                 sku=sku,
-                quantity=random.choice([1200, 1800, 2400]),
+                quantity=quantity,
                 eta_date=today + timedelta(days=random.choice([28, 35, 42, 49])),
                 origin=random.choice(["Busan", "Incheon"]),
                 status=random.choice(["in_transit", "port_hold", "confirmed"]),
@@ -296,11 +397,12 @@ def build_inbound_shipments(products: list[Product]) -> list[InboundShipment]:
 
     for index in range(20):
         product = random.choice(products)
+        quantity = random.choice([30, 45, 60, 90, 120]) * product.case_size
         shipments.append(
             InboundShipment(
                 shipment_id=f"OTG-INB-{index + 1:04d}",
                 sku=product.sku,
-                quantity=random.randint(360, 2200),
+                quantity=quantity,
                 eta_date=today + timedelta(days=random.randint(7, 65)),
                 origin=random.choice(ORIGINS),
                 status=random.choice(["planned", "in_transit", "port_hold", "confirmed"]),

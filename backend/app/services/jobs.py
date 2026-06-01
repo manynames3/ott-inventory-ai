@@ -22,6 +22,7 @@ def refresh_recommendation_tables(
     inventory_lots = data["inventory_lots"]
     orders = data["orders"]
     inbound = data["inbound_shipments"]
+    customers = data["customers"]
 
     session.query(ReorderRecommendation).delete()
     session.query(WasteRiskAlert).delete()
@@ -34,6 +35,7 @@ def refresh_recommendation_tables(
         inventory_lots=inventory_lots,
         orders=orders,
         inbound_shipments=inbound,
+        customers=customers,
         skus=products["sku"].tolist() if not products.empty else None,
         as_of=as_of,
         lead_time_days=lead_time_days,
@@ -68,4 +70,3 @@ def refresh_recommendation_tables(
 
     session.commit()
     return {"reorder_recommendations": len(recommendations), "waste_risk_alerts": len(alerts)}
-

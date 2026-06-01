@@ -153,6 +153,7 @@ def waste_risk_alerts(
             continue
 
         flags = classify_expiration(exp_date, today)
+        unit_cost = float(row.get("unit_cost", 0) or 0)
         alerts.append(
             {
                 "sku": str(row["sku"]),
@@ -161,6 +162,8 @@ def waste_risk_alerts(
                 "quantity_at_risk": quantity,
                 "expiration_date": exp_date.isoformat(),
                 "risk_bucket": flags["bucket"],
+                "unit_cost": unit_cost,
+                "at_risk_value": round(quantity * unit_cost, 2),
                 "suggested_action": flags["suggested_action"],
             }
         )
@@ -193,4 +196,3 @@ def expiration_bucket_summary(lots: pd.DataFrame, as_of: Optional[date] = None) 
         {"bucket": key, "quantity": qty, "value": round(value, 2)}
         for key, (qty, value) in buckets.items()
     ]
-

@@ -279,6 +279,10 @@ select {
   line-height: 1.5;
 }
 
+.insight-card.compact {
+  min-height: 150px;
+}
+
 .insight-icon {
   display: grid;
   place-items: center;
@@ -637,6 +641,22 @@ select {
   background: var(--red-soft);
 }
 
+.answer-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.answer-summary div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+  color: #36413c;
+  line-height: 1.45;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -772,7 +792,8 @@ select {
   .grid-2,
   .grid-3,
   .checklist-grid,
-  .mapping-grid {
+  .mapping-grid,
+  .answer-summary {
     grid-template-columns: 1fr;
   }
 }

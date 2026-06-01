@@ -39,6 +39,15 @@ REQUIRED_COLUMNS = {
     "inbound_shipments": ["shipment_id", "sku", "quantity", "eta_date", "origin", "status"],
 }
 
+REGION_WAREHOUSE_WEIGHTS = {
+    "West": {"LA DC": 0.7, "Seattle DC": 0.3},
+    "Northeast": {"NJ DC": 1.0},
+    "South": {"Dallas DC": 0.75, "LA DC": 0.25},
+    "Midwest": {"Dallas DC": 0.65, "NJ DC": 0.35},
+    "National": {"LA DC": 0.3, "NJ DC": 0.3, "Dallas DC": 0.25, "Seattle DC": 0.15},
+    "Canada": {"Seattle DC": 0.55, "NJ DC": 0.45},
+}
+
 KEY_FIELDS = {
     "products": "sku",
     "inventory_lots": "lot_id",
@@ -338,6 +347,61 @@ def _put_view(sk: str, data: Dict[str, Any]) -> None:
     )
 
 
+def _product_lookup(products: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    return {str(product.get("sku")): product for product in products}
+
+
+def _enrich_product_rows(rows: List[Dict[str, Any]], products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    lookup = _product_lookup(products)
+    enriched = []
+    for row in rows:
+        next_row = dict(row)
+        product = lookup.get(str(next_row.get("sku", "")), {})
+        if product:
+            next_row.setdefault("product_name", product.get("name", ""))
+            next_row.setdefault("category", product.get("category", ""))
+            next_row.setdefault("case_size", product.get("case_size", ""))
+        enriched.append(next_row)
+    return enriched
+
+
+def _action_summary(template: str, rows: List[Dict[str, Any]]) -> List[str]:
+    if not rows:
+        return ["No immediate action rows matched this question in the current dataset."]
+    first = rows[0]
+    if template == "stockout_risk":
+        return [
+            f"{len(rows)} SKU/warehouse combinations need action now.",
+            f"Highest priority: {first.get('sku')} {first.get('product_name', '')} in {first.get('warehouse')} with {first.get('days_of_supply', '—')} days of supply.",
+            "Review transfer, expedite, and order placement before normal replenishment lead time closes.",
+        ]
+    if template == "reorder_this_week":
+        return [
+            f"{len(rows)} replenishment actions are due this week.",
+            f"Top buy: {first.get('sku')} {first.get('product_name', '')} for {first.get('warehouse')} at {first.get('recommended_order_qty')} cases.",
+            "Quantities include lead-time demand, safety stock, inbound supply, and expiration risk.",
+        ]
+    if template == "expiring_inventory":
+        return [
+            f"{len(rows)} lots are inside the 90-day expiration action window.",
+            f"Oldest priority: lot {first.get('lot_id')} for {first.get('sku')} {first.get('product_name', '')} in {first.get('warehouse')}.",
+            "Use FEFO allocation, transfer, promotion, or discount before newer lots ship.",
+        ]
+    if template == "customer_reorder_cadence":
+        return [
+            f"{len(rows)} customers appear past normal reorder cadence.",
+            f"Start with {first.get('name', first.get('customer_id'))}; last order was {first.get('days_since_last_order')} days ago.",
+            "Use this as a sales follow-up queue, not an automatic order.",
+        ]
+    if template == "monthly_sku_buyers":
+        return [
+            f"{len(rows)} customers show recurring monthly demand for this SKU.",
+            f"Top recurring buyer: {first.get('name', first.get('customer_id'))}.",
+            "Use this list to protect allocation when supply is constrained.",
+        ]
+    return [f"{len(rows)} matching rows returned."]
+
+
 def _as_date(value: Any) -> date:
     if isinstance(value, date):
         return value
@@ -399,14 +463,18 @@ def _waste_alerts(lots: List[Dict[str, Any]], today: date) -> List[Dict[str, Any
     for lot in _active_lots(lots):
         flags = _expiration_flags(lot["expiration_date"], today)
         if int(flags["days_to_expiration"]) <= 90:
+            qty = int(float(lot.get("quantity_on_hand", 0) or 0))
+            unit_cost = float(lot.get("unit_cost", 0) or 0)
             alerts.append(
                 {
                     "sku": lot["sku"],
                     "lot_id": lot["lot_id"],
                     "warehouse": lot["warehouse"],
-                    "quantity_at_risk": int(float(lot.get("quantity_on_hand", 0) or 0)),
+                    "quantity_at_risk": qty,
                     "expiration_date": _to_date(lot["expiration_date"]),
                     "risk_bucket": flags["bucket"],
+                    "unit_cost": unit_cost,
+                    "at_risk_value": round(qty * unit_cost, 2),
                     "suggested_action": flags["suggested_action"],
                 }
             )
@@ -425,24 +493,143 @@ def _daily_demand(orders: List[Dict[str, Any]], sku: str, today: date, history_d
     return [quantities[start + timedelta(days=offset)] for offset in range(history_days)]
 
 
-def _inbound_qty(inbounds: List[Dict[str, Any]], sku: str, today: date, through: date) -> int:
+def _inbound_qty(
+    inbounds: List[Dict[str, Any]],
+    sku: str,
+    today: date,
+    through: date,
+    warehouse: str = "",
+    allocation_share: float = 1.0,
+) -> int:
     total = 0
+    share = max(0.0, allocation_share)
     for inbound in inbounds:
         if str(inbound.get("sku")) != str(sku):
             continue
+        if warehouse and "warehouse" in inbound:
+            if str(inbound.get("warehouse")) != str(warehouse):
+                continue
+            share = 1.0
         status = str(inbound.get("status", "")).lower()
         if status in {"received", "cancelled", "canceled"}:
             continue
         eta = _as_date(inbound["eta_date"])
         if today <= eta <= through:
             total += int(float(inbound.get("quantity", 0) or 0))
-    return total
+    return int(round(total * share))
 
 
-def _reorder(lots: List[Dict[str, Any]], orders: List[Dict[str, Any]], inbounds: List[Dict[str, Any]], today: date, lead_time_days: int = 30) -> List[Dict[str, Any]]:
+def _warehouse_demand_shares(
+    lots: List[Dict[str, Any]],
+    orders: List[Dict[str, Any]],
+    customers: List[Dict[str, Any]],
+) -> Dict[Tuple[str, str], float]:
+    sku_warehouses: Dict[str, List[str]] = defaultdict(list)
+    inventory_qty: Dict[Tuple[str, str], float] = defaultdict(float)
+    for lot in lots:
+        sku = str(lot.get("sku", ""))
+        warehouse = str(lot.get("warehouse", ""))
+        if not sku or not warehouse:
+            continue
+        if warehouse not in sku_warehouses[sku]:
+            sku_warehouses[sku].append(warehouse)
+        inventory_qty[(sku, warehouse)] += max(0.0, float(lot.get("quantity_on_hand", 0) or 0))
+
+    inventory_shares: Dict[Tuple[str, str], float] = {}
+    for sku, warehouses in sku_warehouses.items():
+        total = sum(inventory_qty.get((sku, warehouse), 0.0) for warehouse in warehouses)
+        if total <= 0:
+            equal_share = 1.0 / max(len(warehouses), 1)
+            for warehouse in warehouses:
+                inventory_shares[(sku, warehouse)] = equal_share
+        else:
+            for warehouse in warehouses:
+                inventory_shares[(sku, warehouse)] = inventory_qty.get((sku, warehouse), 0.0) / total
+
+    if not orders:
+        return inventory_shares
+
+    if any("warehouse" in order for order in orders):
+        demand_by_group: Dict[Tuple[str, str], float] = defaultdict(float)
+        for order in orders:
+            sku = str(order.get("sku", ""))
+            warehouse = str(order.get("warehouse", ""))
+            if warehouse not in sku_warehouses.get(sku, []):
+                continue
+            demand_by_group[(sku, warehouse)] += max(0.0, float(order.get("quantity", 0) or 0))
+        totals_by_sku: Dict[str, float] = defaultdict(float)
+        for (sku, _warehouse), quantity in demand_by_group.items():
+            totals_by_sku[sku] += quantity
+        shares = dict(inventory_shares)
+        for (sku, warehouse), quantity in demand_by_group.items():
+            if totals_by_sku[sku] > 0:
+                shares[(sku, warehouse)] = quantity / totals_by_sku[sku]
+        return shares
+
+    customer_region = {str(customer.get("customer_id")): str(customer.get("region", "")) for customer in customers}
+    if not customer_region:
+        return inventory_shares
+
+    allocated: Dict[Tuple[str, str], float] = defaultdict(float)
+    for order in orders:
+        sku = str(order.get("sku", ""))
+        warehouses = sku_warehouses.get(sku, [])
+        quantity = max(0.0, float(order.get("quantity", 0) or 0))
+        if not warehouses or quantity <= 0:
+            continue
+        region = customer_region.get(str(order.get("customer_id")), "")
+        region_weights = REGION_WAREHOUSE_WEIGHTS.get(region, {})
+        matched = [(warehouse, float(region_weights[warehouse])) for warehouse in warehouses if warehouse in region_weights]
+        if not matched:
+            matched = [(warehouse, inventory_shares.get((sku, warehouse), 0.0)) for warehouse in warehouses]
+        total_weight = sum(weight for _, weight in matched)
+        if total_weight <= 0:
+            matched = [(warehouse, 1.0) for warehouse in warehouses]
+            total_weight = float(len(matched))
+        for warehouse, weight in matched:
+            allocated[(sku, warehouse)] += quantity * (weight / total_weight)
+
+    if not allocated:
+        return inventory_shares
+
+    totals_by_sku: Dict[str, float] = defaultdict(float)
+    for (sku, _warehouse), quantity in allocated.items():
+        totals_by_sku[sku] += quantity
+    shares = dict(inventory_shares)
+    for (sku, warehouse), quantity in allocated.items():
+        if totals_by_sku[sku] > 0:
+            shares[(sku, warehouse)] = quantity / totals_by_sku[sku]
+    return shares
+
+
+def _confidence(nonzero_days: int, avg_daily_demand: float, demand_std: float) -> Tuple[float, str]:
+    if avg_daily_demand <= 0:
+        return 0.55, "Low confidence: no recent demand is visible for this SKU."
+    coverage_score = min(0.3, nonzero_days / 240.0)
+    variability_ratio = demand_std / max(avg_daily_demand, 1)
+    variability_penalty = min(0.12, variability_ratio * 0.04)
+    value = round(max(0.5, min(0.94, 0.58 + coverage_score - variability_penalty)), 2)
+    if nonzero_days >= 120 and variability_ratio < 2:
+        reason = "High confidence: demand history is broad and recent variability is manageable."
+    elif nonzero_days >= 45:
+        reason = "Medium confidence: demand history is usable, but variability or sparse order days should be reviewed."
+    else:
+        reason = "Lower confidence: limited recent order frequency; planner review is recommended before committing."
+    return value, reason
+
+
+def _reorder(
+    lots: List[Dict[str, Any]],
+    orders: List[Dict[str, Any]],
+    inbounds: List[Dict[str, Any]],
+    customers: List[Dict[str, Any]],
+    today: date,
+    lead_time_days: int = 30,
+) -> List[Dict[str, Any]]:
     by_group: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
     for lot in lots:
         by_group[(str(lot.get("sku")), str(lot.get("warehouse")))].append(lot)
+    demand_shares = _warehouse_demand_shares(lots, orders, customers)
     recs = []
     for (sku, warehouse), group in sorted(by_group.items()):
         usable = 0
@@ -457,40 +644,76 @@ def _reorder(lots: List[Dict[str, Any]], orders: List[Dict[str, Any]], inbounds:
                     expiring_90 += qty
                 if exp <= today + timedelta(days=lead_time_days):
                     expiring_before_lead += qty
-        demand = _daily_demand(orders, sku, today)
+        avg_unit_cost = statistics.mean([float(lot.get("unit_cost", 0) or 0) for lot in group]) if group else 0.0
+        demand_share = demand_shares.get((sku, warehouse), 1.0)
+        demand = [value * max(0.0, demand_share) for value in _daily_demand(orders, sku, today)]
         avg = statistics.mean(demand) if demand else 0.0
         std = statistics.pstdev(demand) if len(demand) > 1 else 0.0
-        inbound_lead = _inbound_qty(inbounds, sku, today, today + timedelta(days=lead_time_days))
-        inbound_target = _inbound_qty(inbounds, sku, today, today + timedelta(days=lead_time_days + 30))
+        inbound_lead = _inbound_qty(
+            inbounds,
+            sku,
+            today,
+            today + timedelta(days=lead_time_days),
+            warehouse=warehouse,
+            allocation_share=demand_share,
+        )
+        inbound_target = _inbound_qty(
+            inbounds,
+            sku,
+            today,
+            today + timedelta(days=lead_time_days + 30),
+            warehouse=warehouse,
+            allocation_share=demand_share,
+        )
         safety_stock = 1.65 * std * math.sqrt(max(lead_time_days, 1))
-        reorder_point = avg * lead_time_days + safety_stock
+        lead_time_demand = avg * lead_time_days
+        reorder_point = lead_time_demand + safety_stock
         target_stock = avg * (lead_time_days + 30) + safety_stock
         net_position = usable + inbound_lead
         target_position = usable + inbound_target
         effective_position = max(0.0, net_position - expiring_before_lead)
         recommended_qty = int(math.ceil(max(0.0, target_stock - target_position)))
-        days_of_supply = round(net_position / avg, 1) if avg > 0 else None
+        net_days_of_supply = round(net_position / avg, 1) if avg > 0 else None
+        effective_days_of_supply = round(effective_position / avg, 1) if avg > 0 else None
+        confidence, confidence_reason = _confidence(len([qty for qty in demand if qty > 0]), avg, std)
+        action = "Review next cycle."
+        days_of_supply = net_days_of_supply
         if avg <= 0:
             status = "overstocked" if usable > 0 else "wait"
             recommended_qty = 0
             reason = "No recent demand is visible for this SKU, so avoid replenishment and review existing stock."
+            action = "Hold replenishment and review slow-moving inventory."
             reorder_by = today + timedelta(days=30)
-        elif usable <= 0 or effective_position < avg * lead_time_days:
+        elif usable <= 0:
             status = "stockout risk"
-            reason = f"Stockout risk due to {lead_time_days}-day lead time: effective inventory {effective_position:.0f} is below lead-time demand {avg * lead_time_days:.0f}."
+            recommended_qty = max(recommended_qty, int(math.ceil(lead_time_demand + safety_stock)))
+            reason = f"Stockout risk because usable inventory is zero while recent average demand is {avg:.2f} units/day and supplier lead time is {lead_time_days} days."
+            action = "Place replenishment order and review transfer or expedite options."
+            days_of_supply = 0.0
+            reorder_by = today
+        elif effective_position < lead_time_demand:
+            status = "stockout risk"
+            recommended_qty = max(recommended_qty, int(math.ceil(lead_time_demand + safety_stock - effective_position)))
+            reason = f"Stockout risk due to {lead_time_days}-day lead time: effective inventory {effective_position:.0f} is below lead-time demand {lead_time_demand:.0f} after excluding {expiring_before_lead} units expiring before replenishment."
+            action = "Order replenishment and prioritize allocation until inbound supply arrives."
+            days_of_supply = effective_days_of_supply
             reorder_by = today
         elif net_position <= reorder_point:
             status = "reorder now"
+            recommended_qty = max(recommended_qty, int(math.ceil(reorder_point - net_position)))
             reason = f"Reorder now because inventory position {net_position:.0f} is at or below reorder point {reorder_point:.0f}."
+            action = "Place replenishment order this week."
             reorder_by = today
-        elif expiring_90 > max(avg * 30, 1) and days_of_supply and days_of_supply > 90:
+        elif expiring_90 > max(avg * 30, 1) and net_days_of_supply and net_days_of_supply > 90:
             status = "overstocked"
             recommended_qty = 0
-            reason = f"Overstocked: {days_of_supply:.1f} days of supply and {expiring_90} units expire within 90 days."
+            reason = f"Overstocked: {net_days_of_supply:.1f} days of supply and {expiring_90} units expire within 90 days."
+            action = "Pause buying and move older lots through transfer, promotion, or discount."
             reorder_by = today + timedelta(days=30)
         else:
             status = "wait"
             reason = f"Wait because inventory position {net_position:.0f} covers the lead time plus safety stock."
+            action = "No buy this week; monitor inbound and demand."
             reorder_by = today + timedelta(days=30)
         recs.append(
             {
@@ -498,9 +721,13 @@ def _reorder(lots: List[Dict[str, Any]], orders: List[Dict[str, Any]], inbounds:
                 "warehouse": warehouse,
                 "status": status,
                 "recommended_order_qty": recommended_qty,
+                "estimated_order_value": round(recommended_qty * avg_unit_cost, 2),
+                "unit_cost": round(avg_unit_cost, 2),
                 "reorder_by_date": reorder_by.isoformat(),
+                "action": action,
                 "reason": reason,
-                "confidence": 0.75,
+                "confidence": confidence,
+                "confidence_reason": confidence_reason,
                 "average_daily_demand": round(avg, 4),
                 "lead_time_days": lead_time_days,
                 "safety_stock": round(safety_stock, 2),
@@ -570,6 +797,7 @@ def _customer_reorder_cadence(customers: List[Dict[str, Any]], orders: List[Dict
     return {
         "template": "customer_reorder_cadence",
         "explanation": "These customers appear due for another order based on their historical buying cadence.",
+        "action_summary": _action_summary("customer_reorder_cadence", rows),
         "columns": ["customer_id", "name", "region", "channel", "last_order_date", "days_since_last_order", "avg_days_between_orders", "reason"],
         "rows": sorted(rows, key=lambda row: row["days_since_last_order"], reverse=True)[:25],
     }
@@ -603,11 +831,13 @@ def _monthly_buyers(customers: List[Dict[str, Any]], orders: List[Dict[str, Any]
                     "last_order_date": entry["last"],
                 }
             )
+    rows = sorted(rows, key=lambda row: (row["monthly_coverage"], row["avg_monthly_quantity"]), reverse=True)[:25]
     return {
         "template": "monthly_sku_buyers",
         "explanation": f"Customers shown here buy {sku} with recurring monthly behavior in the loaded order history.",
+        "action_summary": _action_summary("monthly_sku_buyers", rows),
         "columns": ["customer_id", "name", "region", "channel", "months_with_orders", "monthly_coverage", "avg_monthly_quantity", "last_order_date"],
-        "rows": sorted(rows, key=lambda row: (row["monthly_coverage"], row["avg_monthly_quantity"]), reverse=True)[:25],
+        "rows": rows,
     }
 
 
@@ -618,9 +848,9 @@ def _materialize_views() -> Dict[str, int]:
     customers = _read_records("customers")
     orders = _read_records("orders")
     inbounds = _read_records("inbound_shipments")
-    fefo = _fefo(lots, today)
-    alerts = _waste_alerts(lots, today)
-    recs = _reorder(lots, orders, inbounds, today)
+    fefo = _enrich_product_rows(_fefo(lots, today), products)
+    alerts = _enrich_product_rows(_waste_alerts(lots, today), products)
+    recs = _enrich_product_rows(_reorder(lots, orders, inbounds, customers, today), products)
 
     total_value = sum(int(float(lot.get("quantity_on_hand", 0) or 0)) * float(lot.get("unit_cost", 0) or 0) for lot in _active_lots(lots))
     risk_value = sum(
@@ -628,20 +858,12 @@ def _materialize_views() -> Dict[str, int]:
         for lot in _active_lots(lots)
         if 0 <= _days_to_exp(lot["expiration_date"], today) <= 90
     )
-    unit_cost_by_sku = defaultdict(float)
-    count_by_sku = defaultdict(int)
-    for lot in lots:
-        unit_cost_by_sku[str(lot["sku"])] += float(lot.get("unit_cost", 0) or 0)
-        count_by_sku[str(lot["sku"])] += 1
-    for sku in list(unit_cost_by_sku):
-        unit_cost_by_sku[sku] = unit_cost_by_sku[sku] / max(count_by_sku[sku], 1)
-
     dashboard = {
         "kpis": {
             "total_inventory_value": round(total_value, 2),
             "inventory_at_risk_value": round(risk_value, 2),
             "projected_stockouts": len([rec for rec in recs if rec["status"] == "stockout risk"]),
-            "recommended_reorder_value": round(sum(rec["recommended_order_qty"] * unit_cost_by_sku[rec["sku"]] for rec in recs), 2),
+            "recommended_reorder_value": round(sum(float(rec.get("estimated_order_value", 0) or 0) for rec in recs), 2),
             "waste_reduction_opportunity": round(risk_value * 0.35, 2),
         },
         "charts": {
@@ -658,9 +880,39 @@ def _materialize_views() -> Dict[str, int]:
     _put_view("fefo", {"rows": fefo})
     _put_view("waste_risk_alerts", {"rows": alerts})
     _put_view("reorder_recommendations", {"rows": recs})
-    _put_view("query#expiring_inventory", {"template": "expiring_inventory", "explanation": "These lots expire within 90 days and should be prioritized before newer inventory.", "columns": ["sku", "lot_id", "warehouse", "quantity_at_risk", "expiration_date", "risk_bucket", "suggested_action"], "rows": alerts[:50]})
-    _put_view("query#stockout_risk", {"template": "stockout_risk", "explanation": "These SKU and warehouse combinations need action based on demand, lead time, inbound supply, and current inventory.", "columns": ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "days_of_supply", "reason", "confidence"], "rows": [rec for rec in recs if rec["status"] in {"stockout risk", "reorder now"}][:25]})
-    _put_view("query#reorder_this_week", {"template": "reorder_this_week", "explanation": "These replenishment actions are due within the next 7 days based on stock position and lead-time demand.", "columns": ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason", "confidence"], "rows": [rec for rec in recs if rec["recommended_order_qty"] > 0 and _as_date(rec["reorder_by_date"]) <= today + timedelta(days=7)][:25]})
+    expiring_rows = alerts[:50]
+    stockout_rows = [rec for rec in recs if rec["status"] in {"stockout risk", "reorder now"}][:25]
+    reorder_rows = [rec for rec in recs if rec["recommended_order_qty"] > 0 and _as_date(rec["reorder_by_date"]) <= today + timedelta(days=7)][:25]
+    _put_view(
+        "query#expiring_inventory",
+        {
+            "template": "expiring_inventory",
+            "explanation": "These lots expire within 90 days and should be prioritized before newer inventory.",
+            "action_summary": _action_summary("expiring_inventory", expiring_rows),
+            "columns": ["sku", "product_name", "category", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "risk_bucket", "suggested_action"],
+            "rows": expiring_rows,
+        },
+    )
+    _put_view(
+        "query#stockout_risk",
+        {
+            "template": "stockout_risk",
+            "explanation": "These SKU and warehouse combinations need action based on demand, lead time, inbound supply, and current inventory.",
+            "action_summary": _action_summary("stockout_risk", stockout_rows),
+            "columns": ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "days_of_supply", "action", "reason", "confidence", "confidence_reason"],
+            "rows": stockout_rows,
+        },
+    )
+    _put_view(
+        "query#reorder_this_week",
+        {
+            "template": "reorder_this_week",
+            "explanation": "These replenishment actions are due within the next 7 days based on stock position and lead-time demand.",
+            "action_summary": _action_summary("reorder_this_week", reorder_rows),
+            "columns": ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence", "confidence_reason"],
+            "rows": reorder_rows,
+        },
+    )
     _put_view("query#customer_reorder_cadence", _customer_reorder_cadence(customers, orders, today))
     for sku in sorted(set(str(order["sku"]) for order in orders)):
         _put_view(f"query#monthly_buyers#{sku}", _monthly_buyers(customers, orders, sku))

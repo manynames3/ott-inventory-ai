@@ -50,6 +50,7 @@ export type QueryResponse = {
   question: string;
   template: string;
   explanation: string;
+  action_summary?: string[];
   columns: string[];
   rows: Record<string, unknown>[];
   safe_query_mode: string;

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.services.dataframes import load_core_dataframes
 from app.services.fefo import expiration_bucket_summary, recommend_fefo, waste_risk_alerts
 from app.services.forecasting import ForecastEngine
+from app.services.product_context import enrich_product_rows
 from app.services.reorder import generate_reorder_recommendations
 
 
@@ -64,6 +65,7 @@ def build_dashboard(session: Session, lead_time_days: int) -> Dict[str, object]:
     inventory = data["inventory_lots"]
     orders = data["orders"]
     inbound = data["inbound_shipments"]
+    customers = data["customers"]
 
     if inventory.empty:
         return {
@@ -102,23 +104,21 @@ def build_dashboard(session: Session, lead_time_days: int) -> Dict[str, object]:
         inventory_lots=inventory,
         orders=orders,
         inbound_shipments=inbound,
+        customers=customers,
         skus=skus,
         as_of=today,
         lead_time_days=lead_time_days,
     )
 
-    unit_cost_by_sku = inventory.groupby("sku")["unit_cost"].mean().to_dict()
-    reorder_value = sum(
-        float(rec["recommended_order_qty"]) * float(unit_cost_by_sku.get(rec["sku"], 0))
-        for rec in recommendations
-    )
+    reorder_value = sum(float(rec.get("estimated_order_value", 0) or 0) for rec in recommendations)
     stockouts = len([rec for rec in recommendations if rec["status"] == "stockout risk"])
 
     urgency_counts = pd.Series([rec["status"] for rec in recommendations]).value_counts().to_dict()
     reorder_urgency = [{"status": key, "count": int(value)} for key, value in urgency_counts.items()]
 
-    alerts = waste_risk_alerts(inventory, as_of=today, horizon_days=90)
-    fefo = recommend_fefo(inventory, as_of=today)
+    recommendations = enrich_product_rows(recommendations, products)
+    alerts = enrich_product_rows(waste_risk_alerts(inventory, as_of=today, horizon_days=90), products)
+    fefo = enrich_product_rows(recommend_fefo(inventory, as_of=today), products)
 
     return {
         "kpis": {
@@ -150,6 +150,7 @@ def build_sku_detail(session: Session, sku: str, lead_time_days: int) -> Dict[st
     inventory = data["inventory_lots"]
     orders = data["orders"]
     inbound = data["inbound_shipments"]
+    customers = data["customers"]
 
     product_rows = products[products["sku"].astype(str) == sku].to_dict("records") if not products.empty else []
     sku_inventory = inventory[inventory["sku"].astype(str) == sku].copy() if not inventory.empty else inventory
@@ -158,15 +159,16 @@ def build_sku_detail(session: Session, sku: str, lead_time_days: int) -> Dict[st
     warehouses = sorted(sku_inventory["warehouse"].astype(str).unique()) if not sku_inventory.empty else []
 
     forecast = ForecastEngine().forecast_sku(orders, sku=sku, as_of=today)
-    recs = generate_reorder_recommendations(
+    recs = enrich_product_rows(generate_reorder_recommendations(
         inventory_lots=sku_inventory,
         orders=orders,
         inbound_shipments=inbound,
+        customers=customers,
         skus=[sku],
         warehouses=warehouses,
         as_of=today,
         lead_time_days=lead_time_days,
-    )
+    ), products)
 
     return {
         "product": _jsonify_rows(product_rows)[0] if product_rows else None,
@@ -178,7 +180,7 @@ def build_sku_detail(session: Session, sku: str, lead_time_days: int) -> Dict[st
         else [],
         "forecast": forecast,
         "reorder_recommendations": recs,
-        "fefo": recommend_fefo(sku_inventory, as_of=today) if not sku_inventory.empty else [],
+        "fefo": enrich_product_rows(recommend_fefo(sku_inventory, as_of=today), products) if not sku_inventory.empty else [],
         "demand_trend": _demand_trend(sku_orders, max_skus=1),
     }
 

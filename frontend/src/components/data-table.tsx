@@ -19,6 +19,13 @@ function formatCell(column: string, value: unknown) {
   if (column.includes("confidence") && typeof value === "number") {
     return `${Math.round(value * 100)}%`;
   }
+  if ((column.includes("value") || column.includes("cost")) && typeof value === "number") {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    }).format(value);
+  }
   if (typeof value === "number") {
     return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
   }

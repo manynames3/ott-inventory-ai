@@ -81,7 +81,52 @@ class ReorderTest(unittest.TestCase):
         self.assertEqual(rec["status"], "wait")
         self.assertEqual(rec["recommended_order_qty"], 0)
 
+    def test_stockout_risk_never_has_zero_recommended_qty(self):
+        as_of = date(2026, 6, 1)
+        orders = pd.DataFrame(
+            [
+                {"sku": "OTG-RAM-002", "order_date": as_of - timedelta(days=offset), "quantity": 8}
+                for offset in range(90)
+            ]
+        )
+        inventory = pd.DataFrame(
+            [
+                {
+                    "sku": "OTG-RAM-002",
+                    "warehouse": "LA DC",
+                    "quantity_on_hand": 120,
+                    "expiration_date": as_of + timedelta(days=12),
+                    "unit_cost": 18.5,
+                }
+            ]
+        )
+        inbound = pd.DataFrame(
+            [
+                {
+                    "sku": "OTG-RAM-002",
+                    "quantity": 2000,
+                    "eta_date": as_of + timedelta(days=45),
+                    "origin": "Busan",
+                    "status": "in_transit",
+                }
+            ]
+        )
+
+        rec = recommend_reorder(
+            sku="OTG-RAM-002",
+            warehouse="LA DC",
+            inventory_lots=inventory,
+            orders=orders,
+            inbound_shipments=inbound,
+            as_of=as_of,
+            lead_time_days=30,
+        )
+
+        self.assertEqual(rec["status"], "stockout risk")
+        self.assertGreater(rec["recommended_order_qty"], 0)
+        self.assertIn("confidence_reason", rec)
+        self.assertIn("action", rec)
+
 
 if __name__ == "__main__":
     unittest.main()
-

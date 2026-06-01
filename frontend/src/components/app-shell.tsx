@@ -3,12 +3,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Database, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
+import { BarChart3, Database, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
 
 import { clearAuthToken, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
+  { href: "/actions", label: "Actions", icon: ListChecks },
   { href: "/imports", label: "Imports", icon: UploadCloud },
   { href: "/query", label: "Query", icon: Search }
 ];

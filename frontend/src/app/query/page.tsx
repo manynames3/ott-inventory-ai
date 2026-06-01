@@ -85,6 +85,13 @@ export default function QueryPage() {
             </div>
           </div>
           <p>{result.explanation}</p>
+          {result.action_summary?.length ? (
+            <div className="answer-summary">
+              {result.action_summary.map((item) => (
+                <div key={item}>{item}</div>
+              ))}
+            </div>
+          ) : null}
           <DataTable columns={result.columns} rows={result.rows} emptyLabel="No matching rows" />
         </section>
       ) : null}

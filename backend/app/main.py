@@ -21,6 +21,7 @@ from app.services.fefo import recommend_fefo, waste_risk_alerts
 from app.services.forecasting import ForecastEngine
 from app.services.jobs import refresh_recommendation_tables
 from app.services.nl_query import answer_question
+from app.services.product_context import enrich_product_rows
 from app.services.raw_file_storage import RawFileStorage
 from app.services.reorder import generate_reorder_recommendations
 from app.services.templates import csv_template, next_questions, xlsx_template
@@ -243,13 +244,13 @@ def fefo(
         lots = lots[lots["sku"].astype(str) == sku]
     if warehouse and not lots.empty:
         lots = lots[lots["warehouse"].astype(str) == warehouse]
-    return {"rows": recommend_fefo(lots, as_of=date.today()) if not lots.empty else []}
+    return {"rows": enrich_product_rows(recommend_fefo(lots, as_of=date.today()), data["products"]) if not lots.empty else []}
 
 
 @app.get("/api/waste-risk-alerts")
 def waste_risk(db: Session = Depends(get_db), _: Dict[str, object] = Depends(require_user)):
     data = load_core_dataframes(db)
-    return {"rows": waste_risk_alerts(data["inventory_lots"], as_of=date.today(), horizon_days=90)}
+    return {"rows": enrich_product_rows(waste_risk_alerts(data["inventory_lots"], as_of=date.today(), horizon_days=90), data["products"])}
 
 
 @app.get("/api/forecasts")
@@ -266,14 +267,15 @@ def reorder_recommendations(db: Session = Depends(get_db), _: Dict[str, object] 
     data = load_core_dataframes(db)
     products = data["products"]
     return {
-        "rows": generate_reorder_recommendations(
+        "rows": enrich_product_rows(generate_reorder_recommendations(
             inventory_lots=data["inventory_lots"],
             orders=data["orders"],
             inbound_shipments=data["inbound_shipments"],
+            customers=data["customers"],
             skus=products["sku"].tolist() if not products.empty else None,
             as_of=date.today(),
             lead_time_days=settings.supplier_lead_time_days,
-        )
+        ), products)
     }
 
 

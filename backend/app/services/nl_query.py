@@ -9,10 +9,48 @@ from sqlalchemy.orm import Session
 
 from app.services.dataframes import load_core_dataframes
 from app.services.fefo import waste_risk_alerts
+from app.services.product_context import enrich_product_rows
 from app.services.reorder import generate_reorder_recommendations
 
 
-SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-\d{3,5}\b")
+SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{3,8}\b")
+
+
+def _summary(template: str, rows: List[Dict[str, object]]) -> List[str]:
+    if not rows:
+        return ["No immediate action rows matched this question in the current dataset."]
+    first = rows[0]
+    if template == "stockout_risk":
+        return [
+            f"{len(rows)} SKU/warehouse combinations need action now.",
+            f"Highest priority: {first.get('sku')} {first.get('product_name', '')} in {first.get('warehouse')} with {first.get('days_of_supply', '—')} days of supply.",
+            "Review transfer, expedite, and order placement before normal replenishment lead time closes."
+        ]
+    if template == "reorder_this_week":
+        return [
+            f"{len(rows)} replenishment actions are due this week.",
+            f"Top buy: {first.get('sku')} {first.get('product_name', '')} for {first.get('warehouse')} at {first.get('recommended_order_qty')} cases.",
+            "Quantities include lead-time demand, safety stock, inbound supply, and expiration risk."
+        ]
+    if template == "expiring_inventory":
+        return [
+            f"{len(rows)} lots are inside the 90-day expiration action window.",
+            f"Oldest priority: lot {first.get('lot_id')} for {first.get('sku')} {first.get('product_name', '')} in {first.get('warehouse')}.",
+            "Use FEFO allocation, transfer, promotion, or discount before newer lots ship."
+        ]
+    if template == "customer_reorder_cadence":
+        return [
+            f"{len(rows)} customers appear past normal reorder cadence.",
+            f"Start with {first.get('name', first.get('customer_id'))}; last order was {first.get('days_since_last_order')} days ago.",
+            "Use this as a sales follow-up queue, not an automatic order."
+        ]
+    if template == "monthly_sku_buyers":
+        return [
+            f"{len(rows)} customers show recurring monthly demand for this SKU.",
+            f"Top recurring buyer: {first.get('name', first.get('customer_id'))}.",
+            "Use this list to protect allocation when supply is constrained."
+        ]
+    return [f"{len(rows)} matching rows returned."]
 
 
 def _serialize(rows: List[Dict[str, object]]) -> List[Dict[str, object]]:
@@ -101,40 +139,50 @@ def _stockout_risk(data: Dict[str, pd.DataFrame], lead_time_days: int) -> Dict[s
         inventory_lots=inventory,
         orders=data["orders"],
         inbound_shipments=data["inbound_shipments"],
+        customers=data["customers"],
         skus=products["sku"].tolist() if not products.empty else None,
         as_of=today,
         lead_time_days=lead_time_days,
     )
-    rows = [
+    rows = enrich_product_rows([
         rec
         for rec in recommendations
         if rec["status"] in {"stockout risk", "reorder now"} and rec["reorder_by_date"] <= today.isoformat()
-    ][:25]
+    ][:25], products)
     columns = [
         "sku",
+        "product_name",
+        "category",
         "warehouse",
         "status",
         "recommended_order_qty",
+        "estimated_order_value",
         "reorder_by_date",
         "days_of_supply",
+        "action",
         "reason",
         "confidence",
+        "confidence_reason",
     ]
     return {
         "template": "stockout_risk",
         "explanation": "These SKU and warehouse combinations are projected to need action based on demand, lead time, inbound supply, and current inventory.",
+        "action_summary": _summary("stockout_risk", rows),
         "columns": columns,
         "rows": rows,
     }
 
 
 def _expiring_inventory(data: Dict[str, pd.DataFrame]) -> Dict[str, object]:
-    alerts = waste_risk_alerts(data["inventory_lots"], as_of=date.today(), horizon_days=90)
+    alerts = enrich_product_rows(waste_risk_alerts(data["inventory_lots"], as_of=date.today(), horizon_days=90), data["products"])
     columns = [
         "sku",
+        "product_name",
+        "category",
         "lot_id",
         "warehouse",
         "quantity_at_risk",
+        "at_risk_value",
         "expiration_date",
         "risk_bucket",
         "suggested_action",
@@ -142,6 +190,7 @@ def _expiring_inventory(data: Dict[str, pd.DataFrame]) -> Dict[str, object]:
     return {
         "template": "expiring_inventory",
         "explanation": "These lots expire within 90 days and should be prioritized before newer inventory.",
+        "action_summary": _summary("expiring_inventory", alerts[:50]),
         "columns": columns,
         "rows": alerts[:50],
     }
@@ -212,20 +261,35 @@ def _reorder_this_week(data: Dict[str, pd.DataFrame], lead_time_days: int) -> Di
         inventory_lots=data["inventory_lots"],
         orders=data["orders"],
         inbound_shipments=data["inbound_shipments"],
+        customers=data["customers"],
         skus=products["sku"].tolist() if not products.empty else None,
         as_of=today,
         lead_time_days=lead_time_days,
     )
-    rows = [
+    rows = enrich_product_rows([
         rec
         for rec in recs
         if rec["recommended_order_qty"] > 0
         and pd.to_datetime(rec["reorder_by_date"]).date() <= today + timedelta(days=7)
-    ][:25]
-    columns = ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason", "confidence"]
+    ][:25], products)
+    columns = [
+        "sku",
+        "product_name",
+        "category",
+        "warehouse",
+        "status",
+        "recommended_order_qty",
+        "estimated_order_value",
+        "reorder_by_date",
+        "action",
+        "reason",
+        "confidence",
+        "confidence_reason",
+    ]
     return {
         "template": "reorder_this_week",
         "explanation": "These replenishment actions are due within the next 7 days based on stock position and lead-time demand.",
+        "action_summary": _summary("reorder_this_week", rows),
         "columns": columns,
         "rows": rows,
     }
@@ -261,5 +325,5 @@ def answer_question(session: Session, question: str, lead_time_days: int) -> Dic
 
     answer["question"] = question
     answer["safe_query_mode"] = "rule_based_templates_only"
+    answer.setdefault("action_summary", _summary(str(answer.get("template", "")), answer.get("rows", [])))
     return answer
-

@@ -8,6 +8,7 @@ import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
 import { MetricCard } from "@/components/metric-card";
 import { apiGet, DashboardResponse, formatCurrency, formatNumber, TableResponse } from "@/lib/api";
+import { buildPriorityActions } from "@/lib/priority-actions";
 
 type DashboardState = {
   dashboard: DashboardResponse | null;
@@ -60,6 +61,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   const topStockout = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
   const topWaste = dashboard.waste_risk_alerts[0];
   const topFefo = dashboard.fefo[0];
+  const priorityActions = buildPriorityActions(dashboard).slice(0, 12);
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -141,12 +143,14 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
         : "No stockout-risk recommendation is currently listed."
     )}</td></tr>
   </tbody></table>
+  <h2>Today&apos;s Priority Actions</h2>
+  ${reportRows(priorityActions, ["priority", "action_type", "sku", "product_name", "warehouse", "due_date", "financial_impact", "recommended_action", "confidence_reason"])}
   <h2>What To Reorder This Week</h2>
-  ${reportRows(dashboard.recommendations, ["sku", "warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason"])}
+  ${reportRows(dashboard.recommendations, ["sku", "product_name", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence_reason"])}
   <h2>What To Ship First</h2>
-  ${reportRows(dashboard.fefo, ["sku", "warehouse", "ship_first_lot", "expiration_date", "risk_bucket", "reason"])}
+  ${reportRows(dashboard.fefo, ["sku", "product_name", "warehouse", "ship_first_lot", "expiration_date", "risk_bucket", "reason"])}
   <h2>Waste-Risk Actions</h2>
-  ${reportRows(dashboard.waste_risk_alerts, ["sku", "lot_id", "warehouse", "quantity_at_risk", "expiration_date", "suggested_action"])}
+  ${reportRows(dashboard.waste_risk_alerts, ["sku", "product_name", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "suggested_action"])}
   <h2>Assumptions And Data Controls</h2>
   <table><tbody>
     <tr><th>Waste recovery</th><td>Base case uses current recoverable waste opportunity from the model; low and high cases use 20% and 50% of expiration-risk value.</td></tr>
@@ -236,6 +240,7 @@ export default function DashboardPage() {
   const topRecommendation = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
   const topFefoAction = dashboard.fefo[0];
   const topWasteAction = dashboard.waste_risk_alerts[0];
+  const priorityActions = buildPriorityActions(dashboard);
 
   return (
     <>
@@ -251,6 +256,9 @@ export default function DashboardPage() {
           </button>
           <Link className="button secondary" href="/imports">
             Import CSV
+          </Link>
+          <Link className="button secondary" href="/actions">
+            Priority actions
           </Link>
           <Link className="button" href="/query">
             <RefreshCw size={17} />
@@ -319,7 +327,7 @@ export default function DashboardPage() {
           <h2>Top Waste Action</h2>
           <p>
             {topWasteAction
-              ? `${String(topWasteAction.sku ?? "")} lot ${String(topWasteAction.lot_id ?? "")} has ${String(
+              ? `${String(topWasteAction.sku ?? "")} ${String(topWasteAction.product_name ?? "")} lot ${String(topWasteAction.lot_id ?? "")} has ${String(
                   topWasteAction.quantity_at_risk ?? ""
                 )} units at risk before ${String(topWasteAction.expiration_date ?? "")}.`
               : "No current waste-risk scenario is available."}
@@ -329,7 +337,7 @@ export default function DashboardPage() {
           <h2>Next FEFO Pick</h2>
           <p>
             {topFefoAction
-              ? `${String(topFefoAction.sku ?? "")} should ship lot ${String(topFefoAction.ship_first_lot ?? "")} first from ${String(
+              ? `${String(topFefoAction.sku ?? "")} ${String(topFefoAction.product_name ?? "")} should ship lot ${String(topFefoAction.ship_first_lot ?? "")} first from ${String(
                   topFefoAction.warehouse ?? ""
                 )}.`
               : "No current FEFO scenario is available."}
@@ -339,12 +347,38 @@ export default function DashboardPage() {
           <h2>Top Fill-Rate Risk</h2>
           <p>
             {topRecommendation
-              ? `${String(topRecommendation.sku ?? "")} is flagged for ${String(topRecommendation.status ?? "")} because ${String(
+              ? `${String(topRecommendation.sku ?? "")} ${String(topRecommendation.product_name ?? "")} is flagged for ${String(topRecommendation.status ?? "")} because ${String(
                   topRecommendation.reason ?? ""
                 )}`
               : "No current fill-rate scenario is available."}
           </p>
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Today&apos;s Priority Actions</h2>
+            <p>Ranked by fill-rate risk, expiration exposure, due date, and confidence.</p>
+          </div>
+          <Link className="button secondary" href="/actions">
+            View all actions
+          </Link>
+        </div>
+        <DataTable
+          columns={[
+            "priority",
+            "action_type",
+            "sku",
+            "product_name",
+            "warehouse",
+            "due_date",
+            "financial_impact",
+            "recommended_action",
+            "confidence_reason"
+          ]}
+          rows={priorityActions.slice(0, 10)}
+        />
       </section>
 
       <section className="grid-2">
@@ -374,11 +408,16 @@ export default function DashboardPage() {
           <DataTable
             columns={[
               "sku",
+              "product_name",
+              "category",
               "warehouse",
               "status",
               "recommended_order_qty",
+              "estimated_order_value",
               "reorder_by_date",
+              "action",
               "confidence",
+              "confidence_reason",
               "reason"
             ]}
             rows={dashboard.recommendations}
@@ -401,6 +440,8 @@ export default function DashboardPage() {
           <DataTable
             columns={[
               "sku",
+              "product_name",
+              "category",
               "warehouse",
               "ship_first_lot",
               "expiration_date",
@@ -418,9 +459,12 @@ export default function DashboardPage() {
           <DataTable
             columns={[
               "sku",
+              "product_name",
+              "category",
               "lot_id",
               "warehouse",
               "quantity_at_risk",
+              "at_risk_value",
               "expiration_date",
               "risk_bucket",
               "suggested_action"
