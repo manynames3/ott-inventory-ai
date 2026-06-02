@@ -559,6 +559,96 @@ select {
   width: 350px;
 }
 
+.readable-action-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  gap: 12px;
+}
+
+.readable-action-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+
+.readable-action-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.readable-action-heading .status-pill {
+  flex: 0 0 auto;
+}
+
+.readable-action-title {
+  color: var(--teal);
+  font-weight: 800;
+}
+
+.readable-action-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.readable-action-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.readable-action-meta div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.readable-action-meta dt,
+.readable-action-copy span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.readable-action-meta dd {
+  margin: 4px 0 0;
+  overflow-wrap: break-word;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.readable-action-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.readable-action-copy div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.readable-action-copy p {
+  margin: 5px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+
 .table-link {
   color: var(--teal);
   font-weight: 700;

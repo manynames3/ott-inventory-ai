@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
 import { MetricCard } from "@/components/metric-card";
+import { StatusPill } from "@/components/status-pill";
 import { apiGet, DashboardResponse, formatCurrency, formatNumber, TableResponse } from "@/lib/api";
 import { buildPriorityActions } from "@/lib/priority-actions";
 
@@ -16,6 +17,11 @@ type DashboardState = {
   customers: TableResponse;
   error: string | null;
   loading: boolean;
+};
+
+type ReadableActionField = {
+  key: string;
+  label: string;
 };
 
 function escapeHtml(value: unknown): string {
@@ -39,6 +45,77 @@ function reportRows(rows: Record<string, unknown>[], columns: string[]) {
           .join("")}</tr>`
     )
     .join("")}</tbody></table>`;
+}
+
+function formatReadableValue(key: string, value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  if ((key.includes("value") || key.includes("cost")) && typeof value === "number") {
+    return formatCurrency(value);
+  }
+  if (typeof value === "number") {
+    return formatNumber(value);
+  }
+  return String(value);
+}
+
+function ReadableActionList({
+  rows,
+  emptyLabel,
+  metaFields,
+  bodyFields
+}: {
+  rows: Record<string, unknown>[];
+  emptyLabel: string;
+  metaFields: ReadableActionField[];
+  bodyFields: ReadableActionField[];
+}) {
+  if (!rows.length) {
+    return <div className="empty-state">{emptyLabel}</div>;
+  }
+
+  return (
+    <div className="readable-action-list">
+      {rows.map((row, index) => {
+        const sku = row.sku ? String(row.sku) : "Unknown SKU";
+        const productName = row.product_name ? String(row.product_name) : "";
+        const risk = row.risk_bucket || row.risk_level;
+
+        return (
+          <article className="readable-action-card" key={`${sku}-${String(row.lot_id || row.ship_first_lot || index)}`}>
+            <div className="readable-action-heading">
+              <div>
+                <Link href={`/sku?sku=${encodeURIComponent(sku)}`} className="readable-action-title">
+                  {sku}
+                </Link>
+                {productName ? <p>{productName}</p> : null}
+              </div>
+              {risk ? <StatusPill value={risk} /> : null}
+            </div>
+
+            <dl className="readable-action-meta">
+              {metaFields.map((field) => (
+                <div key={field.key}>
+                  <dt>{field.label}</dt>
+                  <dd>{formatReadableValue(field.key, row[field.key])}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="readable-action-copy">
+              {bodyFields.map((field) => (
+                <div key={field.key}>
+                  <span>{field.label}</span>
+                  <p>{formatReadableValue(field.key, row[field.key])}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
 }
 
 function downloadExecutiveReport(dashboard: DashboardResponse) {
@@ -456,46 +533,43 @@ export default function DashboardPage() {
         {dashboard.roi_explanation ? <p>{dashboard.roi_explanation}</p> : null}
       </section>
 
-      <section className="grid-2">
-        <div className="panel">
-          <div className="panel-header">
-            <h2>FEFO Pick Priority</h2>
-          </div>
-          <DataTable
-            columns={[
-              "sku",
-              "product_name",
-              "category",
-              "warehouse",
-              "ship_first_lot",
-              "expiration_date",
-              "risk_bucket",
-              "suggested_action",
-              "reason"
-            ]}
-            rows={dashboard.fefo}
-          />
+      <section className="panel">
+        <div className="panel-header">
+          <h2>FEFO Pick Priority</h2>
         </div>
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Waste-Risk Actions</h2>
-          </div>
-          <DataTable
-            columns={[
-              "sku",
-              "product_name",
-              "category",
-              "lot_id",
-              "warehouse",
-              "quantity_at_risk",
-              "at_risk_value",
-              "expiration_date",
-              "risk_bucket",
-              "suggested_action"
-            ]}
-            rows={dashboard.waste_risk_alerts}
-          />
+        <ReadableActionList
+          rows={dashboard.fefo}
+          emptyLabel="No FEFO pick priority rows"
+          metaFields={[
+            { key: "category", label: "Category" },
+            { key: "warehouse", label: "Warehouse" },
+            { key: "ship_first_lot", label: "Ship first lot" },
+            { key: "expiration_date", label: "Expiration" }
+          ]}
+          bodyFields={[
+            { key: "suggested_action", label: "Suggested action" },
+            { key: "reason", label: "Business reason" }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <h2>Waste-Risk Actions</h2>
         </div>
+        <ReadableActionList
+          rows={dashboard.waste_risk_alerts}
+          emptyLabel="No waste-risk actions"
+          metaFields={[
+            { key: "category", label: "Category" },
+            { key: "warehouse", label: "Warehouse" },
+            { key: "lot_id", label: "Lot" },
+            { key: "quantity_at_risk", label: "Qty at risk" },
+            { key: "at_risk_value", label: "Risk value" },
+            { key: "expiration_date", label: "Expiration" }
+          ]}
+          bodyFields={[{ key: "suggested_action", label: "Suggested action" }]}
+        />
       </section>
 
       <section className="grid-2">

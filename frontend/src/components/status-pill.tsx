@@ -6,7 +6,12 @@ const toneByStatus: Record<string, string> = {
   critical: "pill-danger",
   high: "pill-warning",
   medium: "pill-info",
-  normal: "pill-neutral"
+  normal: "pill-neutral",
+  expired: "pill-danger",
+  "0-30 days": "pill-danger",
+  "31-60 days": "pill-warning",
+  "61-90 days": "pill-info",
+  "90+ days": "pill-neutral"
 };
 
 export function StatusPill({ value }: { value: unknown }) {
@@ -14,4 +19,3 @@ export function StatusPill({ value }: { value: unknown }) {
   const tone = toneByStatus[label.toLowerCase()] || "pill-neutral";
   return <span className={`status-pill ${tone}`}>{label}</span>;
 }
-
