@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
+import { StatusPill } from "@/components/status-pill";
 import { apiGet, formatNumber } from "@/lib/api";
 
 type SkuDetail = {
@@ -23,6 +24,66 @@ type SkuDetail = {
   fefo: Record<string, unknown>[];
   demand_trend: { sku: string; points: { label: string; value: number }[] }[];
 };
+
+function formatActionValue(key: string, value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  if (key === "confidence" && typeof value === "number") {
+    return `${Math.round(value * 100)}%`;
+  }
+  if (typeof value === "number") {
+    return formatNumber(value);
+  }
+  return String(value);
+}
+
+function SkuReorderActions({ rows }: { rows: Record<string, unknown>[] }) {
+  if (!rows.length) {
+    return <div className="empty-state">No reorder actions</div>;
+  }
+
+  return (
+    <div className="sku-reorder-action-list">
+      {rows.map((row, index) => {
+        const status = row.status;
+        const warehouse = formatActionValue("warehouse", row.warehouse);
+
+        return (
+          <article className="sku-reorder-action-card" key={`${warehouse}-${String(status || index)}-${index}`}>
+            <div className="sku-reorder-action-summary">
+              <div className="sku-reorder-action-heading">
+                <div>
+                  <span>Warehouse</span>
+                  <strong>{warehouse}</strong>
+                </div>
+                {status ? <StatusPill value={status} /> : null}
+              </div>
+              <dl>
+                <div>
+                  <dt>Recommended order qty</dt>
+                  <dd>{formatActionValue("recommended_order_qty", row.recommended_order_qty)}</dd>
+                </div>
+                <div>
+                  <dt>Reorder by date</dt>
+                  <dd>{formatActionValue("reorder_by_date", row.reorder_by_date)}</dd>
+                </div>
+                <div>
+                  <dt>Confidence</dt>
+                  <dd>{formatActionValue("confidence", row.confidence)}</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="sku-reorder-action-reason">
+              <span>Reason</span>
+              <p>{formatActionValue("reason", row.reason)}</p>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SkuDetailClient() {
   const params = useSearchParams();
@@ -112,22 +173,18 @@ export function SkuDetailClient() {
         </div>
       </section>
 
-      <section className="grid-2">
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Forecast Horizons</h2>
-          </div>
-          <DataTable columns={["horizon_days", "forecast_quantity", "daily_demand"]} rows={detail.forecast.horizons} />
+      <section className="panel">
+        <div className="panel-header">
+          <h2>Forecast Horizons</h2>
         </div>
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Reorder Actions</h2>
-          </div>
-          <DataTable
-            columns={["warehouse", "status", "recommended_order_qty", "reorder_by_date", "reason", "confidence"]}
-            rows={detail.reorder_recommendations}
-          />
+        <DataTable columns={["horizon_days", "forecast_quantity", "daily_demand"]} rows={detail.forecast.horizons} />
+      </section>
+
+      <section className="panel sku-reorder-actions-panel">
+        <div className="panel-header">
+          <h2>Reorder Actions</h2>
         </div>
+        <SkuReorderActions rows={detail.reorder_recommendations} />
       </section>
 
       <section className="grid-2">
