@@ -22,7 +22,8 @@ locals {
   ssm_parameter_names = compact([
     var.auth_username_parameter_name,
     var.auth_password_parameter_name,
-    var.auth_secret_key_parameter_name
+    var.auth_secret_key_parameter_name,
+    var.openai_api_key_parameter_name
   ])
 }
 
@@ -299,6 +300,9 @@ locals {
     AUTH_USERNAME_PARAMETER_NAME   = var.auth_username_parameter_name
     AUTH_PASSWORD_PARAMETER_NAME   = var.auth_password_parameter_name
     AUTH_SECRET_KEY_PARAMETER_NAME = var.auth_secret_key_parameter_name
+    OPENAI_API_KEY_PARAMETER_NAME  = var.openai_api_key_parameter_name
+    OPENAI_MODEL                   = var.openai_model
+    AI_QUERY_ENABLED               = tostring(var.ai_query_enabled)
   }
 }
 

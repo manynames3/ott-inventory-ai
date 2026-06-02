@@ -167,17 +167,19 @@ Tradeoff:
 
 ## Natural-Language Query: Rule-Based Before Text-to-SQL
 
-Decision: implement a safe rule-based query layer instead of arbitrary text-to-SQL.
+Decision: implement a safe materialized-view query layer with optional LLM augmentation instead of arbitrary text-to-SQL.
 
 Reasoning:
 
 - It avoids unsafe or expensive SQL generation.
 - It supports the highest-value buyer questions immediately.
 - It keeps returned tables explainable and predictable.
+- It allows a real AI layer to improve plain-English explanations, action summaries, and confidence notes without giving the model direct database access.
 
 Tradeoff:
 
 - It handles a curated set of questions. A future version can add permissioned text-to-SQL with query review, row limits, and audit logging.
+- The OpenAI-backed layer sends matched query context and recommendation snippets to the model provider when enabled. Keep it disabled for buyers who require a data-processing agreement or private-model deployment first.
 
 ## Security And Secrets
 

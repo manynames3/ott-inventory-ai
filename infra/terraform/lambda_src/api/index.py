@@ -13,6 +13,8 @@ import zipfile
 from io import BytesIO, StringIO
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 import boto3
 from botocore.config import Config
@@ -32,6 +34,7 @@ TENANT_PK = "tenant#default"
 TOKEN_TTL_SECONDS = 12 * 60 * 60
 SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{3,8}\b")
 AUTH_CACHE: Dict[str, Any] = {"loaded_at": 0, "config": None}
+OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
 
 REQUIRED_COLUMNS = {
     "products": ["sku", "name", "category", "case_size", "shelf_life_days"],
@@ -199,6 +202,44 @@ def _auth_config() -> Dict[str, str]:
     config = {"username": username, "password": password, "secret": secret}
     AUTH_CACHE.update({"loaded_at": int(time.time()), "config": config})
     return config
+
+
+def _ai_enabled() -> bool:
+    return os.getenv("AI_QUERY_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _openai_model() -> str:
+    return os.getenv("OPENAI_MODEL", "gpt-5-mini").strip() or "gpt-5-mini"
+
+
+def _openai_api_key() -> str:
+    cached = OPENAI_CACHE.get("api_key")
+    if cached and int(time.time()) - int(OPENAI_CACHE.get("loaded_at", 0)) < 300:
+        return str(cached)
+
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    parameter_name = os.getenv("OPENAI_API_KEY_PARAMETER_NAME", "").strip()
+    if not api_key and parameter_name:
+        try:
+            api_key = ssm.get_parameter(Name=parameter_name, WithDecryption=True)["Parameter"]["Value"].strip()
+        except Exception:
+            api_key = ""
+
+    OPENAI_CACHE.update({"loaded_at": int(time.time()), "api_key": api_key})
+    return api_key
+
+
+def _ai_status_payload() -> Dict[str, Any]:
+    configured = bool(_openai_api_key())
+    enabled = _ai_enabled()
+    return {
+        "provider": "openai",
+        "model": _openai_model(),
+        "enabled": enabled,
+        "configured": configured,
+        "mode": "llm_augmented_safe_views" if enabled and configured else "rule_based_fallback",
+        "secret_source": "ssm_parameter" if os.getenv("OPENAI_API_KEY_PARAMETER_NAME", "").strip() else "environment",
+    }
 
 
 def _b64encode(payload: bytes) -> str:
@@ -845,6 +886,184 @@ def _presign_upload(event: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
+def _json_schema_for_ai_answer() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["explanation", "action_summary", "risk_notes", "confidence_note"],
+        "properties": {
+            "explanation": {
+                "type": "string",
+                "description": "A concise plain-English answer grounded only in the provided StockSense data.",
+            },
+            "action_summary": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 5,
+                "items": {"type": "string"},
+                "description": "Short planner-ready bullets with concrete actions, quantities, dates, SKUs, lots, or warehouses when available.",
+            },
+            "risk_notes": {
+                "type": "array",
+                "maxItems": 4,
+                "items": {"type": "string"},
+                "description": "Important caveats, assumptions, or planner review notes.",
+            },
+            "confidence_note": {
+                "type": "string",
+                "description": "One sentence explaining confidence based on the available rows and data freshness.",
+            },
+        },
+    }
+
+
+def _compact_rows(rows: List[Dict[str, Any]], limit: int = 10) -> List[Dict[str, Any]]:
+    compacted = []
+    preferred_keys = [
+        "priority",
+        "sku",
+        "product_name",
+        "category",
+        "warehouse",
+        "status",
+        "lot_id",
+        "ship_first_lot",
+        "quantity_at_risk",
+        "at_risk_value",
+        "recommended_order_qty",
+        "estimated_order_value",
+        "reorder_by_date",
+        "expiration_date",
+        "risk_bucket",
+        "days_to_expiration",
+        "customer_id",
+        "name",
+        "region",
+        "channel",
+        "last_order_date",
+        "days_since_last_order",
+        "monthly_coverage",
+        "avg_monthly_quantity",
+        "suggested_action",
+        "action",
+        "reason",
+        "confidence",
+        "confidence_reason",
+    ]
+    for row in rows[:limit]:
+        compacted.append({key: row.get(key) for key in preferred_keys if key in row})
+    return compacted
+
+
+def _query_context(question: str, answer: Dict[str, Any]) -> Dict[str, Any]:
+    dashboard = _get_view("dashboard") or _empty_dashboard()
+    return {
+        "question": question,
+        "matched_template": answer.get("template"),
+        "safe_query_mode": answer.get("safe_query_mode"),
+        "row_count": len(answer.get("rows", [])),
+        "columns": answer.get("columns", []),
+        "rows": _compact_rows(answer.get("rows", []), 12),
+        "dashboard_kpis": dashboard.get("kpis", {}),
+        "top_reorder_recommendations": _compact_rows(dashboard.get("recommendations", []), 5),
+        "top_fefo_actions": _compact_rows(dashboard.get("fefo", []), 5),
+        "top_waste_risk_alerts": _compact_rows(dashboard.get("waste_risk_alerts", []), 5),
+        "available_views": [
+            "stockout_risk",
+            "expiring_inventory",
+            "reorder_this_week",
+            "customer_reorder_cadence",
+            "monthly_sku_buyers",
+        ],
+    }
+
+
+def _extract_response_text(response: Dict[str, Any]) -> str:
+    if isinstance(response.get("output_text"), str):
+        return str(response["output_text"])
+    chunks = []
+    for item in response.get("output", []) or []:
+        if item.get("type") != "message":
+            continue
+        for content in item.get("content", []) or []:
+            if content.get("type") == "output_text" and isinstance(content.get("text"), str):
+                chunks.append(content["text"])
+    return "\n".join(chunks).strip()
+
+
+def _ai_augmented_answer(question: str, answer: Dict[str, Any]) -> Dict[str, Any]:
+    status = _ai_status_payload()
+    answer["ai"] = status
+    if not status["enabled"] or not status["configured"] or not answer.get("rows"):
+        answer["ai_status"] = status["mode"]
+        return answer
+
+    system_prompt = (
+        "You are StockSense AI, a decision-support assistant for food and CPG inventory planners. "
+        "Use only the provided JSON context. Do not invent SKUs, customers, lots, quantities, dates, costs, or ERP facts. "
+        "Do not produce SQL. Your job is to explain the matched safe materialized view in business language, "
+        "prioritize actions that protect fill rate and reduce expiration waste, and call out confidence limits."
+    )
+    payload = {
+        "model": status["model"],
+        "input": [
+            {
+                "role": "system",
+                "content": [{"type": "input_text", "text": system_prompt}],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": json.dumps(_query_context(question, answer), default=str, separators=(",", ":")),
+                    }
+                ],
+            },
+        ],
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "stocksense_query_answer",
+                "strict": True,
+                "schema": _json_schema_for_ai_answer(),
+            }
+        },
+        "reasoning": {"effort": "minimal"},
+        "store": False,
+        "max_output_tokens": 900,
+    }
+
+    request = Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {_openai_api_key()}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=18) as response:
+            model_response = json.loads(response.read().decode("utf-8"))
+        model_text = _extract_response_text(model_response)
+        model_json = json.loads(model_text)
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
+        answer["ai_status"] = "llm_error_rule_based_fallback"
+        answer["ai_error"] = type(exc).__name__
+        return answer
+
+    answer["explanation"] = str(model_json.get("explanation") or answer.get("explanation") or "")
+    action_summary = model_json.get("action_summary")
+    if isinstance(action_summary, list) and action_summary:
+        answer["action_summary"] = [str(item) for item in action_summary[:5]]
+    answer["ai_risk_notes"] = [str(item) for item in model_json.get("risk_notes", [])[:4] if str(item).strip()]
+    answer["ai_confidence_note"] = str(model_json.get("confidence_note") or "")
+    answer["ai_status"] = "llm_augmented"
+    answer["safe_query_mode"] = "openai_augmented_materialized_views"
+    return answer
+
+
 def _query_answer(question: str) -> Dict[str, Any]:
     normalized = question.lower()
     sku_match = SKU_PATTERN.search(question.upper())
@@ -867,6 +1086,8 @@ def _query_answer(question: str) -> Dict[str, Any]:
             "columns": [],
             "rows": [],
             "safe_query_mode": "rule_based_materialized_views",
+            "ai": _ai_status_payload(),
+            "ai_status": "unsupported_template",
         }
     answer = _get_view(key)
     if not answer:
@@ -878,10 +1099,13 @@ def _query_answer(question: str) -> Dict[str, Any]:
             "columns": [],
             "rows": [],
             "safe_query_mode": "rule_based_materialized_views",
+            "ai": _ai_status_payload(),
+            "ai_status": "missing_materialized_view",
         }
+    answer = json.loads(json.dumps(answer, default=str))
     answer["question"] = question
     answer["safe_query_mode"] = "rule_based_materialized_views"
-    return answer
+    return _ai_augmented_answer(question, answer)
 
 
 def _to_date(value: Any) -> str:
@@ -1054,6 +1278,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if method == "GET" and path == "/api/auth/me":
         user = _require_user(event)
         return _json(event, 200, {"user": {"username": user.get("sub")}}) if user else _json(event, 401, {"detail": "Login required."})
+    if method == "GET" and path == "/api/ai/status":
+        return _protected_json(event, _ai_status_payload())
     if path == "/api/import/requirements":
         return _json(
             event,

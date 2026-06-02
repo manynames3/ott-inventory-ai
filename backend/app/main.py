@@ -19,6 +19,7 @@ from app.services.dashboard import build_customer_detail, build_dashboard, build
 from app.services.dataframes import load_core_dataframes, model_to_dataframe
 from app.services.fefo import recommend_fefo, waste_risk_alerts
 from app.services.forecasting import ForecastEngine
+from app.services.ai_query import ai_status
 from app.services.jobs import refresh_recommendation_tables
 from app.services.nl_query import answer_question
 from app.services.product_context import enrich_product_rows
@@ -288,6 +289,11 @@ def query(
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question is required.")
     return answer_question(db, request.question, lead_time_days=settings.supplier_lead_time_days)
+
+
+@app.get("/api/ai/status")
+def ai_layer_status(_: Dict[str, object] = Depends(require_user)):
+    return ai_status()
 
 
 @app.post("/api/jobs/recalculate")

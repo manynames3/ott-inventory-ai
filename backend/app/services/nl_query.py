@@ -7,6 +7,7 @@ from typing import Dict, List
 import pandas as pd
 from sqlalchemy.orm import Session
 
+from app.services.ai_query import augment_query_answer
 from app.services.dataframes import load_core_dataframes
 from app.services.fefo import waste_risk_alerts
 from app.services.product_context import enrich_product_rows
@@ -326,4 +327,4 @@ def answer_question(session: Session, question: str, lead_time_days: int) -> Dic
     answer["question"] = question
     answer["safe_query_mode"] = "rule_based_templates_only"
     answer.setdefault("action_summary", _summary(str(answer.get("template", "")), answer.get("rows", [])))
-    return answer
+    return augment_query_answer(question, answer)

@@ -186,15 +186,19 @@ The MVP prioritizes explanations that connect actions to ROI:
 
 Recommendation statuses are `stockout risk`, `reorder now`, `wait`, and `overstocked`.
 
-## Natural-Language Query
+## Natural-Language Query And AI Layer
 
-The query page uses safe rule-based templates rather than arbitrary SQL execution. Supported examples:
+The query page uses safe materialized query views rather than arbitrary SQL execution. When `OPENAI_API_KEY_PARAMETER_NAME` points to a valid SSM SecureString, the backend augments the matched safe view with OpenAI-generated explanations, action bullets, confidence notes, and planner review notes. If the key is missing or the model call fails, the endpoint falls back to the deterministic rule-based answer.
+
+Supported examples:
 
 - "Who needs another order right now?"
 - "Which SKUs will stock out in the next 30 days?"
 - "Which inventory expires soon?"
 - "Which customers usually buy SKU OTG-RAM-001 every month?"
 - "What should we reorder this week?"
+
+The AI layer never generates SQL and never chooses tables directly. It receives only the matched safe view, row-limited context, KPI summaries, and recommendation snippets.
 
 ## ERP Integration
 

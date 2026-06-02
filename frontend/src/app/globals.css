@@ -897,6 +897,69 @@ select {
   line-height: 1.45;
 }
 
+.ai-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.ai-status-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-status-row .ai-status-active {
+  border-color: #a8cbc5;
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.ai-status-row .ai-status-fallback {
+  border-color: #ead3a8;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.ai-notes {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.ai-notes div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+
+.ai-notes span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ai-notes p,
+.ai-notes ul {
+  margin: 6px 0 0;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.ai-notes ul {
+  padding-left: 18px;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));

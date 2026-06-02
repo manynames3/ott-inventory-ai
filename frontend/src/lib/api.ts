@@ -51,6 +51,17 @@ export type QueryResponse = {
   template: string;
   explanation: string;
   action_summary?: string[];
+  ai?: {
+    provider: string;
+    model: string;
+    enabled: boolean;
+    configured: boolean;
+    mode: string;
+    secret_source?: string;
+  };
+  ai_status?: string;
+  ai_risk_notes?: string[];
+  ai_confidence_note?: string;
   columns: string[];
   rows: Record<string, unknown>[];
   safe_query_mode: string;

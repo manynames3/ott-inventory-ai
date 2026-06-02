@@ -53,25 +53,37 @@ Create the SSM parameters before sharing the frontend with a pilot user:
 
 ```bash
 aws ssm put-parameter \
-  --name /stocksense/mvp/auth/username \
+  --name /inventory-ai/mvp/auth/username \
   --type String \
   --value "pilot@stocksense.local" \
   --overwrite
 
 aws ssm put-parameter \
-  --name /stocksense/mvp/auth/password \
+  --name /inventory-ai/mvp/auth/password \
   --type SecureString \
   --value "<generate-a-strong-password>" \
   --overwrite
 
 aws ssm put-parameter \
-  --name /stocksense/mvp/auth/secret-key \
+  --name /inventory-ai/mvp/auth/secret-key \
   --type SecureString \
   --value "$(openssl rand -hex 32)" \
   --overwrite
 ```
 
 Only the parameter names belong in Terraform variables. The secret values should stay in SSM.
+
+To enable the OpenAI-backed AI query layer, store the OpenAI key in SSM as a SecureString:
+
+```bash
+aws ssm put-parameter \
+  --name /inventory-ai/mvp/openai/api-key \
+  --type SecureString \
+  --value "<openai-api-key>" \
+  --overwrite
+```
+
+The API Lambda automatically falls back to safe rule-based query responses when this parameter is missing, disabled, or unavailable.
 
 ## Plan And Apply
 

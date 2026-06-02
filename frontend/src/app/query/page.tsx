@@ -84,12 +84,41 @@ export default function QueryPage() {
               <h2>{result.template.replaceAll("_", " ")}</h2>
             </div>
           </div>
+          <div className="ai-status-row">
+            <span className={result.ai_status === "llm_augmented" ? "ai-status-active" : "ai-status-fallback"}>
+              {result.ai_status === "llm_augmented" ? "AI reasoning active" : "Safe fallback mode"}
+            </span>
+            <span>
+              {result.ai?.provider ? `${result.ai.provider} ${result.ai.model}` : "Rule-based materialized views"}
+            </span>
+            <span>{result.safe_query_mode.replaceAll("_", " ")}</span>
+          </div>
           <p>{result.explanation}</p>
           {result.action_summary?.length ? (
             <div className="answer-summary">
               {result.action_summary.map((item) => (
                 <div key={item}>{item}</div>
               ))}
+            </div>
+          ) : null}
+          {result.ai_confidence_note || result.ai_risk_notes?.length ? (
+            <div className="ai-notes">
+              {result.ai_confidence_note ? (
+                <div>
+                  <span>AI confidence</span>
+                  <p>{result.ai_confidence_note}</p>
+                </div>
+              ) : null}
+              {result.ai_risk_notes?.length ? (
+                <div>
+                  <span>Planner review notes</span>
+                  <ul>
+                    {result.ai_risk_notes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ) : null}
           <DataTable columns={result.columns} rows={result.rows} emptyLabel="No matching rows" />

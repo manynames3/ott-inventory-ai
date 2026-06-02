@@ -497,6 +497,14 @@ export function demoCustomerDetail(customerId: string) {
 
 function demoQuery(question: string) {
   const normalized = question.toLowerCase();
+  const ai = {
+    provider: "openai",
+    model: "gpt-5-mini",
+    enabled: false,
+    configured: false,
+    mode: "demo_rule_based_fallback",
+    secret_source: "demo"
+  };
   if (normalized.includes("customer") && normalized.includes("otg-ram-001")) {
     return {
       question,
@@ -512,6 +520,8 @@ function demoQuery(question: string) {
         { customer_id: "CUST-001", name: "H Mart Foods 1", region: "West", channel: "Retail", months_with_orders: 21, monthly_coverage: 0.88, avg_monthly_quantity: 260 },
         { customer_id: "CUST-002", name: "Pacific Market 2", region: "Northeast", channel: "Distributor", months_with_orders: 19, monthly_coverage: 0.79, avg_monthly_quantity: 210 }
       ],
+      ai,
+      ai_status: "demo_rule_based_fallback",
       safe_query_mode: "demo_rule_based_templates_only"
     };
   }
@@ -527,6 +537,8 @@ function demoQuery(question: string) {
       ],
       columns: ["sku", "product_name", "category", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "risk_bucket", "suggested_action"],
       rows: demoDashboard.waste_risk_alerts,
+      ai,
+      ai_status: "demo_rule_based_fallback",
       safe_query_mode: "demo_rule_based_templates_only"
     };
   }
@@ -541,6 +553,8 @@ function demoQuery(question: string) {
     ],
     columns: ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence", "confidence_reason"],
     rows: demoDashboard.recommendations,
+    ai,
+    ai_status: "demo_rule_based_fallback",
     safe_query_mode: "demo_rule_based_templates_only"
   };
 }

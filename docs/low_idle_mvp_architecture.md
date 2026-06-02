@@ -42,7 +42,7 @@ The Terraform entry point is [../infra/terraform/README.md](../infra/terraform/R
 - Optional EventBridge Scheduler refresh.
 - Optional AWS Budget alerts.
 
-The Terraform-managed Lambda handlers implement the hosted pilot flow without always-on services. The API Lambda handles login, templates, presigned uploads, dashboard reads, detail views, and safe natural-language query routing. The S3-triggered import Lambda parses CSV/XLSX files, validates required columns, stores canonical records in DynamoDB, and materializes the FEFO, waste-risk, stockout, reorder, dashboard, and query views needed for fast reads.
+The Terraform-managed Lambda handlers implement the hosted pilot flow without always-on services. The API Lambda handles login, templates, presigned uploads, dashboard reads, detail views, safe natural-language query routing, and optional OpenAI-backed explanation generation. The S3-triggered import Lambda parses CSV/XLSX files, validates required columns, stores canonical records in DynamoDB, and materializes the FEFO, waste-risk, stockout, reorder, dashboard, and query views needed for fast reads.
 
 ## Upload And Query Flow
 
@@ -74,9 +74,13 @@ Import Lambda refreshes materialized recommendation/query views
         v
 Natural-language query Lambda maps user question to a safe view read
         |
+        +--> Optional OpenAI call explains the matched safe view
+        |
         v
 Return table + plain-English recommendation
 ```
+
+The AI call is deliberately optional for low-idle pilots. If `/inventory-ai/mvp/openai/api-key` is not present in SSM Parameter Store, the query endpoint returns deterministic rule-based explanations and reports fallback mode in the UI.
 
 ## Why Not RDS/PostgreSQL For The First Hosted MVP
 

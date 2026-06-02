@@ -135,6 +135,24 @@ variable "auth_secret_key_parameter_name" {
   default     = "/inventory-ai/mvp/auth/secret-key"
 }
 
+variable "openai_api_key_parameter_name" {
+  description = "Optional SSM parameter name for the OpenAI API key used by the AI query layer. Leave empty to force rule-based fallback."
+  type        = string
+  default     = "/inventory-ai/mvp/openai/api-key"
+}
+
+variable "openai_model" {
+  description = "OpenAI model used for low-cost query explanation and action summarization."
+  type        = string
+  default     = "gpt-5-mini"
+}
+
+variable "ai_query_enabled" {
+  description = "Enable LLM augmentation for safe materialized query views when the OpenAI key is configured."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Additional tags to apply to supported resources."
   type        = map(string)
