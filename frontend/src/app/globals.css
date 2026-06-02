@@ -167,6 +167,15 @@ select {
   color: var(--muted);
 }
 
+.page-header-tagline {
+  margin: 8px 0 0;
+}
+
+.page-header-subline {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -204,11 +213,60 @@ select {
   cursor: wait;
 }
 
+.dashboard-demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #edf6f4;
+}
+
+.dashboard-demo-banner p {
+  margin: 0;
+  color: #36413c;
+  font-size: 14px;
+}
+
+.dashboard-demo-banner-close {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dashboard-demo-banner-close:hover {
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--ink);
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 8px;
+}
+
+.metrics-helper {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dashboard-secondary-toolbar {
+  justify-content: flex-start;
+  margin-bottom: 22px;
 }
 
 .metric-card {

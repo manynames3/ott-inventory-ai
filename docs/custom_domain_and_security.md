@@ -42,7 +42,7 @@ After the frontend custom domain is live, add it to the backend CORS allowlist i
 
 ```hcl
 cors_origins = [
-  "https://stocksense.pages.dev",
+  "https://otokistocksense.pages.dev",
   "https://stocksense.example.com"
 ]
 ```

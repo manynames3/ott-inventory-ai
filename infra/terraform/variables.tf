@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Short project name used in resource names."
   type        = string
-  default     = "stocksense"
+  default     = "ott-inventory-ai"
 }
 
 variable "environment" {
@@ -20,7 +20,8 @@ variable "allowed_origins" {
   description = "Frontend origins allowed to call the Lambda Function URL and S3 upload endpoint."
   type        = list(string)
   default = [
-    "https://stocksense.pages.dev",
+    "https://otokistocksense.pages.dev",
+    "https://ott-inventory-ai.pages.dev",
     "http://localhost:3000",
     "http://127.0.0.1:3000"
   ]
@@ -35,7 +36,7 @@ variable "raw_import_bucket_name" {
 variable "raw_import_prefix" {
   description = "S3 prefix for raw incoming Excel/CSV uploads."
   type        = string
-  default     = "stocksense/raw-imports/incoming/"
+  default     = "inventory-ai/raw-imports/incoming/"
 }
 
 variable "raw_file_retention_days" {
@@ -119,19 +120,19 @@ variable "enable_point_in_time_recovery" {
 variable "auth_username_parameter_name" {
   description = "Optional SSM parameter name for the MVP login username."
   type        = string
-  default     = "/stocksense/mvp/auth/username"
+  default     = "/inventory-ai/mvp/auth/username"
 }
 
 variable "auth_password_parameter_name" {
   description = "Optional SSM parameter name for the MVP login password."
   type        = string
-  default     = "/stocksense/mvp/auth/password"
+  default     = "/inventory-ai/mvp/auth/password"
 }
 
 variable "auth_secret_key_parameter_name" {
   description = "Optional SSM parameter name for the bearer-token signing secret."
   type        = string
-  default     = "/stocksense/mvp/auth/secret-key"
+  default     = "/inventory-ai/mvp/auth/secret-key"
 }
 
 variable "tags" {

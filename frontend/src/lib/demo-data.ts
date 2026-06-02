@@ -397,7 +397,7 @@ const demoAuditEvents = {
       action: "login_success",
       resource: "auth",
       user: "planner@stocksense.local",
-      origin: "https://stocksense.pages.dev",
+      origin: "https://otokistocksense.pages.dev",
       details: {},
       created_at_epoch: 1780344300
     },
@@ -405,7 +405,7 @@ const demoAuditEvents = {
       action: "import_previewed",
       resource: "orders",
       user: "planner@stocksense.local",
-      origin: "https://stocksense.pages.dev",
+      origin: "https://otokistocksense.pages.dev",
       details: { filename: "orders_ottogi_demo.csv", rows_seen: 5434, missing_mappings: [] },
       created_at_epoch: 1780344000
     },
@@ -413,7 +413,7 @@ const demoAuditEvents = {
       action: "import_committed",
       resource: "orders",
       user: "planner@stocksense.local",
-      origin: "https://stocksense.pages.dev",
+      origin: "https://otokistocksense.pages.dev",
       details: { rows_seen: 5434, mapped_columns: 5 },
       created_at_epoch: 1780343940
     },
@@ -421,7 +421,7 @@ const demoAuditEvents = {
       action: "query_answered",
       resource: "stockout_risk",
       user: "planner@stocksense.local",
-      origin: "https://stocksense.pages.dev",
+      origin: "https://otokistocksense.pages.dev",
       details: { question_preview: "Which SKUs will stock out in the next 30 days?", row_count: 7 },
       created_at_epoch: 1780343880
     }

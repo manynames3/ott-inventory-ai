@@ -104,7 +104,7 @@ Detailed no-Docker steps are in [docs/no_docker_local_dev.md](docs/no_docker_loc
 Live deployment:
 
 - GitHub: https://github.com/manynames3/stocksense-ai
-- Cloudflare Pages: https://stocksense.pages.dev
+- Cloudflare Pages: https://otokistocksense.pages.dev
 
 The frontend is configured for static export and deploys from GitHub to Cloudflare Pages. Use:
 

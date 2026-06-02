@@ -177,6 +177,7 @@ export default function DashboardPage() {
     error: null,
     loading: true
   });
+  const [showDemoBanner, setShowDemoBanner] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -206,6 +207,15 @@ export default function DashboardPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    setShowDemoBanner(window.localStorage.getItem("stocksense_demo_banner_dismissed") !== "true");
+  }, []);
+
+  function dismissDemoBanner() {
+    window.localStorage.setItem("stocksense_demo_banner_dismissed", "true");
+    setShowDemoBanner(false);
+  }
 
   if (state.loading) {
     return (
@@ -247,25 +257,25 @@ export default function DashboardPage() {
       <header className="page-header">
         <div>
           <h1>StockSense AI</h1>
-          <p>FEFO, expiration risk, stockouts, and reorder timing.</p>
+          <p className="page-header-tagline">Turn expiring stock into revenue, not waste.</p>
+          <p className="page-header-subline">Built for inventory planners and operations teams at food, CPG, and grocery businesses.</p>
         </div>
         <div className="toolbar">
-          <button className="button secondary" type="button" onClick={() => downloadExecutiveReport(dashboard)}>
-            <Download size={17} />
-            Executive report
-          </button>
-          <Link className="button secondary" href="/imports">
-            Import CSV
-          </Link>
-          <Link className="button secondary" href="/actions">
-            Priority actions
-          </Link>
           <Link className="button" href="/query">
             <RefreshCw size={17} />
             Ask StockSense AI
           </Link>
         </div>
       </header>
+
+      {showDemoBanner ? (
+        <div className="dashboard-demo-banner" role="status">
+          <p>You&apos;re viewing a live demo using sample Ottogi inventory data. Import your own CSV to see your numbers.</p>
+          <button className="dashboard-demo-banner-close" type="button" onClick={dismissDemoBanner} aria-label="Dismiss demo banner">
+            ×
+          </button>
+        </div>
+      ) : null}
 
       <section className="metrics-grid">
         <MetricCard
@@ -274,7 +284,7 @@ export default function DashboardPage() {
           tone="value"
         />
         <MetricCard
-          label="Inventory value at expiration risk"
+          label="At risk of expiring in the next 90 days"
           value={formatCurrency(dashboard.kpis.inventory_at_risk_value)}
           tone="risk"
         />
@@ -289,11 +299,25 @@ export default function DashboardPage() {
           tone="reorder"
         />
         <MetricCard
-          label="Recoverable waste opportunity"
+          label="Recoverable before expiry via reallocation"
           value={formatCurrency(dashboard.kpis.waste_reduction_opportunity)}
           tone="waste"
         />
       </section>
+      <p className="metrics-helper">Figures calculated from your live inventory data.</p>
+
+      <div className="toolbar dashboard-secondary-toolbar" aria-label="Secondary dashboard actions">
+        <button className="button secondary" type="button" onClick={() => downloadExecutiveReport(dashboard)}>
+          <Download size={17} />
+          Executive report
+        </button>
+        <Link className="button secondary" href="/imports">
+          Import CSV
+        </Link>
+        <Link className="button secondary" href="/actions">
+          Priority actions
+        </Link>
+      </div>
 
       <section className="grid-3 buyer-value-grid">
         <div className="insight-card">
@@ -302,7 +326,7 @@ export default function DashboardPage() {
           </span>
           <h2>Waste Dollars Protected</h2>
           <strong>{formatCurrency(dashboard.kpis.waste_reduction_opportunity)}</strong>
-          <p>FEFO allocation, transfer, promotion, and discount opportunity.</p>
+          <p>FEFO (First Expired, First Out) allocation, transfer, promotion, and discount opportunity.</p>
         </div>
         <div className="insight-card">
           <span className="insight-icon stockout">

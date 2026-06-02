@@ -148,7 +148,7 @@ For the first hosted pilot:
 8. Set Cloudflare Pages variables:
    - `NEXT_PUBLIC_DEMO_MODE=false`
    - `NEXT_PUBLIC_API_BASE_URL=https://<backend-host>`
-9. Set backend `CORS_ORIGINS=https://stocksense.pages.dev`.
+9. Set backend `CORS_ORIGINS=https://otokistocksense.pages.dev`.
 10. Seed demo data by uploading the files in `sample_data/ottogi_demo/`.
 
 ## Services To Avoid For The <$10 MVP

@@ -23,7 +23,7 @@ The answer:
 
 Use the hosted pilot:
 
-- Frontend: `https://stocksense.pages.dev`
+- Frontend: `https://otokistocksense.pages.dev`
 - Login: use the current pilot credential stored outside the repo.
 - Demo files: `sample_data/ottogi_demo/`
 - Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories; SKU IDs, lots, demand, costs, and customers are demo-specific.
