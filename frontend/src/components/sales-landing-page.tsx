@@ -108,13 +108,28 @@ const queryRows = [
   "}"
 ];
 
+function InventoryAiLockup({ onRed = false }: { onRed?: boolean }) {
+  return (
+    <span className={onRed ? "sales-ref-lockup on-red" : "sales-ref-lockup"}>
+      <span className="sales-ref-lockup-mark" aria-hidden="true">
+        <span className="sales-ref-lockup-face">AI</span>
+      </span>
+      <span className="sales-ref-lockup-type">
+        <span className="sales-ref-lockup-name">
+          O<span aria-hidden="true">’</span>Inventory
+        </span>
+        <span className="sales-ref-lockup-sub">AI PILOT</span>
+      </span>
+    </span>
+  );
+}
+
 export function SalesLandingPage() {
   return (
     <div className="sales-page sales-reference" lang="ko">
       <header className="sales-ref-header">
         <Link href="/sales" className="sales-ref-brand" aria-label="Inventory AI sales page">
-          <span aria-hidden="true">IA</span>
-          <strong>Inventory AI</strong>
+          <InventoryAiLockup onRed />
         </Link>
         <nav className="sales-ref-nav" aria-label="세일즈 페이지 내비게이션">
           <a href="#workflow">진행 방식</a>
@@ -136,6 +151,9 @@ export function SalesLandingPage() {
           />
           <div className="sales-ref-hero-overlay" />
           <div className="sales-ref-hero-content">
+            <div className="sales-ref-hero-lockup" aria-label="O Inventory AI Pilot">
+              <InventoryAiLockup onRed />
+            </div>
             <p className="sales-ref-eyebrow">오뚜기 북미 운영을 위한 파일럿 제안</p>
             <h1 id="sales-hero-title">
               맛과 품질을 가장 소중히 생각하는 재고 AI.

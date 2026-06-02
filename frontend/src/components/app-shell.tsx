@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Database, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
+import { BarChart3, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
 
 import { clearAuthToken, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
 
@@ -40,13 +40,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link href="/" className="brand">
-          <span className="brand-mark">
-            <Database size={20} strokeWidth={2.2} />
+        <Link href="/" className="brand app-brand-lockup">
+          <span className="app-brand-mark" aria-hidden="true">
+            <span>AI</span>
           </span>
           <span>
-            <strong>Inventory AI</strong>
-            <small>Food and CPG operations</small>
+            <strong>O&apos;Inventory</strong>
+            <small>Inventory AI pilot</small>
           </span>
         </Link>
         <nav className="nav-list" aria-label="Primary">
