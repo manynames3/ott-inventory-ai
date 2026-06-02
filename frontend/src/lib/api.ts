@@ -7,7 +7,7 @@ export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
-const TOKEN_KEY = "inventory_ai_access_token";
+const TOKEN_KEY = "stocksense_access_token";
 
 export type LoginResponse = {
   access_token: string;
@@ -138,13 +138,13 @@ export function getAuthToken(): string | null {
 export function setAuthToken(token: string): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(TOKEN_KEY, token);
-  window.dispatchEvent(new Event("inventory-ai-auth"));
+  window.dispatchEvent(new Event("stocksense-auth"));
 }
 
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
-  window.dispatchEvent(new Event("inventory-ai-auth"));
+  window.dispatchEvent(new Event("stocksense-auth"));
 }
 
 export function authHeaders(): HeadersInit {

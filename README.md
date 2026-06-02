@@ -1,12 +1,12 @@
-# Inventory AI
+# StockSense AI
 
-Inventory AI is an expiration-aware inventory optimization and natural-language query tool for imported food and CPG distributors. It is framed for operators who manage long replenishment lead times, lot-level expiration dates, retailer fill-rate expectations, and margin loss from slow-moving inventory.
+StockSense AI is an expiration-aware inventory optimization and natural-language query tool for imported food and CPG distributors. It is framed for operators who manage long replenishment lead times, lot-level expiration dates, retailer fill-rate expectations, and margin loss from slow-moving inventory.
 
 The MVP is intentionally built around a buyer problem: planners know which SKUs are in stock, but not always which lots should move first, which customers should receive constrained inventory, which inbound shipments arrive too late, or how much cash is tied up in stock that may expire before it sells.
 
 ## Buyer Pain Points
 
-Inventory AI addresses common operating problems for Korean food and CPG import/distribution teams:
+StockSense AI addresses common operating problems for Korean food and CPG import/distribution teams:
 
 - Near-expiring lots are discovered too late, forcing write-offs or heavy discounts.
 - FEFO discipline depends on manual spreadsheet checks across warehouses.
@@ -28,9 +28,9 @@ The product is designed to prove ROI quickly in a pilot:
 
 ## ERP Positioning
 
-Inventory AI does not replace SAP or Oracle. Those systems remain the system of record for transactions, master data, purchasing, financial controls, inventory movements, and formal planning workflows.
+StockSense AI does not replace SAP or Oracle. Those systems remain the system of record for transactions, master data, purchasing, financial controls, inventory movements, and formal planning workflows.
 
-Inventory AI sits above ERP/WMS data as an expiration-aware decision layer. It helps planners answer "what should we ship, transfer, promote, discount, or reorder this week, and why?" using plain-language explanations that connect lot expiration, demand, inbound supply, lead time, customer buying cadence, and inventory value.
+StockSense AI sits above ERP/WMS data as an expiration-aware decision layer. It helps planners answer "what should we ship, transfer, promote, discount, or reorder this week, and why?" using plain-language explanations that connect lot expiration, demand, inbound supply, lead time, customer buying cadence, and inventory value.
 
 See [docs/erp_positioning.md](docs/erp_positioning.md) for the buyer-facing comparison.
 
@@ -103,8 +103,8 @@ Detailed no-Docker steps are in [docs/no_docker_local_dev.md](docs/no_docker_loc
 
 Live deployment:
 
-- GitHub: https://github.com/manynames3/ott-inventory-ai
-- Cloudflare Pages: https://ott-inventory-ai.pages.dev
+- GitHub: https://github.com/manynames3/stocksense-ai
+- Cloudflare Pages: https://stocksense.pages.dev
 
 The frontend is configured for static export and deploys from GitHub to Cloudflare Pages. Use:
 

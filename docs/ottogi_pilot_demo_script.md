@@ -1,6 +1,6 @@
 # Ottogi-Style Pilot Demo Script
 
-This script is for a buyer-facing Inventory AI walkthrough using the fictional Ottogi-style demo dataset. The goal is to prove the tool can turn ERP/WMS exports into a short list of actions that protect margin, service levels, and planner time.
+This script is for a buyer-facing StockSense AI walkthrough using the fictional Ottogi-style demo dataset. The goal is to prove the tool can turn ERP/WMS exports into a short list of actions that protect margin, service levels, and planner time.
 
 ## Buyer Persona
 
@@ -17,13 +17,13 @@ Their likely question:
 
 The answer:
 
-> Inventory AI does not replace ERP. It reads exports and turns lot expiration, demand, inbound ETAs, and customer cadence into explainable actions: ship this lot first, move or discount this at-risk inventory, reorder this SKU, or call this customer.
+> StockSense AI does not replace ERP. It reads exports and turns lot expiration, demand, inbound ETAs, and customer cadence into explainable actions: ship this lot first, move or discount this at-risk inventory, reorder this SKU, or call this customer.
 
 ## Setup
 
 Use the hosted pilot:
 
-- Frontend: `https://ott-inventory-ai.pages.dev`
+- Frontend: `https://stocksense.pages.dev`
 - Login: use the current pilot credential stored outside the repo.
 - Demo files: `sample_data/ottogi_demo/`
 - Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories; SKU IDs, lots, demand, costs, and customers are demo-specific.
@@ -70,7 +70,7 @@ Use a demo CSV or an intentionally renamed export. Map source columns into the r
 
 Talk track:
 
-> A buyer does not need to rename every ERP export before testing. Inventory AI detects common names like item, material, lot number, warehouse, quantity, ETA, and customer account, then asks the user to confirm the mapping.
+> A buyer does not need to rename every ERP export before testing. StockSense AI detects common names like item, material, lot number, warehouse, quantity, ETA, and customer account, then asks the user to confirm the mapping.
 
 6. Show audit trail.
 
@@ -102,7 +102,7 @@ Talk track:
 - Service: stockout risk accounts for lead time, inbound supply, current inventory, and demand.
 - FEFO: the system explains why one lot should ship before another.
 - Planner speed: the dashboard turns many rows of exports into ranked exceptions.
-- ERP fit: SAP/Oracle remain systems of record; Inventory AI is the decision layer over exports.
+- ERP fit: SAP/Oracle remain systems of record; StockSense AI is the decision layer over exports.
 - Data control: raw files stay private, imports are audited, and the MVP has no ERP writeback.
 
 ## Expected Objections
@@ -111,7 +111,7 @@ Talk track:
 
 Response:
 
-SAP has the data. Inventory AI connects lot expiration, demand, inbound lead time, safety stock, and customer cadence into an explainable weekly action list.
+SAP has the data. StockSense AI connects lot expiration, demand, inbound lead time, safety stock, and customer cadence into an explainable weekly action list.
 
 ### "Can we trust the recommendations?"
 

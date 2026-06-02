@@ -66,7 +66,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Inventory AI Executive ROI Report</title>
+  <title>StockSense AI Executive ROI Report</title>
   <style>
     body { color: #1e2521; font-family: Arial, Helvetica, sans-serif; margin: 40px; line-height: 1.45; }
     h1 { font-size: 34px; margin: 0 0 8px; }
@@ -89,7 +89,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   </style>
 </head>
 <body>
-  <h1>Inventory AI Executive ROI Report</h1>
+  <h1>StockSense AI Executive ROI Report</h1>
   <p class="muted">Generated ${escapeHtml(generatedAt)} from current inventory data.</p>
   <div class="callout">
     <strong>Executive readout:</strong>
@@ -156,7 +156,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
     <tr><th>Waste recovery</th><td>Base case uses current recoverable waste opportunity from the model; low and high cases use 20% and 50% of expiration-risk value.</td></tr>
     <tr><th>Planner time</th><td>Planner focus estimate counts ranked FEFO, waste-risk, and reorder exceptions, valued at $75/hour for executive comparison.</td></tr>
     <tr><th>Forecasting</th><td>Demand uses historical order exports, simple moving averages, exponential smoothing, and trend placeholders.</td></tr>
-    <tr><th>Controls</th><td>Recommendations are decision support only. Inventory AI stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
+    <tr><th>Controls</th><td>Recommendations are decision support only. StockSense AI stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
   </tbody></table>
 </body>
 </html>`;
@@ -164,7 +164,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "inventory-ai-executive-roi-report.html";
+  link.download = "stocksense-ai-executive-roi-report.html";
   link.click();
   window.URL.revokeObjectURL(url);
 }
@@ -220,7 +220,7 @@ export default function DashboardPage() {
       <>
         <header className="page-header">
           <div>
-            <h1>Inventory AI</h1>
+            <h1>StockSense AI</h1>
             <p>Backend API is not reachable.</p>
           </div>
         </header>
@@ -246,7 +246,7 @@ export default function DashboardPage() {
     <>
       <header className="page-header">
         <div>
-          <h1>Inventory AI</h1>
+          <h1>StockSense AI</h1>
           <p>FEFO, expiration risk, stockouts, and reorder timing.</p>
         </div>
         <div className="toolbar">
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           </Link>
           <Link className="button" href="/query">
             <RefreshCw size={17} />
-            Ask Inventory AI
+            Ask StockSense AI
           </Link>
         </div>
       </header>

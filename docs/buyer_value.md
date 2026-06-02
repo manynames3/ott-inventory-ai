@@ -1,6 +1,6 @@
 # Buyer Value Narrative
 
-Inventory AI is positioned for imported food and CPG distributors that carry lot-tracked inventory with meaningful shelf-life constraints. The target buyer is usually a supply chain, operations, or inventory planning leader who owns fill rate, waste, working capital, and planner productivity.
+StockSense AI is positioned for imported food and CPG distributors that carry lot-tracked inventory with meaningful shelf-life constraints. The target buyer is usually a supply chain, operations, or inventory planning leader who owns fill rate, waste, working capital, and planner productivity.
 
 ## Buyer Problems
 
@@ -17,7 +17,7 @@ The pain is operational and financial:
 
 ## Value Proposition
 
-Inventory AI turns existing operational exports into daily actions:
+StockSense AI turns existing operational exports into daily actions:
 
 - "Ship this lot first because it expires 45 days before the next available lot."
 - "Reorder now because lead-time demand exceeds effective inventory after excluding lots expiring before replenishment."
@@ -29,13 +29,13 @@ The product is not pitched as abstract AI. It is pitched as a planner workflow t
 
 ## Relationship To SAP And Oracle
 
-Inventory AI is not a replacement for SAP, Oracle, or a WMS. It is a decision layer over systems that already contain valuable operational data.
+StockSense AI is not a replacement for SAP, Oracle, or a WMS. It is a decision layer over systems that already contain valuable operational data.
 
 The buyer-safe positioning is:
 
-> SAP and Oracle remain the system of record. Inventory AI turns ERP/WMS exports into expiration-aware actions, plain-language answers, and ROI explanations for planners.
+> SAP and Oracle remain the system of record. StockSense AI turns ERP/WMS exports into expiration-aware actions, plain-language answers, and ROI explanations for planners.
 
-That distinction matters because SAP and Oracle can already support lot tracking, shelf-life data, batch controls, replenishment planning, and inventory exceptions when configured. Inventory AI's wedge is not "ERP cannot do this." The wedge is "operators need a faster way to decide what to do with the data."
+That distinction matters because SAP and Oracle can already support lot tracking, shelf-life data, batch controls, replenishment planning, and inventory exceptions when configured. StockSense AI's wedge is not "ERP cannot do this." The wedge is "operators need a faster way to decide what to do with the data."
 
 The app is useful when a planner needs to quickly answer:
 
@@ -49,9 +49,9 @@ See [erp_positioning.md](erp_positioning.md) for the detailed SAP/Oracle compari
 
 ## ROI Levers
 
-Inventory AI supports five measurable ROI levers:
+StockSense AI supports five measurable ROI levers:
 
-| Lever | How Inventory AI Helps | Pilot Metric |
+| Lever | How StockSense AI Helps | Pilot Metric |
 | --- | --- | --- |
 | Waste reduction | Flags at-risk lots and recommends FEFO, transfer, discount, promotion, or priority allocation. | Dollar value moved out of 30/60/90-day risk buckets. |
 | Stockout prevention | Compares lead-time demand against current inventory and inbound shipments. | Number of stockout-risk SKUs identified before reorder cutoff. |

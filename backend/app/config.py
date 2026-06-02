@@ -52,9 +52,9 @@ def get_settings() -> Settings:
         auth_token_ttl_minutes=int(os.getenv("AUTH_TOKEN_TTL_MINUTES", "720")),
         aws_region=os.getenv("AWS_REGION", "us-west-2"),
         aws_s3_raw_import_bucket=os.getenv("AWS_S3_RAW_IMPORT_BUCKET", ""),
-        aws_s3_import_prefix=os.getenv("AWS_S3_IMPORT_PREFIX", "inventory-ai/raw-imports"),
-        aws_dynamodb_records_table=os.getenv("AWS_DYNAMODB_RECORDS_TABLE", "inventory_ai_records"),
-        aws_dynamodb_views_table=os.getenv("AWS_DYNAMODB_VIEWS_TABLE", "inventory_ai_views"),
-        aws_dynamodb_imports_table=os.getenv("AWS_DYNAMODB_IMPORTS_TABLE", "inventory_ai_imports"),
+        aws_s3_import_prefix=os.getenv("AWS_S3_IMPORT_PREFIX", "stocksense/raw-imports"),
+        aws_dynamodb_records_table=os.getenv("AWS_DYNAMODB_RECORDS_TABLE", "stocksense_records"),
+        aws_dynamodb_views_table=os.getenv("AWS_DYNAMODB_VIEWS_TABLE", "stocksense_views"),
+        aws_dynamodb_imports_table=os.getenv("AWS_DYNAMODB_IMPORTS_TABLE", "stocksense_imports"),
         allow_demo_seed=_get_bool("ALLOW_DEMO_SEED", "false"),
     )

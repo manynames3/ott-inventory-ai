@@ -35,10 +35,10 @@ TEST_SETTINGS = Settings(
     auth_token_ttl_minutes=10,
     aws_region="us-west-2",
     aws_s3_raw_import_bucket="",
-    aws_s3_import_prefix="inventory-ai/raw-imports",
-    aws_dynamodb_records_table="inventory_ai_records",
-    aws_dynamodb_views_table="inventory_ai_views",
-    aws_dynamodb_imports_table="inventory_ai_imports",
+    aws_s3_import_prefix="stocksense/raw-imports",
+    aws_dynamodb_records_table="stocksense_records",
+    aws_dynamodb_views_table="stocksense_views",
+    aws_dynamodb_imports_table="stocksense_imports",
     allow_demo_seed=False,
 )
 
@@ -54,7 +54,7 @@ class AuthAndTemplatesTest(unittest.TestCase):
         payload = verify_access_token(token, settings=TEST_SETTINGS)
 
         self.assertEqual(payload["sub"], "planner@example.com")
-        self.assertEqual(payload["aud"], "inventory-ai")
+        self.assertEqual(payload["aud"], "stocksense")
 
     def test_expired_token_rejected(self):
         if create_access_token is None or verify_access_token is None:

@@ -1,6 +1,6 @@
 # Custom Domain And Pilot Security
 
-This document describes the buyer-facing access story for the low-idle Inventory AI MVP. It keeps the pilot inexpensive while making the product feel evaluable by an operations or supply chain team.
+This document describes the buyer-facing access story for the low-idle StockSense AI MVP. It keeps the pilot inexpensive while making the product feel evaluable by an operations or supply chain team.
 
 ## Current Hosted Shape
 
@@ -18,20 +18,20 @@ This is intentionally not an enterprise identity platform yet. It is enough for 
 Recommended pilot hostname:
 
 ```text
-inventory-ai.<company-domain>
+stocksense.<company-domain>
 ```
 
 For example, a buyer-safe demo could use:
 
 ```text
-inventory-ai.example.com
+stocksense.example.com
 ```
 
 Cloudflare Pages supports custom domains from the Pages project. The Pages flow is:
 
 1. Open Cloudflare dashboard.
 2. Go to Workers & Pages.
-3. Select the Inventory AI Pages project.
+3. Select the StockSense AI Pages project.
 4. Open Custom domains.
 5. Set up the domain.
 6. If the domain is managed in Cloudflare DNS, Cloudflare can create the needed record. If DNS is external, create the CNAME record requested by Cloudflare.
@@ -42,8 +42,8 @@ After the frontend custom domain is live, add it to the backend CORS allowlist i
 
 ```hcl
 cors_origins = [
-  "https://ott-inventory-ai.pages.dev",
-  "https://inventory-ai.example.com"
+  "https://stocksense.pages.dev",
+  "https://stocksense.example.com"
 ]
 ```
 
@@ -120,4 +120,4 @@ Recommended path:
 
 Use this concise explanation in sales or onboarding:
 
-> Inventory AI is a read-only decision layer for pilot evaluation. Users upload ERP/WMS exports, the system validates them, stores raw files privately, and turns the data into FEFO, waste-risk, stockout, reorder, and customer-cadence recommendations. The MVP does not write back to SAP or Oracle. Access is limited by login today and can be upgraded to Cloudflare Access or buyer SSO before a paid rollout.
+> StockSense AI is a read-only decision layer for pilot evaluation. Users upload ERP/WMS exports, the system validates them, stores raw files privately, and turns the data into FEFO, waste-risk, stockout, reorder, and customer-cadence recommendations. The MVP does not write back to SAP or Oracle. Access is limited by login today and can be upgraded to Cloudflare Access or buyer SSO before a paid rollout.

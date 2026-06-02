@@ -15,7 +15,7 @@ Create a GitHub repository and push this project:
 ```bash
 git init
 git add .
-git commit -m "Build Inventory AI MVP"
+git commit -m "Build StockSense AI MVP"
 git branch -M main
 git remote add origin https://github.com/<GH_USERNAME>/<REPOSITORY_NAME>.git
 git push -u origin main
@@ -35,8 +35,8 @@ The repo also includes `.github/workflows/cloudflare-pages-deploy.yml` as a manu
 
 Current deployment:
 
-- GitHub: https://github.com/manynames3/ott-inventory-ai
-- Cloudflare Pages: https://ott-inventory-ai.pages.dev
+- GitHub: https://github.com/manynames3/stocksense-ai
+- Cloudflare Pages: https://stocksense.pages.dev
 
 To use the manual fallback, add these GitHub repository secrets and run the workflow with `workflow_dispatch`:
 
@@ -52,7 +52,7 @@ Optional repository variables:
 | `NEXT_PUBLIC_DEMO_MODE` | `true` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` |
 
-The workflow creates a Pages project named `ott-inventory-ai` if it does not already exist, then deploys the static output to the `main` branch deployment.
+The workflow creates a Pages project named `stocksense` if it does not already exist, then deploys the static output to the `main` branch deployment.
 
 ## Cloudflare Pages Settings
 
@@ -87,7 +87,7 @@ When the backend is hosted publicly, update:
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://<your-api-host>` |
 
-Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://ott-inventory-ai.pages.dev`.
+Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://stocksense.pages.dev`.
 
 For the low-idle AWS pilot backend, use the Terraform output `api_function_url`. The frontend strips a trailing slash automatically, so the raw output value can be pasted as-is.
 

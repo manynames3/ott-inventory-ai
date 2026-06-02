@@ -99,9 +99,9 @@ Suggested tables for the MVP:
 
 | Table | Purpose |
 | --- | --- |
-| `inventory_ai_records` | Canonical products, lots, customers, orders, and inbound shipments. |
-| `inventory_ai_views` | Materialized FEFO, waste-risk, stockout, reorder, customer-cadence, and dashboard KPI outputs. |
-| `inventory_ai_imports` | Import job status, validation errors, S3 object keys, and row counts. |
+| `stocksense_records` | Canonical products, lots, customers, orders, and inbound shipments. |
+| `stocksense_views` | Materialized FEFO, waste-risk, stockout, reorder, customer-cadence, and dashboard KPI outputs. |
+| `stocksense_imports` | Import job status, validation errors, S3 object keys, and row counts. |
 
 Example access patterns:
 

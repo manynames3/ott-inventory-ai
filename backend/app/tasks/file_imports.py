@@ -11,7 +11,7 @@ from app.adapters.base import REQUIRED_COLUMNS
 from app.adapters.csv_adapter import CSVImportAdapter
 
 
-logger = logging.getLogger("inventory-ai-import-worker")
+logger = logging.getLogger("stocksense-import-worker")
 
 
 def _entity_from_path(path: Path) -> str:

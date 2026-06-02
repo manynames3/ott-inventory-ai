@@ -35,7 +35,7 @@ export default function LoginPage() {
       <header className="page-header">
         <div>
           <h1>Login</h1>
-          <p>Sign in to Inventory AI.</p>
+          <p>Sign in to StockSense AI.</p>
         </div>
       </header>
 

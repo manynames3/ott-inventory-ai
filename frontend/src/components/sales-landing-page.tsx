@@ -93,7 +93,7 @@ const plans = [
 ];
 
 const queryRows = [
-  'curl -sS "$INVENTORY_AI_API/api/query" \\',
+  'curl -sS "$STOCKSENSE_API/api/query" \\',
   '  -H "authorization: Bearer $TOKEN" \\',
   '  -H "content-type: application/json" \\',
   "  -d '{",
@@ -108,17 +108,18 @@ const queryRows = [
   "}"
 ];
 
-function InventoryAiLockup({ onRed = false }: { onRed?: boolean }) {
+function StockSenseBrand() {
   return (
-    <span className={onRed ? "sales-ref-lockup on-red" : "sales-ref-lockup"}>
-      <span className="sales-ref-lockup-mark" aria-hidden="true">
-        <span className="sales-ref-lockup-face">AI</span>
-      </span>
-      <span className="sales-ref-lockup-type">
-        <span className="sales-ref-lockup-name">
-          O<span aria-hidden="true">’</span>Inventory
-        </span>
-        <span className="sales-ref-lockup-sub">AI PILOT</span>
+    <span className="sales-ref-brand-lockup">
+      <img
+        className="sales-ref-brand-logo"
+        src="/assets/stocksense-ottogi-logo.svg"
+        alt=""
+        aria-hidden="true"
+      />
+      <span className="sales-ref-brand-type">
+        <strong>StockSense AI</strong>
+        <small>오뚜기 운영 파일럿</small>
       </span>
     </span>
   );
@@ -128,8 +129,8 @@ export function SalesLandingPage() {
   return (
     <div className="sales-page sales-reference" lang="ko">
       <header className="sales-ref-header">
-        <Link href="/sales" className="sales-ref-brand" aria-label="Inventory AI sales page">
-          <InventoryAiLockup onRed />
+        <Link href="/sales" className="sales-ref-brand" aria-label="StockSense AI sales page">
+          <StockSenseBrand />
         </Link>
         <nav className="sales-ref-nav" aria-label="세일즈 페이지 내비게이션">
           <a href="#workflow">진행 방식</a>
@@ -146,14 +147,11 @@ export function SalesLandingPage() {
         <section className="sales-ref-hero" aria-labelledby="sales-hero-title">
           <img
             className="sales-ref-hero-visual"
-            src="/assets/inventory-ai-platform-preview-dark.svg"
-            alt="오뚜기형 가져오기 검증, 품절 위험, FEFO 로트 우선순위, 자연어 질의 결과를 보여주는 Inventory AI 플랫폼 미리보기"
+            src="/assets/stocksense-platform-preview-dark.svg"
+            alt="오뚜기형 가져오기 검증, 품절 위험, FEFO 로트 우선순위, 자연어 질의 결과를 보여주는 StockSense AI 플랫폼 미리보기"
           />
           <div className="sales-ref-hero-overlay" />
           <div className="sales-ref-hero-content">
-            <div className="sales-ref-hero-lockup" aria-label="O Inventory AI Pilot">
-              <InventoryAiLockup onRed />
-            </div>
             <h1 id="sales-hero-title">
               맛과 품질을 가장 소중히 생각하는 재고 AI.
             </h1>
@@ -195,7 +193,7 @@ export function SalesLandingPage() {
             </div>
             <p>
               오뚜기가 말하는 맛과 품질, 식품안전문화, 소비자에게 편리한 제품은 생산 이후의 운영에서도
-              이어져야 합니다. Inventory AI는 어떤 로트를 먼저 출고할지, 어떤 SKU가 결품 위험인지,
+              이어져야 합니다. StockSense AI는 어떤 로트를 먼저 출고할지, 어떤 SKU가 결품 위험인지,
               어떤 입고 예정 물량이 판단을 바꾸는지, 어떤 장기 체류 재고를 이전·프로모션·할인해야 하는지까지
               일일 실행 큐로 바꿉니다.
             </p>
@@ -321,7 +319,7 @@ export function SalesLandingPage() {
             <div>
               <ShieldCheck size={22} />
               <h3>ERP를 대체하나요?</h3>
-              <p>아닙니다. ERP는 기준 시스템으로 유지하고, Inventory AI는 예외 탐지와 판단 설명 레이어가 됩니다.</p>
+              <p>아닙니다. ERP는 기준 시스템으로 유지하고, StockSense AI는 예외 탐지와 판단 설명 레이어가 됩니다.</p>
             </div>
             <div>
               <FileSpreadsheet size={22} />

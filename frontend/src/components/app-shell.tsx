@@ -25,10 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       setHasToken(Boolean(getAuthToken()));
     }
     syncToken();
-    window.addEventListener("inventory-ai-auth", syncToken);
+    window.addEventListener("stocksense-auth", syncToken);
     window.addEventListener("storage", syncToken);
     return () => {
-      window.removeEventListener("inventory-ai-auth", syncToken);
+      window.removeEventListener("stocksense-auth", syncToken);
       window.removeEventListener("storage", syncToken);
     };
   }, []);
@@ -41,12 +41,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <Link href="/" className="brand app-brand-lockup">
-          <span className="app-brand-mark" aria-hidden="true">
-            <span>AI</span>
-          </span>
+          <img className="app-brand-mark" src="/assets/stocksense-ottogi-logo.svg" alt="" aria-hidden="true" />
           <span>
-            <strong>O&apos;Inventory</strong>
-            <small>Inventory AI pilot</small>
+            <strong>StockSense AI</strong>
+            <small>Ottogi operations pilot</small>
           </span>
         </Link>
         <nav className="nav-list" aria-label="Primary">

@@ -30,7 +30,7 @@ from app.services.templates import csv_template, next_questions, xlsx_template
 settings = get_settings()
 
 app = FastAPI(
-    title="Inventory AI API",
+    title="StockSense AI API",
     description="Expiration-aware inventory optimization and natural-language operations API.",
     version="0.1.0",
 )
@@ -69,7 +69,7 @@ def _records(df: pd.DataFrame):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "inventory-ai-api"}
+    return {"ok": True, "service": "stocksense-api"}
 
 
 @app.post("/api/auth/login")

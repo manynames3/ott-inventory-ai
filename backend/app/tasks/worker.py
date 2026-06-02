@@ -11,12 +11,12 @@ from app.tasks.file_imports import process_import_queue
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("inventory-ai-worker")
+logger = logging.getLogger("stocksense-worker")
 
 
 def run_forever() -> None:
     settings = get_settings()
-    logger.info("Inventory AI worker started; interval=%ss", settings.forecast_interval_seconds)
+    logger.info("StockSense AI worker started; interval=%ss", settings.forecast_interval_seconds)
 
     while True:
         session = SessionLocal()

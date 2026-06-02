@@ -58,7 +58,7 @@ def create_access_token(subject: str, settings: Settings | None = None) -> str:
         "sub": subject,
         "iat": now,
         "exp": now + settings.auth_token_ttl_minutes * 60,
-        "aud": "inventory-ai",
+        "aud": "stocksense",
     }
     encoded_header = _b64encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
     encoded_payload = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
@@ -85,7 +85,7 @@ def verify_access_token(token: str, settings: Settings | None = None) -> Dict[st
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload.") from exc
 
-    if payload.get("aud") != "inventory-ai":
+    if payload.get("aud") != "stocksense":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token audience.")
     if int(payload.get("exp", 0)) < int(time.time()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired.")

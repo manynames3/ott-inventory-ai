@@ -219,7 +219,7 @@ def _create_token(subject: str, secret: str) -> str:
     header = _b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode("utf-8"))
     payload = _b64encode(
         json.dumps(
-            {"sub": subject, "iat": now, "exp": now + TOKEN_TTL_SECONDS, "aud": "inventory-ai"},
+            {"sub": subject, "iat": now, "exp": now + TOKEN_TTL_SECONDS, "aud": "stocksense"},
             separators=(",", ":"),
         ).encode("utf-8")
     )
@@ -236,7 +236,7 @@ def _verify_token(token: str, secret: str) -> Dict[str, Any]:
     if not hmac.compare_digest(signature, _sign(signing_input, secret)):
         raise ValueError("Invalid token.")
     payload = json.loads(_b64decode(encoded_payload))
-    if payload.get("aud") != "inventory-ai":
+    if payload.get("aud") != "stocksense":
         raise ValueError("Invalid token audience.")
     if int(payload.get("exp", 0)) < int(time.time()):
         raise ValueError("Token expired.")
@@ -1048,7 +1048,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if method == "OPTIONS":
         return {"statusCode": 204, "headers": _cors_headers(event), "body": ""}
     if path == "/health":
-        return _json(event, 200, {"ok": True, "service": "inventory-ai-low-idle-api"})
+        return _json(event, 200, {"ok": True, "service": "stocksense-low-idle-api"})
     if method == "POST" and path == "/api/auth/login":
         return _login(event)
     if method == "GET" and path == "/api/auth/me":

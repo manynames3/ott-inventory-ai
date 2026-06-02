@@ -1,2 +1,2 @@
-"""Inventory AI backend package."""
+"""StockSense AI backend package."""
 

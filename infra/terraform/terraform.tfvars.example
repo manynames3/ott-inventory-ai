@@ -2,7 +2,7 @@ aws_region  = "us-west-2"
 environment = "mvp"
 
 allowed_origins = [
-  "https://ott-inventory-ai.pages.dev",
+  "https://stocksense.pages.dev",
   "http://localhost:3000",
   "http://127.0.0.1:3000"
 ]
@@ -21,10 +21,10 @@ enable_refresh_schedule = false
 
 # Store real auth values in SSM Parameter Store or set them manually on Lambda.
 # Do not put secret values in terraform.tfvars; Terraform state can expose them.
-auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
-auth_password_parameter_name   = "/inventory-ai/mvp/auth/password"
-auth_secret_key_parameter_name = "/inventory-ai/mvp/auth/secret-key"
+auth_username_parameter_name   = "/stocksense/mvp/auth/username"
+auth_password_parameter_name   = "/stocksense/mvp/auth/password"
+auth_secret_key_parameter_name = "/stocksense/mvp/auth/secret-key"
 
 tags = {
-  Owner = "inventory-ai"
+  Owner = "stocksense"
 }

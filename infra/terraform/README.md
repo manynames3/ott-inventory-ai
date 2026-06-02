@@ -53,19 +53,19 @@ Create the SSM parameters before sharing the frontend with a pilot user:
 
 ```bash
 aws ssm put-parameter \
-  --name /inventory-ai/mvp/auth/username \
+  --name /stocksense/mvp/auth/username \
   --type String \
-  --value "pilot@inventory-ai.local" \
+  --value "pilot@stocksense.local" \
   --overwrite
 
 aws ssm put-parameter \
-  --name /inventory-ai/mvp/auth/password \
+  --name /stocksense/mvp/auth/password \
   --type SecureString \
   --value "<generate-a-strong-password>" \
   --overwrite
 
 aws ssm put-parameter \
-  --name /inventory-ai/mvp/auth/secret-key \
+  --name /stocksense/mvp/auth/secret-key \
   --type SecureString \
   --value "$(openssl rand -hex 32)" \
   --overwrite

@@ -188,7 +188,7 @@ def seed() -> None:
             lead_time_days=settings.supplier_lead_time_days,
         )
         print(
-            "Seeded Inventory AI with "
+            "Seeded StockSense AI with "
             f"{len(products)} SKUs, {len(lots)} lots, {len(customers)} customers, "
             f"{len(orders)} orders, {len(inbound)} inbound shipments. Refreshed {counts}."
         )

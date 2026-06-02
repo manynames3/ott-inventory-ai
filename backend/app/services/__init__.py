@@ -1,2 +1,2 @@
-"""Business logic services for Inventory AI."""
+"""Business logic services for StockSense AI."""
 

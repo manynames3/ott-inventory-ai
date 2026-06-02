@@ -53,7 +53,7 @@ export default function ActionsPage() {
             Dashboard
           </Link>
           <Link className="button" href="/query">
-            Ask Inventory AI
+            Ask StockSense AI
           </Link>
         </div>
       </header>

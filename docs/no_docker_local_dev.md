@@ -1,6 +1,6 @@
 # No-Docker Local Development
 
-Docker is optional. Inventory AI can run against any PostgreSQL database reachable from your laptop, including a local Postgres install or a managed development database.
+Docker is optional. StockSense AI can run against any PostgreSQL database reachable from your laptop, including a local Postgres install or a managed development database.
 
 ## Backend
 
@@ -18,7 +18,7 @@ pip install -r requirements.txt
 For a local PostgreSQL instance, `DATABASE_URL` should look like:
 
 ```bash
-export DATABASE_URL="postgresql+psycopg://inventory_ai_local:your_password@localhost:5432/inventory_ai"
+export DATABASE_URL="postgresql+psycopg://stocksense_local:your_password@localhost:5432/stocksense"
 export CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
 export AUTH_ENABLED=true
 export AUTH_USERNAME="planner@example.com"

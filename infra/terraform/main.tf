@@ -304,7 +304,7 @@ locals {
 
 resource "aws_lambda_function" "api" {
   function_name = "${local.name_prefix}-api"
-  description   = "Low-idle Inventory AI API endpoint for templates, upload URLs, and query reads."
+  description   = "Low-idle StockSense AI API endpoint for templates, upload URLs, and query reads."
   role          = aws_iam_role.lambda.arn
   handler       = "api.index.handler"
   runtime       = var.lambda_runtime
@@ -325,7 +325,7 @@ resource "aws_lambda_function" "api" {
 
 resource "aws_lambda_function" "import_worker" {
   function_name = "${local.name_prefix}-import-worker"
-  description   = "Low-idle Inventory AI import worker triggered by S3 raw upload events."
+  description   = "Low-idle StockSense AI import worker triggered by S3 raw upload events."
   role          = aws_iam_role.lambda.arn
   handler       = "import_worker.index.handler"
   runtime       = var.lambda_runtime
@@ -346,7 +346,7 @@ resource "aws_lambda_function" "import_worker" {
 
 resource "aws_lambda_function" "refresh_worker" {
   function_name = "${local.name_prefix}-refresh-worker"
-  description   = "Low-idle Inventory AI recommendation refresh worker."
+  description   = "Low-idle StockSense AI recommendation refresh worker."
   role          = aws_iam_role.lambda.arn
   handler       = "refresh_worker.index.handler"
   runtime       = var.lambda_runtime
@@ -428,7 +428,7 @@ resource "aws_scheduler_schedule" "refresh" {
   count = var.enable_refresh_schedule ? 1 : 0
 
   name                = "${local.name_prefix}-refresh"
-  description         = "Periodic Inventory AI recommendation refresh."
+  description         = "Periodic StockSense AI recommendation refresh."
   schedule_expression = var.refresh_schedule_expression
 
   flexible_time_window {

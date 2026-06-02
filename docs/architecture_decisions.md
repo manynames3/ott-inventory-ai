@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-Inventory AI is designed as a pragmatic MVP: prove the business workflow first, keep integrations replaceable, and avoid infrastructure choices that make early pilots slow or risky.
+StockSense AI is designed as a pragmatic MVP: prove the business workflow first, keep integrations replaceable, and avoid infrastructure choices that make early pilots slow or risky.
 
 ## Architecture Goals
 

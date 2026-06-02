@@ -1,8 +1,8 @@
 # ERP Integration Contract
 
-Inventory AI uses import adapters so CSV can be replaced by SAP, Oracle, or another ERP source without changing forecasting and optimization logic.
+StockSense AI uses import adapters so CSV can be replaced by SAP, Oracle, or another ERP source without changing forecasting and optimization logic.
 
-Inventory AI should be positioned as an ERP-adjacent decision layer, not a replacement for SAP or Oracle. SAP and Oracle remain the system of record; Inventory AI consumes ERP/WMS exports or future integrations to produce expiration-aware recommendations, natural-language answers, and business explanations. See [erp_positioning.md](erp_positioning.md) for the detailed buyer-facing comparison.
+StockSense AI should be positioned as an ERP-adjacent decision layer, not a replacement for SAP or Oracle. SAP and Oracle remain the system of record; StockSense AI consumes ERP/WMS exports or future integrations to produce expiration-aware recommendations, natural-language answers, and business explanations. See [erp_positioning.md](erp_positioning.md) for the detailed buyer-facing comparison.
 
 ## Required Entities
 

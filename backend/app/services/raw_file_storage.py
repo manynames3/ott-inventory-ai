@@ -53,7 +53,7 @@ class RawFileStorage:
             Key=key,
             Body=content,
             ContentType=content_type or "application/octet-stream",
-            Metadata={"entity": entity, "source": "inventory-ai"},
+            Metadata={"entity": entity, "source": "stocksense"},
         )
         return StoredObject(
             service="s3",

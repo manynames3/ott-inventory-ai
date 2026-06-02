@@ -24,7 +24,7 @@ Provision this path with Terraform from [../infra/terraform](../infra/terraform)
 
 The user uploads Excel files, but Excel is not the fast query layer.
 
-For the low-idle hosted MVP, Inventory AI uses three layers:
+For the low-idle hosted MVP, StockSense AI uses three layers:
 
 1. **S3 raw zone**: Stores the original `.csv`, `.xlsx`, or `.xlsm` file exactly as uploaded. This supports auditability, reprocessing, and future data-lake workflows.
 2. **DynamoDB canonical records**: Stores normalized products, lots, orders, customers, and inbound shipments in a pay-per-request serving store.
@@ -90,9 +90,9 @@ AUTH_TOKEN_TTL_MINUTES=720
 For the Terraform Lambda path, store credentials in SSM Parameter Store and pass only the parameter names to Terraform:
 
 ```bash
-auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
-auth_password_parameter_name   = "/inventory-ai/mvp/auth/password"
-auth_secret_key_parameter_name = "/inventory-ai/mvp/auth/secret-key"
+auth_username_parameter_name   = "/stocksense/mvp/auth/username"
+auth_password_parameter_name   = "/stocksense/mvp/auth/password"
+auth_secret_key_parameter_name = "/stocksense/mvp/auth/secret-key"
 ```
 
 Optional S3 raw-file storage:
@@ -100,15 +100,15 @@ Optional S3 raw-file storage:
 ```bash
 AWS_REGION=us-west-2
 AWS_S3_RAW_IMPORT_BUCKET=<your-private-raw-import-bucket>
-AWS_S3_IMPORT_PREFIX=inventory-ai/raw-imports
+AWS_S3_IMPORT_PREFIX=stocksense/raw-imports
 ```
 
 Low-idle DynamoDB tables:
 
 ```bash
-AWS_DYNAMODB_RECORDS_TABLE=inventory_ai_records
-AWS_DYNAMODB_VIEWS_TABLE=inventory_ai_views
-AWS_DYNAMODB_IMPORTS_TABLE=inventory_ai_imports
+AWS_DYNAMODB_RECORDS_TABLE=stocksense_records
+AWS_DYNAMODB_VIEWS_TABLE=stocksense_views
+AWS_DYNAMODB_IMPORTS_TABLE=stocksense_imports
 ```
 
 The backend uses the default AWS credential chain. On AWS, prefer an IAM role attached to Lambda instead of static access keys.
@@ -126,7 +126,7 @@ Minimum permissions for the backend role:
     {
       "Effect": "Allow",
       "Action": ["s3:PutObject"],
-      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/inventory-ai/raw-imports/*"
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/stocksense/raw-imports/*"
     }
   ]
 }
@@ -148,7 +148,7 @@ For the first hosted pilot:
 8. Set Cloudflare Pages variables:
    - `NEXT_PUBLIC_DEMO_MODE=false`
    - `NEXT_PUBLIC_API_BASE_URL=https://<backend-host>`
-9. Set backend `CORS_ORIGINS=https://ott-inventory-ai.pages.dev`.
+9. Set backend `CORS_ORIGINS=https://stocksense.pages.dev`.
 10. Seed demo data by uploading the files in `sample_data/ottogi_demo/`.
 
 ## Services To Avoid For The <$10 MVP
