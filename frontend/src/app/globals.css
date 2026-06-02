@@ -1856,32 +1856,6 @@ select {
   padding: 58px 0 72px;
 }
 
-.sales-ref-eyebrow,
-.sales-ref-section-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  margin: 0 0 18px;
-  padding: 7px 14px;
-  border: 2px solid #000;
-  border-radius: 999px;
-  color: #000;
-  background: var(--ref-gold);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.sales-ref-eyebrow::before,
-.sales-ref-section-kicker::before {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ref-red);
-  content: "";
-}
-
 .sales-ref-hero h1,
 .sales-ref-lineage h2,
 .sales-ref-cta-content h2 {
@@ -1972,8 +1946,8 @@ select {
 }
 
 .sales-ref-lineage p:last-child,
-.sales-ref-section-heading > p:not(.sales-ref-section-kicker),
-.sales-ref-code-copy > p:not(.sales-ref-section-kicker) {
+.sales-ref-section-heading > p,
+.sales-ref-code-copy > p {
   margin: 0;
   color: var(--ref-muted);
   font-size: 18px;
@@ -2008,8 +1982,8 @@ select {
   line-height: 1.12;
 }
 
-.sales-ref-section-heading > p:not(.sales-ref-section-kicker),
-.sales-ref-code-copy > p:not(.sales-ref-section-kicker) {
+.sales-ref-section-heading > p,
+.sales-ref-code-copy > p {
   margin-top: 20px;
 }
 
@@ -2567,8 +2541,8 @@ select {
 
 .sales-reference[lang="ko"] .sales-ref-hero-copy,
 .sales-reference[lang="ko"] .sales-ref-lineage p:last-child,
-.sales-reference[lang="ko"] .sales-ref-section-heading > p:not(.sales-ref-section-kicker),
-.sales-reference[lang="ko"] .sales-ref-code-copy > p:not(.sales-ref-section-kicker),
+.sales-reference[lang="ko"] .sales-ref-section-heading > p,
+.sales-reference[lang="ko"] .sales-ref-code-copy > p,
 .sales-reference[lang="ko"] .sales-ref-cta-content p {
   line-height: 1.72;
 }

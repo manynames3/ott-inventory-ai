@@ -154,7 +154,6 @@ export function SalesLandingPage() {
             <div className="sales-ref-hero-lockup" aria-label="O Inventory AI Pilot">
               <InventoryAiLockup onRed />
             </div>
-            <p className="sales-ref-eyebrow">오뚜기 북미 운영을 위한 파일럿 제안</p>
             <h1 id="sales-hero-title">
               맛과 품질을 가장 소중히 생각하는 재고 AI.
             </h1>
@@ -192,7 +191,6 @@ export function SalesLandingPage() {
         <section className="sales-ref-lineage sales-ref-section-pad">
           <div className="sales-ref-inner sales-ref-two-column">
             <div>
-              <p className="sales-ref-section-kicker">맛과 품질을 실행 지표로</p>
               <h2>신선한 원료와 안전한 품질이 물류 끝단까지 이어지도록.</h2>
             </div>
             <p>
@@ -207,7 +205,6 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad sales-ref-muted-band" id="workflow">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">파일럿 진행 방식</p>
               <h2>가볍게 시작해, 당일 판단까지.</h2>
               <p>
                 ERP 실시간 연동 전에 먼저 가치를 증명합니다. CSV를 첫 어댑터로 사용하고, SAP·Oracle 연동
@@ -230,7 +227,6 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad" id="code">
           <div className="sales-ref-inner sales-ref-code-layout">
             <div className="sales-ref-code-copy">
-              <p className="sales-ref-section-kicker">자연어 질의</p>
               <h2>운영팀이 묻는 말 그대로, 실행 가능한 답을 돌려줍니다.</h2>
               <p>
                 “30일 안에 품절될 SKU는?”, “이번 주 무엇을 발주해야 하나?”, “곧 만료되는 로트는?” 같은 질문에
@@ -256,7 +252,6 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad sales-ref-muted-band" id="platform">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">저비용 파일럿 아키텍처</p>
               <h2>고정비를 키우지 않고, 구매 검토에 필요한 신뢰를 먼저 만듭니다.</h2>
               <p>
                 대규모 통합 프로젝트 전에 의사결정 가치를 보여주는 구조입니다. 트래픽이 낮은 파일럿 기간에도
@@ -278,7 +273,6 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad" id="plans">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">제안 구성</p>
               <h2>글로벌 식품 기업의 운영팀이 바로 평가할 수 있는 파일럿.</h2>
               <p>
                 핵심은 단순합니다. 폐기 가능 금액, 결품 노출, 플래너 시간 절감이 실제 품목군에서 보이는지
