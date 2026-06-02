@@ -1,78 +1,78 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1320" height="860" viewBox="0 0 1320 860" role="img" aria-labelledby="title desc">
   <title id="title">Inventory AI 오뚜기 운영 미리보기</title>
-  <desc id="desc">오뚜기형 가져오기 검증, 품절 위험, FEFO 로트 우선순위, 자연어 질의 결과를 보여주는 제품 미리보기.</desc>
+  <desc id="desc">오뚜기형 재고 가져오기 검증, 결품 위험, FEFO 로트 우선순위, 자연어 질의 결과를 보여주는 밝은 제품 미리보기.</desc>
   <defs>
-    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c1c26"/>
-      <stop offset="1" stop-color="#101016"/>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fffdeb"/>
     </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd76a"/>
-      <stop offset="1" stop-color="#d4a843"/>
+    <linearGradient id="yellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff300"/>
+      <stop offset="1" stop-color="#ffed00"/>
     </linearGradient>
     <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff6b5f"/>
-      <stop offset="1" stop-color="#c72c2c"/>
+      <stop offset="0" stop-color="#e83c20"/>
+      <stop offset="1" stop-color="#dc2f34"/>
     </linearGradient>
     <filter id="shadow" x="-12%" y="-12%" width="124%" height="124%">
-      <feDropShadow dx="0" dy="26" stdDeviation="24" flood-color="#000000" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#000000" flood-opacity="0.14"/>
     </filter>
-    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+    <pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.4" fill="#dc2f34" fill-opacity="0.12"/>
     </pattern>
   </defs>
 
   <rect width="1320" height="860" fill="transparent"/>
   <g filter="url(#shadow)">
-    <rect x="72" y="78" width="1176" height="704" rx="26" fill="url(#panel)" stroke="#ffffff" stroke-opacity="0.10"/>
-    <rect x="72" y="78" width="1176" height="704" rx="26" fill="url(#grid)"/>
+    <rect x="72" y="78" width="1176" height="704" rx="34" fill="url(#paper)" stroke="#000000" stroke-width="2"/>
+    <rect x="72" y="78" width="1176" height="704" rx="34" fill="url(#dots)"/>
+    <rect x="72" y="78" width="1176" height="18" rx="9" fill="url(#yellow)"/>
 
-    <rect x="118" y="126" width="1084" height="76" rx="16" fill="#0a0a0f" fill-opacity="0.74" stroke="#ffffff" stroke-opacity="0.08"/>
-    <circle cx="156" cy="164" r="7" fill="#ef4444"/>
-    <circle cx="184" cy="164" r="7" fill="#f59e0b"/>
-    <circle cx="212" cy="164" r="7" fill="#34d399"/>
-    <text x="252" y="172" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="700">inventory-ai / 오뚜기-북미-파일럿</text>
-    <rect x="990" y="143" width="172" height="42" rx="21" fill="#3ecf8e" fill-opacity="0.12"/>
-    <circle cx="1016" cy="164" r="6" fill="#3ecf8e"/>
-    <text x="1032" y="171" fill="#7ee7ba" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18" font-weight="700">뷰 최신</text>
+    <rect x="118" y="126" width="1084" height="76" rx="38" fill="#ffffff" stroke="#e6e6e6" stroke-width="2"/>
+    <circle cx="156" cy="164" r="16" fill="url(#yellow)" stroke="#000000" stroke-width="2"/>
+    <text x="148" y="170" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="13" font-weight="900">IA</text>
+    <text x="196" y="172" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="800">inventory-ai / 오뚜기-북미-파일럿</text>
+    <rect x="990" y="143" width="172" height="42" rx="21" fill="#fffdeb" stroke="#ffed00" stroke-width="2"/>
+    <circle cx="1016" cy="164" r="6" fill="#dc2f34"/>
+    <text x="1032" y="171" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18" font-weight="800">뷰 최신</text>
 
-    <rect x="118" y="242" width="380" height="174" rx="20" fill="#13131a" fill-opacity="0.94" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="152" y="286" fill="#d4a843" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="800">가져오기 체크리스트</text>
-    <text x="152" y="326" fill="#a6a09a" font-family="Geist, Arial, sans-serif" font-size="18">products.csv</text>
-    <text x="402" y="326" fill="#3ecf8e" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="700">110행</text>
-    <text x="152" y="358" fill="#a6a09a" font-family="Geist, Arial, sans-serif" font-size="18">inventory_lots.csv</text>
-    <text x="402" y="358" fill="#3ecf8e" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="700">555행</text>
-    <text x="152" y="390" fill="#a6a09a" font-family="Geist, Arial, sans-serif" font-size="18">orders.csv</text>
-    <text x="402" y="390" fill="#3ecf8e" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="700">4,907행</text>
+    <rect x="118" y="242" width="380" height="174" rx="24" fill="#ffffff" stroke="#e6e6e6" stroke-width="2"/>
+    <text x="152" y="286" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="900">가져오기 체크리스트</text>
+    <text x="152" y="326" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">products.csv</text>
+    <text x="402" y="326" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">110행</text>
+    <text x="152" y="358" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">inventory_lots.csv</text>
+    <text x="402" y="358" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">555행</text>
+    <text x="152" y="390" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">orders.csv</text>
+    <text x="402" y="390" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">4,907행</text>
 
-    <rect x="526" y="242" width="302" height="174" rx="20" fill="#13131a" fill-opacity="0.94" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="558" y="286" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="800">폐기 절감 기회</text>
-    <text x="558" y="346" fill="#ffd76a" font-family="Geist, Arial, sans-serif" font-size="58" font-weight="800">$428K</text>
-    <text x="558" y="386" fill="#a6a09a" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">만료 임박 로트 감지</text>
+    <rect x="526" y="242" width="302" height="174" rx="24" fill="#fffdeb" stroke="#ffed00" stroke-width="2"/>
+    <text x="558" y="286" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="900">폐기 절감 기회</text>
+    <text x="558" y="346" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="58" font-weight="900">$428K</text>
+    <text x="558" y="386" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">만료 임박 로트 감지</text>
 
-    <rect x="856" y="242" width="302" height="174" rx="20" fill="#13131a" fill-opacity="0.94" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="888" y="286" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="800">결품 위험</text>
-    <text x="888" y="346" fill="#ff7b72" font-family="Geist, Arial, sans-serif" font-size="58" font-weight="800">18</text>
-    <text x="948" y="344" fill="#a6a09a" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="20">SKU/DC 위험</text>
-    <text x="888" y="386" fill="#a6a09a" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">정상 리드타임 전 조치</text>
+    <rect x="856" y="242" width="302" height="174" rx="24" fill="#ffffff" stroke="#e6e6e6" stroke-width="2"/>
+    <text x="888" y="286" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="900">결품 위험</text>
+    <text x="888" y="346" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="58" font-weight="900">18</text>
+    <text x="948" y="344" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="20">SKU/DC 위험</text>
+    <text x="888" y="386" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">정상 리드타임 전 조치</text>
 
-    <rect x="118" y="448" width="616" height="226" rx="20" fill="#1c1c26" fill-opacity="0.90" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="152" y="494" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="24" font-weight="800">우선 실행 큐</text>
-    <rect x="152" y="526" width="546" height="42" rx="12" fill="#0a0a0f" fill-opacity="0.62"/>
+    <rect x="118" y="448" width="616" height="226" rx="24" fill="#ffffff" stroke="#e6e6e6" stroke-width="2"/>
+    <text x="152" y="494" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="24" font-weight="900">우선 실행 큐</text>
+    <rect x="152" y="526" width="546" height="42" rx="21" fill="#f8f8f8"/>
     <rect x="168" y="538" width="42" height="18" rx="9" fill="url(#red)"/>
-    <text x="180" y="552" fill="#fff7ed" font-family="Geist Mono, Consolas, monospace" font-size="12" font-weight="700">P1</text>
-    <text x="230" y="553" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-CUR-001 · LA DC · 가용 재고 13.5일</text>
-    <rect x="152" y="584" width="546" height="42" rx="12" fill="#0a0a0f" fill-opacity="0.46"/>
+    <text x="180" y="552" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="900">P1</text>
+    <text x="230" y="553" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-CUR-001 · LA DC · 가용 재고 13.5일</text>
+    <rect x="152" y="584" width="546" height="42" rx="21" fill="#f8f8f8"/>
     <rect x="168" y="596" width="42" height="18" rx="9" fill="url(#red)"/>
-    <text x="180" y="610" fill="#fff7ed" font-family="Geist Mono, Consolas, monospace" font-size="12" font-weight="700">P1</text>
-    <text x="230" y="611" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-RAM-001 · 신규 입고 전 기존 로트 우선 출고</text>
-    <rect x="152" y="642" width="546" height="12" rx="6" fill="url(#gold)"/>
+    <text x="180" y="610" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="900">P1</text>
+    <text x="230" y="611" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-RAM-001 · 신규 입고 전 기존 로트 우선 출고</text>
+    <rect x="152" y="642" width="546" height="12" rx="6" fill="url(#yellow)" stroke="#000000" stroke-width="1"/>
 
-    <rect x="772" y="448" width="386" height="226" rx="20" fill="#13131a" fill-opacity="0.94" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="806" y="494" fill="#d4a843" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">질문</text>
-    <text x="806" y="532" fill="#f0ede8" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="20" font-weight="700">이번 주 무엇을 발주해야 하나요?</text>
-    <rect x="806" y="562" width="318" height="78" rx="16" fill="#0a0a0f" fill-opacity="0.42" stroke="#ffffff" stroke-opacity="0.10"/>
-    <text x="832" y="596" fill="#d4a843" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">답변</text>
-    <text x="832" y="624" fill="#b9b2aa" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17">지금 조치할 SKU/창고 25개</text>
+    <rect x="772" y="448" width="386" height="226" rx="24" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+    <text x="806" y="494" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="900">질문</text>
+    <text x="806" y="532" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="20" font-weight="800">이번 주 무엇을 발주해야 하나요?</text>
+    <rect x="806" y="562" width="318" height="78" rx="20" fill="#fffdeb" stroke="#ffed00" stroke-width="2"/>
+    <text x="832" y="596" fill="#dc2f34" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="900">답변</text>
+    <text x="832" y="624" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17">지금 조치할 SKU/창고 25개</text>
   </g>
 </svg>

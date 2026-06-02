@@ -16,27 +16,27 @@ import {
 const workflowSteps = [
   {
     code: "products.csv + lots.csv",
-    copy: "라면, 즉석밥, 소스, 유지류, 냉동만두, 카레, HMR까지 SKU·유통기한·로트·창고·원가 정보를 한 번에 불러옵니다.",
+    copy: "라면, 즉석밥, 소스, 유지류, 냉동만두, 카레, HMR까지 품질 기준에 필요한 SKU·유통기한·로트·창고·원가 정보를 한 번에 정리합니다.",
     number: "01",
-    title: "제품과 로트 데이터를 올립니다"
+    title: "제품과 로트 기준을 맞춥니다"
   },
   {
     code: "orders.csv + inbound.csv",
-    copy: "2년치 주문 흐름, 입고 예정 물량, 해상 운송 리드타임, 미국 내 창고 재고를 함께 계산합니다.",
+    copy: "2년치 주문 흐름, 입고 예정 물량, 해상 운송 리드타임, 미국 내 창고 재고를 함께 보며 결품과 장기 체류를 미리 감지합니다.",
     number: "02",
-    title: "수요와 공급 리스크를 갱신합니다"
+    title: "수요와 공급 흐름을 봅니다"
   },
   {
     code: "POST /api/query",
-    copy: "품절 위험, 임박 유통기한, FEFO 출고 우선순위, 이번 주 발주 품목을 자연어로 바로 묻습니다.",
+    copy: "품절 위험, 임박 유통기한, FEFO 출고 우선순위, 이번 주 발주 품목을 자연어로 묻고 바로 확인합니다.",
     number: "03",
-    title: "Inventory AI에 질문합니다"
+    title: "현장 질문에 답합니다"
   },
   {
     code: "roi-report.html",
-    copy: "폐기 절감 기회, 결품 노출, 권장 발주, 판단 신뢰도를 리더십 보고서 형태로 내보냅니다.",
+    copy: "폐기 절감 기회, 결품 노출, 권장 발주, 판단 신뢰도를 리더십이 바로 볼 수 있는 보고서로 남깁니다.",
     number: "04",
-    title: "실행 근거를 남깁니다"
+    title: "오늘의 실행 근거를 남깁니다"
   }
 ];
 
@@ -138,12 +138,12 @@ export function SalesLandingPage() {
           <div className="sales-ref-hero-content">
             <p className="sales-ref-eyebrow">오뚜기 북미 운영을 위한 파일럿 제안</p>
             <h1 id="sales-hero-title">
-              오뚜기의 맛과 품질, 마지막 로트까지 지키는 재고 AI.
+              맛과 품질을 가장 소중히 생각하는 재고 AI.
             </h1>
             <p className="sales-ref-hero-copy">
-              라면, 즉석밥, 소스, 유지류, 냉동, HMR처럼 유통기한과 회전율이 동시에 중요한 품목을 위해
-              FEFO 출고, 품절 위험, 발주 시점, 폐기 리스크를 한 화면에서 설명합니다. ERP 전면 통합 전에도
-              기존 파일만으로 파일럿을 시작할 수 있습니다.
+              라면, 즉석밥, 소스, 유지류, 냉동, HMR처럼 신선도와 회전율이 함께 중요한 품목을 위해
+              FEFO 출고, 식품안전 관점의 유통기한 리스크, 결품 위험, 발주 시점을 한 화면에서 설명합니다.
+              ERP 전면 통합 전에도 기존 파일만으로 북미 파일럿을 시작할 수 있습니다.
             </p>
             <div className="sales-ref-actions">
               <Link href="/login" className="sales-ref-button primary">
@@ -174,14 +174,14 @@ export function SalesLandingPage() {
         <section className="sales-ref-lineage sales-ref-section-pad">
           <div className="sales-ref-inner sales-ref-two-column">
             <div>
-              <p className="sales-ref-section-kicker">품질 약속을 실행 지표로</p>
-              <h2>유통기한 리스크는 재고 문제가 아니라 브랜드 신뢰의 문제입니다.</h2>
+              <p className="sales-ref-section-kicker">맛과 품질을 실행 지표로</p>
+              <h2>신선한 원료와 안전한 품질이 물류 끝단까지 이어지도록.</h2>
             </div>
             <p>
-              오뚜기가 강조하는 품질, 위생적 생산, 신선한 원재료, 글로벌 고객 니즈는 물류 현장에서 끝까지
-              지켜져야 합니다. Inventory AI는 그 기준을 일일 실행 큐로 바꿉니다. 어떤 로트를 먼저 출고할지,
-              어떤 SKU가 결품 위험인지, 어떤 입고 예정 물량이 판단을 바꾸는지, 어떤 장기 체류 재고를 이전·프로모션·할인해야 하는지까지
-              바로 설명합니다.
+              오뚜기가 말하는 맛과 품질, 식품안전문화, 소비자에게 편리한 제품은 생산 이후의 운영에서도
+              이어져야 합니다. Inventory AI는 어떤 로트를 먼저 출고할지, 어떤 SKU가 결품 위험인지,
+              어떤 입고 예정 물량이 판단을 바꾸는지, 어떤 장기 체류 재고를 이전·프로모션·할인해야 하는지까지
+              일일 실행 큐로 바꿉니다.
             </p>
           </div>
         </section>
@@ -190,10 +190,10 @@ export function SalesLandingPage() {
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
               <p className="sales-ref-section-kicker">파일럿 진행 방식</p>
-              <h2>다섯 개 파일에서 당일 실행 큐까지.</h2>
+              <h2>가볍게 시작해, 당일 판단까지.</h2>
               <p>
                 ERP 실시간 연동 전에 먼저 가치를 증명합니다. CSV를 첫 어댑터로 사용하고, SAP·Oracle 연동
-                자리는 다음 단계까지 열어둡니다.
+                자리는 다음 단계까지 열어두어 파일럿 이후의 확장성을 함께 봅니다.
               </p>
             </div>
             <div className="sales-ref-steps">
@@ -213,7 +213,7 @@ export function SalesLandingPage() {
           <div className="sales-ref-inner sales-ref-code-layout">
             <div className="sales-ref-code-copy">
               <p className="sales-ref-section-kicker">자연어 질의</p>
-              <h2>플래너가 묻는 말 그대로, 실행 가능한 답을 돌려줍니다.</h2>
+              <h2>운영팀이 묻는 말 그대로, 실행 가능한 답을 돌려줍니다.</h2>
               <p>
                 “30일 안에 품절될 SKU는?”, “이번 주 무엇을 발주해야 하나?”, “곧 만료되는 로트는?” 같은 질문에
                 요약 답변과 표를 함께 제공합니다.
@@ -261,7 +261,7 @@ export function SalesLandingPage() {
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
               <p className="sales-ref-section-kicker">제안 구성</p>
-              <h2>첫 오뚜기 미팅에서 바로 보여줄 수 있는 파일럿 패키지.</h2>
+              <h2>글로벌 식품 기업의 운영팀이 바로 평가할 수 있는 파일럿.</h2>
               <p>
                 핵심은 단순합니다. 폐기 가능 금액, 결품 노출, 플래너 시간 절감이 실제 품목군에서 보이는지
                 확인합니다. 그 다음 같은 흐름을 반복 호스팅 또는 프라이빗 AWS 배포로 확장합니다.
@@ -286,7 +286,7 @@ export function SalesLandingPage() {
         <section className="sales-ref-cta-band">
           <div className="sales-ref-inner sales-ref-cta-content">
             <div>
-              <h2>오뚜기에 보여줄 것은 또 하나의 스프레드시트가 아니라, 오늘의 결론입니다.</h2>
+              <h2>보여줄 것은 또 하나의 스프레드시트가 아니라, 오늘 지켜야 할 품질과 매출입니다.</h2>
               <p>
                 파일럿의 목표는 명확합니다. 보호 가능한 폐기 금액, 리드타임 전에 보이는 결품 리스크, 그리고
                 지금 먼저 배정해야 할 라면·밥·소스·유지류·냉동·HMR 로트를 보여주는 것입니다.

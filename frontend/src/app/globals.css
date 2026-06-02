@@ -1529,26 +1529,26 @@ select {
 }
 
 .sales-reference {
-  --ref-ink: #f0ede8;
-  --ref-muted: #a6a09a;
-  --ref-soft-muted: #7d7770;
-  --ref-paper: #0a0a0f;
-  --ref-surface: rgba(19, 19, 26, 0.94);
-  --ref-surface-2: rgba(28, 28, 38, 0.92);
-  --ref-line: rgba(255, 255, 255, 0.1);
-  --ref-line-strong: rgba(255, 207, 76, 0.36);
-  --ref-gold: #ffcf4c;
-  --ref-gold-strong: #f0b924;
-  --ref-red: #e7352f;
-  --ref-green: #3ecf8e;
-  --ref-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  --ref-ink: #000;
+  --ref-muted: #555;
+  --ref-soft-muted: #777;
+  --ref-paper: #fff;
+  --ref-surface: #fff;
+  --ref-surface-2: #fffdeb;
+  --ref-line: #e6e6e6;
+  --ref-line-strong: #000;
+  --ref-gold: #ffed00;
+  --ref-gold-strong: #fff300;
+  --ref-red: #dc2f34;
+  --ref-green: #123e8c;
+  --ref-shadow: 0 24px 70px rgba(0, 0, 0, 0.12);
   min-height: 100vh;
   color: var(--ref-ink);
   background:
-    radial-gradient(circle at 50% -12%, rgba(255, 207, 76, 0.14), transparent 34%),
-    radial-gradient(circle at 100% 100%, rgba(231, 53, 47, 0.08), transparent 28%),
-    linear-gradient(180deg, #0a0a0f 0%, #16110b 58%, #0a0a0f 100%);
-  color-scheme: dark;
+    radial-gradient(circle at 12% 6%, rgba(255, 237, 0, 0.38), transparent 28%),
+    radial-gradient(circle at 96% 18%, rgba(220, 47, 52, 0.11), transparent 30%),
+    linear-gradient(180deg, #fff 0%, #fffdf4 46%, #fff 100%);
+  color-scheme: light;
   font-family: Geist, Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -1564,14 +1564,15 @@ select {
 }
 
 .sales-reference::before {
-  opacity: 0.44;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E");
+  opacity: 0.34;
+  background-image: radial-gradient(circle, rgba(220, 47, 52, 0.12) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 .sales-reference::after {
   background:
-    radial-gradient(circle at top center, rgba(255, 207, 76, 0.08), transparent 36%),
-    radial-gradient(circle at right bottom, rgba(231, 53, 47, 0.06), transparent 26%);
+    radial-gradient(circle at top center, rgba(255, 237, 0, 0.22), transparent 34%),
+    radial-gradient(circle at right bottom, rgba(220, 47, 52, 0.08), transparent 28%);
 }
 
 .sales-reference main,
@@ -1592,8 +1593,8 @@ select {
   min-height: 66px;
   padding: 12px max(24px, calc((100vw - 1180px) / 2));
   border-bottom: 1px solid var(--ref-line);
-  background: rgba(10, 10, 15, 0.76);
-  backdrop-filter: blur(22px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
 }
 
 .sales-ref-brand {
@@ -1612,10 +1613,11 @@ select {
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
-  color: #0a0a0f;
-  background: linear-gradient(135deg, #ffdf67, #d4a843);
-  box-shadow: 0 0 24px rgba(255, 207, 76, 0.24);
+  border: 2px solid #000;
+  border-radius: 50%;
+  color: var(--ref-red);
+  background: var(--ref-gold);
+  box-shadow: 0 8px 20px rgba(220, 47, 52, 0.12);
   font-family: "Geist Mono", Consolas, monospace;
   font-size: 12px;
   font-weight: 800;
@@ -1626,7 +1628,7 @@ select {
   align-items: center;
   justify-content: center;
   gap: 30px;
-  color: rgba(240, 237, 232, 0.72);
+  color: #000;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1634,7 +1636,7 @@ select {
 
 .sales-ref-nav a:hover,
 .sales-ref-nav a:focus-visible {
-  color: var(--ref-ink);
+  color: var(--ref-red);
 }
 
 .sales-ref-cta,
@@ -1645,8 +1647,8 @@ select {
   gap: 8px;
   min-height: 48px;
   padding: 0 22px;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  border: 2px solid transparent;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.1;
@@ -1656,15 +1658,15 @@ select {
 
 .sales-ref-cta,
 .sales-ref-button.primary {
-  color: #0a0a0f;
-  background: linear-gradient(135deg, #ffdf67, #ffcf4c);
-  box-shadow: 0 0 30px rgba(255, 207, 76, 0.2);
+  color: #fff;
+  background: var(--ref-red);
+  box-shadow: 0 16px 32px rgba(220, 47, 52, 0.2);
 }
 
 .sales-ref-button.secondary {
   color: var(--ref-ink);
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: #000;
+  background: #fff;
 }
 
 .sales-ref-button:hover,
@@ -1672,14 +1674,15 @@ select {
 .sales-ref-cta:hover,
 .sales-ref-cta:focus-visible {
   transform: translateY(-1px);
-  border-color: var(--ref-line-strong);
+  border-color: #000;
+  box-shadow: 0 0 0 4px var(--ref-gold);
 }
 
 .sales-ref-hero {
   position: relative;
   min-height: 615px;
   overflow: hidden;
-  border-bottom: 1px solid var(--ref-line);
+  border-bottom: 2px solid #000;
 }
 
 .sales-ref-hero::before {
@@ -1689,25 +1692,26 @@ select {
   pointer-events: none;
   content: "";
   background:
-    radial-gradient(circle at 10% 12%, rgba(255, 207, 76, 0.13), transparent 34%),
-    linear-gradient(90deg, rgba(10, 10, 15, 0.98) 0%, rgba(19, 15, 11, 0.9) 44%, rgba(10, 10, 15, 0.35) 100%);
+    radial-gradient(circle at 12% 18%, rgba(255, 237, 0, 0.44), transparent 28%),
+    radial-gradient(circle at 91% 44%, rgba(220, 47, 52, 0.1), transparent 31%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 253, 235, 0.96) 50%, rgba(255, 255, 255, 0.66) 100%);
 }
 
 .sales-ref-hero-visual {
   position: absolute;
-  top: 72px;
+  top: 108px;
   right: max(20px, calc((100vw - 1180px) / 2));
-  width: min(56vw, 650px);
-  max-width: 650px;
+  width: min(48vw, 580px);
+  max-width: 580px;
   opacity: 0.96;
-  filter: drop-shadow(0 30px 45px rgba(0, 0, 0, 0.38));
+  filter: drop-shadow(0 28px 38px rgba(0, 0, 0, 0.14));
 }
 
 .sales-ref-hero-overlay {
   position: absolute;
   inset: auto 0 0;
   height: 150px;
-  background: linear-gradient(0deg, rgba(10, 10, 15, 0.92), transparent);
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.76), transparent);
 }
 
 .sales-ref-hero-content {
@@ -1730,10 +1734,10 @@ select {
   width: fit-content;
   margin: 0 0 18px;
   padding: 7px 14px;
-  border: 1px solid rgba(255, 207, 76, 0.26);
+  border: 2px solid #000;
   border-radius: 999px;
-  color: var(--ref-gold);
-  background: rgba(255, 207, 76, 0.1);
+  color: #000;
+  background: var(--ref-gold);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1744,8 +1748,7 @@ select {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ref-gold);
-  box-shadow: 0 0 14px rgba(255, 207, 76, 0.55);
+  background: var(--ref-red);
   content: "";
 }
 
@@ -1770,7 +1773,7 @@ select {
   margin: 28px 0 0;
   color: var(--ref-muted);
   font-size: 19px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.55;
 }
 
@@ -1786,7 +1789,7 @@ select {
   flex-wrap: wrap;
   max-width: 570px;
   margin: 28px 0 0;
-  color: rgba(240, 237, 232, 0.68);
+  color: var(--ref-muted);
 }
 
 .sales-ref-stats div {
@@ -1794,7 +1797,7 @@ select {
   align-items: baseline;
   gap: 8px;
   padding: 0 18px;
-  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  border-right: 1px solid #d9d9d9;
 }
 
 .sales-ref-stats div:first-child {
@@ -1807,14 +1810,14 @@ select {
 
 .sales-ref-stats dt {
   margin: 0;
-  color: var(--ref-gold);
+  color: var(--ref-red);
   font-size: 15px;
   font-weight: 700;
 }
 
 .sales-ref-stats dd {
   margin: 0;
-  color: rgba(240, 237, 232, 0.62);
+  color: #666;
   font-size: 14px;
 }
 
@@ -1844,7 +1847,7 @@ select {
   margin: 0;
   color: var(--ref-muted);
   font-size: 18px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.65;
 }
 
@@ -1856,8 +1859,8 @@ select {
 .sales-ref-muted-band {
   border-block: 1px solid var(--ref-line);
   background:
-    radial-gradient(circle at top left, rgba(255, 207, 76, 0.08), transparent 42%),
-    rgba(19, 19, 26, 0.44);
+    radial-gradient(circle at top left, rgba(255, 237, 0, 0.26), transparent 36%),
+    #f8f8f8;
 }
 
 .sales-ref-section-heading {
@@ -1898,16 +1901,16 @@ select {
 .sales-ref-faq div {
   min-width: 0;
   border: 1px solid var(--ref-line);
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--ref-surface);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.06);
 }
 
 .sales-ref-step,
 .sales-ref-platform-item,
 .sales-ref-plan,
 .sales-ref-faq div {
-  background-image: radial-gradient(circle at top left, rgba(255, 207, 76, 0.08), transparent 55%);
+  background-image: radial-gradient(circle at top left, rgba(255, 237, 0, 0.24), transparent 50%);
 }
 
 .sales-ref-step {
@@ -1918,7 +1921,7 @@ select {
 }
 
 .sales-ref-step-number {
-  color: var(--ref-gold);
+  color: var(--ref-red);
   font-family: "Geist Mono", Consolas, monospace;
   font-size: 13px;
   font-weight: 600;
@@ -1943,7 +1946,7 @@ select {
 .sales-ref-faq p {
   color: var(--ref-muted);
   font-size: 15px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.6;
 }
 
@@ -1955,7 +1958,7 @@ select {
   display: block;
   margin-top: auto;
   overflow-wrap: anywhere;
-  color: var(--ref-gold);
+  color: var(--ref-red);
   font-family: "Geist Mono", Consolas, monospace;
   font-size: 13px;
   font-weight: 600;
@@ -1985,7 +1988,7 @@ select {
 .sales-ref-plan li::before {
   position: absolute;
   border-radius: 50%;
-  background: var(--ref-gold);
+  background: var(--ref-red);
   content: "";
 }
 
@@ -1994,12 +1997,13 @@ select {
   left: 0;
   width: 12px;
   height: 12px;
-  box-shadow: 0 0 18px rgba(255, 207, 76, 0.22);
+  box-shadow: 0 0 0 4px rgba(255, 237, 0, 0.8);
 }
 
 .sales-ref-code-panel {
   overflow: hidden;
-  background: rgba(10, 10, 15, 0.9);
+  border-color: #000;
+  background: #0b1530;
   box-shadow: var(--ref-shadow);
 }
 
@@ -2007,8 +2011,8 @@ select {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid var(--ref-line);
-  background: rgba(28, 28, 38, 0.78);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: #fff;
 }
 
 .sales-ref-tabs span {
@@ -2017,15 +2021,15 @@ select {
   min-height: 36px;
   padding: 0 14px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  color: rgba(240, 237, 232, 0.68);
+  border-radius: 999px;
+  color: #666;
   font-size: 13px;
   font-weight: 700;
 }
 
 .sales-ref-tabs span[aria-selected="true"] {
-  color: #0a0a0f;
-  border-color: rgba(255, 207, 76, 0.35);
+  color: #000;
+  border-color: #000;
   background: var(--ref-gold);
 }
 
@@ -2034,7 +2038,7 @@ select {
   margin: 0;
   overflow-x: auto;
   padding: 26px;
-  color: var(--ref-ink);
+  color: #fff;
   font-family: "Geist Mono", Consolas, monospace;
   font-size: 14px;
   line-height: 1.7;
@@ -2054,7 +2058,7 @@ select {
 
 .sales-ref-platform-item > span,
 .sales-ref-faq svg {
-  color: var(--ref-gold);
+  color: var(--ref-red);
 }
 
 .sales-ref-platform-item h3 {
@@ -2070,8 +2074,9 @@ select {
 }
 
 .sales-ref-plan.featured {
-  border-color: var(--ref-line-strong);
-  box-shadow: 0 0 36px rgba(255, 207, 76, 0.16);
+  border-color: #000;
+  background: #fffdeb;
+  box-shadow: 0 0 0 6px var(--ref-gold), 0 18px 46px rgba(0, 0, 0, 0.08);
 }
 
 .sales-ref-plan h3 {
@@ -2105,11 +2110,11 @@ select {
 
 .sales-ref-cta-band {
   padding: 70px 0;
-  border-block: 1px solid var(--ref-line);
-  color: var(--ref-ink);
+  border-block: 2px solid #000;
+  color: #fff;
   background:
-    radial-gradient(circle at top left, rgba(255, 207, 76, 0.12), transparent 38%),
-    rgba(10, 10, 15, 0.72);
+    radial-gradient(circle at top left, rgba(255, 237, 0, 0.28), transparent 30%),
+    var(--ref-red);
 }
 
 .sales-ref-cta-content {
@@ -2122,10 +2127,26 @@ select {
 .sales-ref-cta-content p {
   max-width: 760px;
   margin: 22px 0 0;
-  color: var(--ref-muted);
+  color: rgba(255, 255, 255, 0.88);
   font-size: 18px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.6;
+}
+
+.sales-ref-cta-band .sales-ref-cta-content h2 {
+  color: #fff;
+}
+
+.sales-ref-cta-band .sales-ref-button.primary {
+  color: #000;
+  background: var(--ref-gold);
+  box-shadow: none;
+}
+
+.sales-ref-cta-band .sales-ref-button.secondary {
+  color: #fff;
+  border-color: #fff;
+  background: transparent;
 }
 
 .sales-ref-cta-actions {
@@ -2154,8 +2175,8 @@ select {
   gap: 24px;
   padding: 28px max(20px, calc((100vw - 1180px) / 2));
   border-top: 1px solid var(--ref-line);
-  color: rgba(240, 237, 232, 0.56);
-  background: rgba(10, 10, 15, 0.66);
+  color: #666;
+  background: #fff;
   font-size: 14px;
   font-weight: 500;
 }
@@ -2179,8 +2200,8 @@ select {
 
   .sales-ref-hero::before {
     background:
-      radial-gradient(circle at 10% 12%, rgba(255, 207, 76, 0.12), transparent 34%),
-      linear-gradient(90deg, rgba(10, 10, 15, 0.98) 0%, rgba(19, 15, 11, 0.92) 64%, rgba(10, 10, 15, 0.78) 100%);
+      radial-gradient(circle at 10% 12%, rgba(255, 237, 0, 0.34), transparent 34%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 253, 235, 0.96) 64%, rgba(255, 255, 255, 0.82) 100%);
   }
 
   .sales-ref-two-column,
@@ -2343,8 +2364,8 @@ select {
 }
 
 .sales-reference[lang="ko"] .sales-ref-hero h1 {
-  max-width: 650px;
-  font-size: 64px;
+  max-width: 560px;
+  font-size: 60px;
 }
 
 .sales-reference[lang="ko"] .sales-ref-section-heading h2,
