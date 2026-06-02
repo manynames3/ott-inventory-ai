@@ -467,9 +467,11 @@ select {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: break-word;
   text-align: left;
   text-transform: capitalize;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .data-table th,
@@ -498,6 +500,10 @@ select {
 .reorder-decisions-table th,
 .reorder-decisions-table td {
   padding: 8px 9px;
+}
+
+.reorder-decisions-table th {
+  line-height: 1.2;
 }
 
 .reorder-decisions-table td {
