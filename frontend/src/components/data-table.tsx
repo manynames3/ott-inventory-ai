@@ -6,6 +6,7 @@ type DataTableProps = {
   columns: string[];
   rows: Record<string, unknown>[];
   emptyLabel?: string;
+  tableClassName?: string;
 };
 
 function formatHeader(column: string) {
@@ -32,18 +33,20 @@ function formatCell(column: string, value: unknown) {
   return String(value);
 }
 
-export function DataTable({ columns, rows, emptyLabel = "No rows" }: DataTableProps) {
+export function DataTable({ columns, rows, emptyLabel = "No rows", tableClassName = "" }: DataTableProps) {
   if (!rows.length) {
     return <div className="empty-state">{emptyLabel}</div>;
   }
 
   return (
     <div className="table-scroll">
-      <table className="data-table">
+      <table className={`data-table${tableClassName ? ` ${tableClassName}` : ""}`}>
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column}>{formatHeader(column)}</th>
+              <th key={column} data-column={column}>
+                {formatHeader(column)}
+              </th>
             ))}
           </tr>
         </thead>
@@ -54,7 +57,7 @@ export function DataTable({ columns, rows, emptyLabel = "No rows" }: DataTablePr
                 const value = row[column];
                 if (column === "sku" && value) {
                   return (
-                    <td key={column}>
+                    <td key={column} data-column={column}>
                       <Link href={`/sku?sku=${encodeURIComponent(String(value))}`} className="table-link">
                         {String(value)}
                       </Link>
@@ -63,7 +66,7 @@ export function DataTable({ columns, rows, emptyLabel = "No rows" }: DataTablePr
                 }
                 if (column === "customer_id" && value) {
                   return (
-                    <td key={column}>
+                    <td key={column} data-column={column}>
                       <Link href={`/customers?customerId=${encodeURIComponent(String(value))}`} className="table-link">
                         {String(value)}
                       </Link>
@@ -72,12 +75,16 @@ export function DataTable({ columns, rows, emptyLabel = "No rows" }: DataTablePr
                 }
                 if (column === "status" || column === "risk_level" || column === "risk_bucket") {
                   return (
-                    <td key={column}>
+                    <td key={column} data-column={column}>
                       <StatusPill value={value} />
                     </td>
                   );
                 }
-                return <td key={column}>{formatCell(column, value)}</td>;
+                return (
+                  <td key={column} data-column={column}>
+                    {formatCell(column, value)}
+                  </td>
+                );
               })}
             </tr>
           ))}

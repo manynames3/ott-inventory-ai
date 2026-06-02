@@ -424,36 +424,36 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid-2">
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Reorder Decisions</h2>
-          </div>
-          <DataTable
-            columns={[
-              "sku",
-              "product_name",
-              "category",
-              "warehouse",
-              "status",
-              "recommended_order_qty",
-              "estimated_order_value",
-              "reorder_by_date",
-              "action",
-              "confidence",
-              "confidence_reason",
-              "reason"
-            ]}
-            rows={dashboard.recommendations}
-          />
+      <section className="panel reorder-decisions-panel">
+        <div className="panel-header">
+          <h2>Reorder Decisions</h2>
         </div>
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Reorder Urgency</h2>
-          </div>
-          <BarChart data={dashboard.charts.reorder_urgency} labelKey="status" valueKey="count" />
-          {dashboard.roi_explanation ? <p>{dashboard.roi_explanation}</p> : null}
+        <DataTable
+          tableClassName="reorder-decisions-table"
+          columns={[
+            "sku",
+            "product_name",
+            "category",
+            "warehouse",
+            "status",
+            "recommended_order_qty",
+            "estimated_order_value",
+            "reorder_by_date",
+            "action",
+            "confidence",
+            "confidence_reason",
+            "reason"
+          ]}
+          rows={dashboard.recommendations}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <h2>Reorder Urgency</h2>
         </div>
+        <BarChart data={dashboard.charts.reorder_urgency} labelKey="status" valueKey="count" />
+        {dashboard.roi_explanation ? <p>{dashboard.roi_explanation}</p> : null}
       </section>
 
       <section className="grid-2">

@@ -481,8 +481,82 @@ select {
 
 .data-table td {
   max-width: 360px;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   line-height: 1.45;
+}
+
+.reorder-decisions-panel .table-scroll {
+  padding-bottom: 4px;
+}
+
+.reorder-decisions-table {
+  min-width: 1680px;
+  table-layout: fixed;
+}
+
+.reorder-decisions-table th,
+.reorder-decisions-table td {
+  padding: 8px 9px;
+}
+
+.reorder-decisions-table td {
+  max-width: none;
+  line-height: 1.34;
+}
+
+.reorder-decisions-table th[data-column="sku"],
+.reorder-decisions-table td[data-column="sku"] {
+  width: 98px;
+}
+
+.reorder-decisions-table th[data-column="product_name"],
+.reorder-decisions-table td[data-column="product_name"] {
+  width: 180px;
+}
+
+.reorder-decisions-table th[data-column="category"],
+.reorder-decisions-table td[data-column="category"],
+.reorder-decisions-table th[data-column="warehouse"],
+.reorder-decisions-table td[data-column="warehouse"] {
+  width: 112px;
+}
+
+.reorder-decisions-table th[data-column="status"],
+.reorder-decisions-table td[data-column="status"],
+.reorder-decisions-table th[data-column="reorder_by_date"],
+.reorder-decisions-table td[data-column="reorder_by_date"] {
+  width: 126px;
+}
+
+.reorder-decisions-table th[data-column="recommended_order_qty"],
+.reorder-decisions-table td[data-column="recommended_order_qty"] {
+  width: 136px;
+}
+
+.reorder-decisions-table th[data-column="estimated_order_value"],
+.reorder-decisions-table td[data-column="estimated_order_value"] {
+  width: 142px;
+}
+
+.reorder-decisions-table th[data-column="confidence"],
+.reorder-decisions-table td[data-column="confidence"] {
+  width: 88px;
+}
+
+.reorder-decisions-table th[data-column="action"],
+.reorder-decisions-table td[data-column="action"] {
+  width: 260px;
+}
+
+.reorder-decisions-table th[data-column="confidence_reason"],
+.reorder-decisions-table td[data-column="confidence_reason"] {
+  width: 270px;
+}
+
+.reorder-decisions-table th[data-column="reason"],
+.reorder-decisions-table td[data-column="reason"] {
+  width: 350px;
 }
 
 .table-link {
