@@ -2225,9 +2225,7 @@ select {
   }
 
   .sales-ref-cta {
-    min-height: 38px;
-    padding: 0 12px;
-    font-size: 12px;
+    display: none;
   }
 
   .sales-ref-hero,
@@ -2236,10 +2234,7 @@ select {
   }
 
   .sales-ref-hero-visual {
-    top: 220px;
-    right: -280px;
-    width: 720px;
-    opacity: 0.08;
+    display: none;
   }
 
   .sales-ref-hero-content,
@@ -2330,5 +2325,62 @@ select {
   .sales-ref-footer {
     flex-direction: column;
     padding: 24px 16px;
+  }
+}
+
+.sales-reference[lang="ko"] {
+  font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", Geist, Arial, sans-serif;
+  letter-spacing: 0;
+  word-break: keep-all;
+}
+
+.sales-reference[lang="ko"] .sales-ref-hero h1,
+.sales-reference[lang="ko"] .sales-ref-lineage h2,
+.sales-reference[lang="ko"] .sales-ref-cta-content h2 {
+  font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", Geist, Arial, sans-serif;
+  font-weight: 850;
+  line-height: 1.08;
+}
+
+.sales-reference[lang="ko"] .sales-ref-hero h1 {
+  max-width: 650px;
+  font-size: 64px;
+}
+
+.sales-reference[lang="ko"] .sales-ref-section-heading h2,
+.sales-reference[lang="ko"] .sales-ref-code-copy h2 {
+  font-weight: 850;
+  line-height: 1.18;
+}
+
+.sales-reference[lang="ko"] .sales-ref-hero-copy,
+.sales-reference[lang="ko"] .sales-ref-lineage p:last-child,
+.sales-reference[lang="ko"] .sales-ref-section-heading > p:not(.sales-ref-section-kicker),
+.sales-reference[lang="ko"] .sales-ref-code-copy > p:not(.sales-ref-section-kicker),
+.sales-reference[lang="ko"] .sales-ref-cta-content p {
+  line-height: 1.72;
+}
+
+.sales-reference[lang="ko"] .sales-ref-step p,
+.sales-reference[lang="ko"] .sales-ref-platform-item p,
+.sales-reference[lang="ko"] .sales-ref-plan p,
+.sales-reference[lang="ko"] .sales-ref-plan li,
+.sales-reference[lang="ko"] .sales-ref-feature-list li,
+.sales-reference[lang="ko"] .sales-ref-faq p {
+  line-height: 1.68;
+}
+
+@media (max-width: 680px) {
+  .sales-reference[lang="ko"] .sales-ref-hero h1 {
+    max-width: 342px;
+    font-size: 36px;
+    line-height: 1.14;
+  }
+
+  .sales-reference[lang="ko"] .sales-ref-lineage h2,
+  .sales-reference[lang="ko"] .sales-ref-cta-content h2,
+  .sales-reference[lang="ko"] .sales-ref-section-heading h2,
+  .sales-reference[lang="ko"] .sales-ref-code-copy h2 {
+    line-height: 1.18;
   }
 }

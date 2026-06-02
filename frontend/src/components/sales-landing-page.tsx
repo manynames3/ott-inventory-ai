@@ -16,79 +16,79 @@ import {
 const workflowSteps = [
   {
     code: "products.csv + lots.csv",
-    copy: "Load OTOKI-style SKUs across ramen, cooked rice, frozen mandu, sauces, sesame oil, curry, and ready meals.",
+    copy: "라면, 즉석밥, 소스, 유지류, 냉동만두, 카레, HMR까지 SKU·유통기한·로트·창고·원가 정보를 한 번에 불러옵니다.",
     number: "01",
-    title: "Import product and lot data"
+    title: "제품과 로트 데이터를 올립니다"
   },
   {
     code: "orders.csv + inbound.csv",
-    copy: "Blend two years of customer demand with open inbound shipments, lead time, and US warehouse inventory.",
+    copy: "2년치 주문 흐름, 입고 예정 물량, 해상 운송 리드타임, 미국 내 창고 재고를 함께 계산합니다.",
     number: "02",
-    title: "Refresh demand and supply risk"
+    title: "수요와 공급 리스크를 갱신합니다"
   },
   {
     code: "POST /api/query",
-    copy: "Ask natural questions about stockouts, expiring lots, reorder timing, FEFO picks, and customer cadence.",
+    copy: "품절 위험, 임박 유통기한, FEFO 출고 우선순위, 이번 주 발주 품목을 자연어로 바로 묻습니다.",
     number: "03",
-    title: "Ask Inventory AI"
+    title: "Inventory AI에 질문합니다"
   },
   {
     code: "roi-report.html",
-    copy: "Export a leadership-ready readout with waste dollars, fill-rate exposure, recommended buys, and confidence notes.",
+    copy: "폐기 절감 기회, 결품 노출, 권장 발주, 판단 신뢰도를 리더십 보고서 형태로 내보냅니다.",
     number: "04",
-    title: "Defend the action"
+    title: "실행 근거를 남깁니다"
   }
 ];
 
 const platformItems = [
   {
-    copy: "Cloudflare Pages serves the product UI with no always-on frontend host for a low-friction evaluation.",
+    copy: "Cloudflare Pages로 UI를 제공해, 파일럿 단계에서 상시 프론트엔드 서버 비용을 만들지 않습니다.",
     icon: <Cloud size={18} />,
-    title: "Static frontend"
+    title: "정적 프론트엔드"
   },
   {
-    copy: "AWS Lambda runs the API, import worker, and refresh jobs only when planners upload or query data.",
+    copy: "AWS Lambda가 API, 파일 가져오기, 추천 갱신 작업을 필요할 때만 실행합니다.",
     icon: <Server size={18} />,
-    title: "Serverless backend"
+    title: "서버리스 백엔드"
   },
   {
-    copy: "S3 stores raw imports, while DynamoDB stores fast materialized dashboard and query views.",
+    copy: "S3는 원본 업로드를 보관하고, DynamoDB는 빠른 대시보드와 질의 결과 뷰를 제공합니다.",
     icon: <Database size={18} />,
-    title: "Low-idle storage"
+    title: "저비용 저장 구조"
   },
   {
-    copy: "The pilot avoids ECS Fargate, NAT Gateway, RDS, OpenSearch, and fixed compute minimums.",
+    copy: "ECS Fargate, NAT Gateway, RDS, OpenSearch처럼 고정비가 큰 구성을 파일럿 단계에서 피합니다.",
     icon: <BadgeDollarSign size={18} />,
-    title: "Cost-first shape"
+    title: "비용 우선 설계"
   },
   {
-    copy: "Terraform manages AWS resources, permissions, CORS, import buckets, Lambda URLs, and refresh workers.",
+    copy: "Terraform으로 권한, CORS, 업로드 버킷, Lambda URL, 갱신 워커를 반복 가능하게 관리합니다.",
     icon: <Boxes size={18} />,
-    title: "Terraform managed"
+    title: "Terraform 기반"
   },
   {
-    copy: "Login, private uploads, import audit history, and no hardcoded credentials keep the demo credible for buyer review.",
+    copy: "로그인, 비공개 업로드, 가져오기 이력, 하드코딩 없는 비밀값 관리로 구매자 검토에 필요한 기본 신뢰를 갖춥니다.",
     icon: <LockKeyhole size={18} />,
-    title: "Pilot security story"
+    title: "파일럿 보안 스토리"
   }
 ];
 
 const plans = [
   {
-    copy: "For a first OTOKI America walkthrough using the demo set and one customer-provided export.",
-    features: ["Hosted pilot app", "CSV templates", "Executive ROI report", "Import validation history"],
-    name: "Evaluation Pilot"
+    copy: "오뚜기 아메리카 첫 미팅용. 데모 데이터와 고객 제공 파일 1세트로 가치를 빠르게 확인합니다.",
+    features: ["호스팅된 파일럿 앱", "CSV 템플릿", "임원용 ROI 리포트", "가져오기 검증 이력"],
+    name: "검증 파일럿"
   },
   {
-    copy: "For a supply chain team that wants recurring refreshes, planner review, and sales follow-up queues.",
+    copy: "공급망 팀이 반복 갱신, 플래너 검토, 영업 후속 조치 큐까지 확인하는 운영 파일럿입니다.",
     featured: true,
-    features: ["Daily refresh worker", "Priority action queue", "Natural-language query views", "Buyer-specific dashboard copy"],
-    name: "Ops Pilot"
+    features: ["일일 갱신 워커", "우선 실행 큐", "자연어 질의 뷰", "구매자 맞춤 대시보드 문구"],
+    name: "운영 파일럿"
   },
   {
-    copy: "For teams that need customer-owned infrastructure, procurement review, or private AWS deployment.",
-    features: ["Terraform package", "Customer AWS account path", "ERP adapter placeholders", "Security review support"],
-    name: "Private AWS"
+    copy: "고객 소유 AWS 계정, 조달 검토, 또는 프라이빗 배포가 필요한 단계의 패키지입니다.",
+    features: ["Terraform 패키지", "고객 AWS 계정 배포 경로", "ERP 어댑터 자리", "보안 검토 지원"],
+    name: "프라이빗 AWS"
   }
 ];
 
@@ -97,33 +97,33 @@ const queryRows = [
   '  -H "authorization: Bearer $TOKEN" \\',
   '  -H "content-type: application/json" \\',
   "  -d '{",
-  '    "question": "Which SKUs will stock out in the next 30 days?"',
+  '    "question": "향후 30일 안에 품절 위험이 있는 SKU는?"',
   "  }'",
   "",
   "{",
   '  "action_summary": [',
-  '    "25 SKU/warehouse combinations need action now.",',
-  '    "Highest priority: OTG-CUR-001 in LA DC with 13.5 days of supply."',
+  '    "지금 조치가 필요한 SKU/창고 조합이 25개입니다.",',
+  '    "최우선: LA DC의 OTG-CUR-001, 가용 재고 13.5일."',
   "  ]",
   "}"
 ];
 
 export function SalesLandingPage() {
   return (
-    <div className="sales-page sales-reference">
+    <div className="sales-page sales-reference" lang="ko">
       <header className="sales-ref-header">
         <Link href="/sales" className="sales-ref-brand" aria-label="Inventory AI sales page">
           <span aria-hidden="true">IA</span>
           <strong>Inventory AI</strong>
         </Link>
-        <nav className="sales-ref-nav" aria-label="Sales page navigation">
-          <a href="#workflow">Workflow</a>
-          <a href="#platform">Platform</a>
-          <a href="#plans">Plans</a>
-          <Link href="/imports">App</Link>
+        <nav className="sales-ref-nav" aria-label="세일즈 페이지 내비게이션">
+          <a href="#workflow">진행 방식</a>
+          <a href="#platform">플랫폼</a>
+          <a href="#plans">파일럿 구성</a>
+          <Link href="/imports">앱 보기</Link>
         </nav>
         <Link href="/login" className="sales-ref-cta">
-          Open pilot
+          파일럿 열기
         </Link>
       </header>
 
@@ -132,40 +132,40 @@ export function SalesLandingPage() {
           <img
             className="sales-ref-hero-visual"
             src="/assets/inventory-ai-platform-preview-dark.svg"
-            alt="Inventory AI platform preview showing import validation, reorder risk, FEFO lots, and natural language query output"
+            alt="오뚜기형 가져오기 검증, 품절 위험, FEFO 로트 우선순위, 자연어 질의 결과를 보여주는 Inventory AI 플랫폼 미리보기"
           />
           <div className="sales-ref-hero-overlay" />
           <div className="sales-ref-hero-content">
-            <p className="sales-ref-eyebrow">Built for an OTOKI North America pilot</p>
+            <p className="sales-ref-eyebrow">오뚜기 북미 운영을 위한 파일럿 제안</p>
             <h1 id="sales-hero-title">
-              Protect OTOKI quality from expiry and stockout risk.
+              오뚜기의 맛과 품질, 마지막 로트까지 지키는 재고 AI.
             </h1>
             <p className="sales-ref-hero-copy">
-              A hosted decision layer for ramen, rice, sauce, oil, frozen, and ready-meal inventory that needs FEFO
-              recommendations, stockout prevention, reorder explanations, and waste-dollar visibility without waiting
-              on a full ERP project.
+              라면, 즉석밥, 소스, 유지류, 냉동, HMR처럼 유통기한과 회전율이 동시에 중요한 품목을 위해
+              FEFO 출고, 품절 위험, 발주 시점, 폐기 리스크를 한 화면에서 설명합니다. ERP 전면 통합 전에도
+              기존 파일만으로 파일럿을 시작할 수 있습니다.
             </p>
             <div className="sales-ref-actions">
               <Link href="/login" className="sales-ref-button primary">
-                Open pilot app
+                파일럿 앱 열기
                 <ArrowRight size={17} />
               </Link>
               <a href="#workflow" className="sales-ref-button secondary">
-                See workflow
+                진행 방식 보기
               </a>
             </div>
             <dl className="sales-ref-stats">
               <div>
-                <dt>Quality</dt>
-                <dd>FEFO lot discipline</dd>
+                <dt>품질</dt>
+                <dd>FEFO 로트 출고 원칙</dd>
               </div>
               <div>
                 <dt>$428K</dt>
-                <dd>demo waste opportunity</dd>
+                <dd>데모 기준 폐기 절감 기회</dd>
               </div>
               <div>
-                <dt>US pilot</dt>
-                <dd>Norwalk-style distribution flow</dd>
+                <dt>북미 파일럿</dt>
+                <dd>ERP 연동 전 가치 검증</dd>
               </div>
             </dl>
           </div>
@@ -174,14 +174,14 @@ export function SalesLandingPage() {
         <section className="sales-ref-lineage sales-ref-section-pad">
           <div className="sales-ref-inner sales-ref-two-column">
             <div>
-              <p className="sales-ref-section-kicker">From quality promise to execution layer</p>
-              <h2>When the product promise is taste and quality, expiry risk cannot stay buried.</h2>
+              <p className="sales-ref-section-kicker">품질 약속을 실행 지표로</p>
+              <h2>유통기한 리스크는 재고 문제가 아니라 브랜드 신뢰의 문제입니다.</h2>
             </div>
             <p>
-              OTOKI emphasizes superior quality, hygienic production, fresh ingredients, and global customer needs.
-              Inventory AI translates that operating standard into a daily exception layer: which lot ships first,
-              which SKU risks stockout, which inbound container changes the decision, and which aging inventory needs
-              transfer, promotion, or discount action.
+              오뚜기가 강조하는 품질, 위생적 생산, 신선한 원재료, 글로벌 고객 니즈는 물류 현장에서 끝까지
+              지켜져야 합니다. Inventory AI는 그 기준을 일일 실행 큐로 바꿉니다. 어떤 로트를 먼저 출고할지,
+              어떤 SKU가 결품 위험인지, 어떤 입고 예정 물량이 판단을 바꾸는지, 어떤 장기 체류 재고를 이전·프로모션·할인해야 하는지까지
+              바로 설명합니다.
             </p>
           </div>
         </section>
@@ -189,11 +189,11 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad sales-ref-muted-band" id="workflow">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">Pilot workflow</p>
-              <h2>Four steps from spreadsheet exports to a ranked operating decision.</h2>
+              <p className="sales-ref-section-kicker">파일럿 진행 방식</p>
+              <h2>다섯 개 파일에서 당일 실행 큐까지.</h2>
               <p>
-                The MVP is built to prove value before live ERP integration. CSV is the first adapter; SAP and Oracle
-                placeholders keep the architecture ready for the next stage when OTOKI wants live connectivity.
+                ERP 실시간 연동 전에 먼저 가치를 증명합니다. CSV를 첫 어댑터로 사용하고, SAP·Oracle 연동
+                자리는 다음 단계까지 열어둡니다.
               </p>
             </div>
             <div className="sales-ref-steps">
@@ -212,23 +212,23 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad" id="code">
           <div className="sales-ref-inner sales-ref-code-layout">
             <div className="sales-ref-code-copy">
-              <p className="sales-ref-section-kicker">Natural-language query</p>
-              <h2>A straightforward answer surface for OTOKI planners and operators.</h2>
+              <p className="sales-ref-section-kicker">자연어 질의</p>
+              <h2>플래너가 묻는 말 그대로, 실행 가능한 답을 돌려줍니다.</h2>
               <p>
-                Users can ask what will stock out, what expires soon, which customers usually buy a SKU every month,
-                and what to reorder this week. The response includes a concise action summary and a structured table.
+                “30일 안에 품절될 SKU는?”, “이번 주 무엇을 발주해야 하나?”, “곧 만료되는 로트는?” 같은 질문에
+                요약 답변과 표를 함께 제공합니다.
               </p>
               <ul className="sales-ref-feature-list">
-                <li>Rule-based query templates avoid unsafe arbitrary SQL.</li>
-                <li>Rows include SKU names, categories, values, actions, and confidence notes.</li>
-                <li>Views are materialized for fast reads after import and refresh jobs.</li>
+                <li>임의 SQL이 아닌 안전한 규칙 기반 질의 템플릿을 사용합니다.</li>
+                <li>SKU명, 카테고리, 금액, 권장 액션, 판단 신뢰도를 함께 보여줍니다.</li>
+                <li>업로드와 갱신 작업 후 빠르게 읽을 수 있도록 뷰를 미리 계산합니다.</li>
               </ul>
             </div>
             <div className="sales-ref-code-panel">
-              <div className="sales-ref-tabs" role="tablist" aria-label="Query examples">
-                <span aria-selected="true">Query</span>
-                <span>Result</span>
-                <span>Report</span>
+              <div className="sales-ref-tabs" role="tablist" aria-label="질의 예시">
+                <span aria-selected="true">질의</span>
+                <span>결과</span>
+                <span>보고서</span>
               </div>
               <pre className="sales-ref-code-block">{queryRows.join("\n")}</pre>
             </div>
@@ -238,11 +238,11 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad sales-ref-muted-band" id="platform">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">AWS-native platform</p>
-              <h2>Built for low idle cost and buyer-safe OTOKI evaluation.</h2>
+              <p className="sales-ref-section-kicker">저비용 파일럿 아키텍처</p>
+              <h2>고정비를 키우지 않고, 구매 검토에 필요한 신뢰를 먼저 만듭니다.</h2>
               <p>
-                The current architecture keeps the MVP credible for a real evaluation without forcing a high fixed
-                monthly platform bill or a long integration project before value is visible.
+                대규모 통합 프로젝트 전에 의사결정 가치를 보여주는 구조입니다. 트래픽이 낮은 파일럿 기간에도
+                높은 월 고정 인프라 비용을 만들지 않도록 설계했습니다.
               </p>
             </div>
             <div className="sales-ref-platform-grid">
@@ -260,12 +260,11 @@ export function SalesLandingPage() {
         <section className="sales-ref-section-pad" id="plans">
           <div className="sales-ref-inner">
             <div className="sales-ref-section-heading">
-              <p className="sales-ref-section-kicker">Packaging</p>
-              <h2>A concrete pilot package for the first OTOKI conversation.</h2>
+              <p className="sales-ref-section-kicker">제안 구성</p>
+              <h2>첫 오뚜기 미팅에서 바로 보여줄 수 있는 파일럿 패키지.</h2>
               <p>
-                The sales motion is simple: prove waste dollars, fill-rate exposure, and planner time saved on the
-                product families OTOKI already moves through North America. Then package the same workflow as a
-                recurring hosted or private AWS deployment.
+                핵심은 단순합니다. 폐기 가능 금액, 결품 노출, 플래너 시간 절감이 실제 품목군에서 보이는지
+                확인합니다. 그 다음 같은 흐름을 반복 호스팅 또는 프라이빗 AWS 배포로 확장합니다.
               </p>
             </div>
             <div className="sales-ref-plans">
@@ -287,19 +286,19 @@ export function SalesLandingPage() {
         <section className="sales-ref-cta-band">
           <div className="sales-ref-inner sales-ref-cta-content">
             <div>
-              <h2>Show OTOKI the answer, not another spreadsheet.</h2>
+              <h2>오뚜기에 보여줄 것은 또 하나의 스프레드시트가 아니라, 오늘의 결론입니다.</h2>
               <p>
-                Use the pilot to show recoverable waste value, stockout risk before the freight window closes, and
-                the specific ramen, rice, sauce, oil, frozen, and ready-meal lots planners should allocate first.
+                파일럿의 목표는 명확합니다. 보호 가능한 폐기 금액, 리드타임 전에 보이는 결품 리스크, 그리고
+                지금 먼저 배정해야 할 라면·밥·소스·유지류·냉동·HMR 로트를 보여주는 것입니다.
               </p>
             </div>
             <div className="sales-ref-cta-actions">
               <Link href="/login" className="sales-ref-button primary">
-                Launch pilot
+                파일럿 시작
                 <ArrowRight size={17} />
               </Link>
               <Link href="/imports" className="sales-ref-button secondary on-dark">
-                View imports
+                가져오기 화면 보기
               </Link>
             </div>
           </div>
@@ -309,23 +308,23 @@ export function SalesLandingPage() {
           <div className="sales-ref-inner sales-ref-faq">
             <div>
               <ShieldCheck size={22} />
-              <h3>Does this replace ERP?</h3>
-              <p>No. ERP remains the system of record. Inventory AI is the exception and explanation layer.</p>
+              <h3>ERP를 대체하나요?</h3>
+              <p>아닙니다. ERP는 기준 시스템으로 유지하고, Inventory AI는 예외 탐지와 판단 설명 레이어가 됩니다.</p>
             </div>
             <div>
               <FileSpreadsheet size={22} />
-              <h3>What files are needed?</h3>
-              <p>Products, inventory lots, customers, orders, and inbound shipments are enough for the MVP.</p>
+              <h3>어떤 파일이 필요하나요?</h3>
+              <p>제품, 재고 로트, 고객, 주문, 입고 예정 파일이면 MVP 검증에 충분합니다.</p>
             </div>
             <div>
               <MessageSquareText size={22} />
-              <h3>What can users ask?</h3>
-              <p>Stockout risk, expiring inventory, reorder actions, FEFO priority, and customer cadence.</p>
+              <h3>무엇을 물어볼 수 있나요?</h3>
+              <p>품절 위험, 만료 임박 재고, 발주 액션, FEFO 우선순위, 고객 구매 주기까지 물어볼 수 있습니다.</p>
             </div>
             <div>
               <PackageCheck size={22} />
-              <h3>What proves ROI?</h3>
-              <p>Waste dollars protected, fill-rate exceptions surfaced, and planner triage time reduced.</p>
+              <h3>ROI는 무엇으로 증명하나요?</h3>
+              <p>폐기 금액 보호, 결품 예외 조기 발견, 플래너 수작업 시간 감소로 증명합니다.</p>
             </div>
           </div>
         </section>
@@ -333,7 +332,7 @@ export function SalesLandingPage() {
 
       <footer className="sales-ref-footer">
         <span>©2026 SUPREME AI VENTURES LLC</span>
-        <span>Expiration-aware inventory intelligence tailored for OTOKI-style food operations.</span>
+        <span>오뚜기형 식품 운영을 위한 유통기한 인텔리전스.</span>
       </footer>
     </div>
   );
