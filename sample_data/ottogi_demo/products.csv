@@ -25,10 +25,10 @@ UPC-645175010036,Ottogi Baekse Curry Powder,Curry,12,540
 03634K,Ottogi 3-Day Aged Curry Powder,Curry,12,540
 OTK-DEMO-CUR-009,Ottogi Butter Chicken Curry Pouch,Curry,24,365
 OTK-DEMO-CUR-010,Ottogi Honey Mango Curry Pouch,Curry,24,365
-OTK-DEMO-CUR-011,Ottogi Hash Rice Sauce Pouch,Curry,24,365
+UPC-645175293309,Ottogi Hash Rice Sauce Pouch,Curry,24,365
 03636K,Ottogi Curry Powder Mild,Curry,12,540
-OTK-DEMO-RIC-001,Ottogi Cooked Rice White Bowl,Ready Rice,18,240
-OTK-DEMO-RIC-002,Ottogi Cooked Rice Brown Bowl,Ready Rice,18,240
+EAN-8801045890418,Ottogi Cooked Rice White Bowl,Ready Rice,18,240
+UPC-645175930082,Ottogi Cooked Rice Brown Bowl,Ready Rice,18,240
 OTK-DEMO-RIC-003,Ottogi Cooked Rice Kimchi Tuna Sauce,Ready Rice,12,240
 OTK-DEMO-RIC-004,Ottogi Cooked Rice Jeonju Bibimbap,Ready Rice,12,240
 OTK-DEMO-RIC-005,Ottogi Cooked Rice Teriyaki Tuna Mayo,Ready Rice,12,240
@@ -40,14 +40,14 @@ OTK-DEMO-RIC-010,Ottogi 3 Minute Hamburg Steak,Ready Meals,24,365
 OTK-DEMO-RIC-011,Ottogi 3 Minute Meatball Sweet Sour,Ready Meals,24,365
 OTK-DEMO-RIC-012,Ottogi 3 Minute Barbecue Chicken,Ready Meals,24,365
 OTK-DEMO-SAU-001,Ottogi Tomato Ketchup,Sauce,12,540
-OTK-DEMO-SAU-002,Ottogi Mayonnaise,Sauce,12,365
-OTK-DEMO-SAU-003,Ottogi Gold Mayonnaise,Sauce,12,365
-OTK-DEMO-SAU-004,Ottogi Tonkatsu Sauce,Sauce,12,540
+EAN-8801045140216,Ottogi Mayonnaise,Sauce,12,365
+EAN-8801045141213,Ottogi Gold Mayonnaise,Sauce,12,365
+EAN-8801045122137,Ottogi Tonkatsu Sauce,Sauce,12,540
 OTK-DEMO-SAU-005,Ottogi Worcestershire Sauce,Sauce,12,540
 OTK-DEMO-SAU-006,Ottogi Tartar Sauce,Sauce,12,365
 OTK-DEMO-SAU-007,Ottogi Honey Mustard,Sauce,12,365
 OTK-DEMO-SAU-008,Ottogi Sesame Dressing,Sauce,12,365
-OTK-DEMO-SAU-009,Ottogi Korean BBQ Bulgogi Sauce,Sauce,12,540
+EAN-8801045129426,Ottogi Korean BBQ Bulgogi Sauce,Sauce,12,540
 OTK-DEMO-SAU-010,Ottogi Gochujang Sauce,Sauce,12,540
 02208K,Ottogi Jjajang Sauce,Sauce,24,365
 OTK-DEMO-SAU-012,Ottogi Spaghetti Tomato Sauce,Sauce,12,540
@@ -55,31 +55,31 @@ OTK-DEMO-SAU-013,Ottogi Pizza Sauce,Sauce,12,540
 OTK-DEMO-SAU-014,Ottogi Sweet Chili Sauce,Sauce,12,540
 OTK-DEMO-SAU-015,Ottogi Black Pepper Steak Sauce,Sauce,12,540
 OTK-DEMO-SAU-016,Ottogi Pickling Sauce Base,Sauce,12,540
-OTK-DEMO-OIL-001,Ottogi Sesame Oil,Oil & Vinegar,12,540
+UPC-645175440406,Ottogi Sesame Oil,Oil & Vinegar,12,540
 OTK-DEMO-OIL-002,Ottogi Perilla Oil,Oil & Vinegar,12,365
 OTK-DEMO-OIL-003,Ottogi Roasted Sesame Oil,Oil & Vinegar,12,540
 OTK-DEMO-OIL-004,Ottogi Canola Oil,Oil & Vinegar,12,540
 OTK-DEMO-OIL-005,Ottogi Corn Oil,Oil & Vinegar,12,540
 OTK-DEMO-OIL-006,Ottogi Cooking Oil,Oil & Vinegar,12,540
 OTK-DEMO-VNG-001,Ottogi Apple Vinegar,Oil & Vinegar,12,540
-OTK-DEMO-VNG-002,Ottogi Brown Rice Vinegar,Oil & Vinegar,12,540
-OTK-DEMO-VNG-003,Ottogi Brewed Vinegar,Oil & Vinegar,12,540
+EAN-8801045203218,Ottogi Brown Rice Vinegar,Oil & Vinegar,12,540
+EAN-8801045200521,Ottogi Brewed Vinegar,Oil & Vinegar,12,540
 OTK-DEMO-VNG-004,Ottogi White Vinegar,Oil & Vinegar,12,540
 OTK-DEMO-SSN-001,Ottogi Roasted Sesame Seeds,Seasoning,24,365
 OTK-DEMO-SSN-002,Ottogi Black Sesame Seeds,Seasoning,24,365
-OTK-DEMO-MIX-001,Ottogi Frying Mix,Mix & Powder,10,365
+EAN-8801045420400,Ottogi Frying Mix,Mix & Powder,10,365
 OTK-DEMO-MIX-002,Ottogi Pancake Mix,Mix & Powder,10,365
-OTK-DEMO-MIX-003,Ottogi Tempura Mix,Mix & Powder,10,365
+EAN-8801045420509,Ottogi Tempura Mix,Mix & Powder,10,365
 OTK-DEMO-MIX-004,Ottogi Hotcake Mix,Mix & Powder,10,365
 OTK-DEMO-MIX-005,Ottogi Bread Crumbs,Mix & Powder,12,365
-OTK-DEMO-MIX-006,Ottogi Corn Soup Powder,Mix & Powder,12,365
+EAN-8801045053103,Ottogi Corn Soup Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-007,Ottogi Cream Soup Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-008,Ottogi Onion Soup Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-009,Ottogi Beef Stock Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-010,Ottogi Anchovy Stock Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-011,Ottogi Kimchi Seasoning Powder,Mix & Powder,12,365
 OTK-DEMO-MIX-012,Ottogi Curry Flake,Mix & Powder,12,365
-OTK-DEMO-SOU-001,Ottogi Seaweed Soup,Soup & HMR,12,365
+UPC-645175620105,Ottogi Seaweed Soup,Soup & HMR,12,365
 OTK-DEMO-SOU-002,Ottogi Beef Bone Soup,Soup & HMR,12,365
 OTK-DEMO-SOU-003,Ottogi Dried Pollack Soup,Soup & HMR,12,365
 OTK-DEMO-SOU-004,Ottogi Soybean Paste Stew,Soup & HMR,12,365
@@ -101,11 +101,11 @@ OTK-DEMO-SNK-001,Ottogi Ppushu Ppushu Bulgogi Snack Noodle,Snacks,12,300
 OTK-DEMO-SNK-002,Ottogi Ppushu Ppushu Tteokbokki Snack Noodle,Snacks,12,300
 OTK-DEMO-TEA-001,Ottogi Barley Tea,Beverage,20,540
 OTK-DEMO-TEA-002,Ottogi Corn Tea,Beverage,20,540
-OTK-DEMO-TEA-003,Ottogi Honey Citron Tea,Beverage,12,540
+UPC-645175200154,Ottogi Honey Citron Tea,Beverage,12,540
 OTK-DEMO-TEA-004,Ottogi Jujube Tea,Beverage,12,540
 OTK-DEMO-TEA-005,Ottogi Ginger Tea,Beverage,12,540
-OTK-DEMO-CAN-001,Ottogi Hot Pepper Tuna,Canned,24,540
+EAN-8801045643212,Ottogi Hot Pepper Tuna,Canned,24,540
 OTK-DEMO-CAN-002,Ottogi Vegetable Tuna,Canned,24,540
 OTK-DEMO-CAN-003,Ottogi Light Tuna,Canned,24,540
-OTK-DEMO-SEA-001,Ottogi Roasted Seaweed Snack,Seaweed,24,300
+EAN-8801045350288,Ottogi Roasted Seaweed Snack,Seaweed,24,300
 OTK-DEMO-SEA-002,Ottogi Seaweed Crisps,Seaweed,24,300

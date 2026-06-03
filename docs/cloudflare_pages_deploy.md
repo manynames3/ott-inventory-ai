@@ -49,8 +49,8 @@ Optional repository variables:
 
 | Variable | Default |
 | --- | --- |
-| `NEXT_PUBLIC_DEMO_MODE` | `true` |
-| `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` |
+| `NEXT_PUBLIC_DEMO_MODE` | `false` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws` |
 
 The workflow creates a Pages project named `otokistocksense` if it does not already exist, then deploys the static output to the `main` branch deployment.
 
@@ -73,19 +73,19 @@ In Cloudflare:
 
 ## Environment Variables
 
-Use demo mode before a live backend has a public URL:
+For the hosted pilot, use the live backend:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_DEMO_MODE` | `false` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws` |
+
+Use demo mode only for offline/static fallback builds:
 
 | Variable | Value |
 | --- | --- |
 | `NEXT_PUBLIC_DEMO_MODE` | `true` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` |
-
-When the backend is hosted publicly, update:
-
-| Variable | Value |
-| --- | --- |
-| `NEXT_PUBLIC_DEMO_MODE` | `false` |
-| `NEXT_PUBLIC_API_BASE_URL` | `https://<your-api-host>` |
 
 Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://otokistocksense.pages.dev`.
 

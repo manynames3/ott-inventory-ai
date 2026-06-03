@@ -150,7 +150,12 @@ def login(request: LoginRequest):
     return {
         "access_token": create_access_token(request.username, settings=settings),
         "token_type": "bearer",
-        "user": {"username": request.username, "tenant_id": settings.tenant_id, "role": role},
+        "user": {
+            "username": request.username,
+            "tenant_id": settings.tenant_id,
+            "role": role,
+            "can_approve_actions": can_approve_actions({"role": role}),
+        },
     }
 
 

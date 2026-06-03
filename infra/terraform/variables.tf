@@ -150,7 +150,7 @@ variable "auth_role" {
 variable "auth_users_json_parameter_name" {
   description = "Optional SSM SecureString parameter containing a JSON object of pilot users with password and role fields."
   type        = string
-  default     = ""
+  default     = "/inventory-ai/mvp/auth/users-json"
 }
 
 variable "openai_api_key_parameter_name" {

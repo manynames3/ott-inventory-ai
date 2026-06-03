@@ -62,4 +62,4 @@ npm install
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
-If Node/npm is not installed locally, Cloudflare Pages can build the frontend from GitHub. Set `NEXT_PUBLIC_DEMO_MODE=true` until the backend API has a public URL.
+If Node/npm is not installed locally, Cloudflare Pages can build the frontend from GitHub. For the hosted pilot, set `NEXT_PUBLIC_DEMO_MODE=false` and point `NEXT_PUBLIC_API_BASE_URL` to the live API. Use `NEXT_PUBLIC_DEMO_MODE=true` only for an offline/static fallback build.

@@ -17,7 +17,7 @@ Expected row counts:
 - Products: 110
 - Inventory lots: 555
 - Customers: 50
-- Orders: 4,907
+- Orders: 4,625
 - Inbound shipments: 25
 
 Pilot story:
@@ -26,3 +26,12 @@ Pilot story:
 - Long replenishment lead times drive reorder and stockout-risk decisions.
 - Customer buying history supports allocation and reorder-cadence queries.
 - Unit cost fields support waste-dollar and ROI calculations.
+
+Scenario coverage:
+
+- 37 product rows use public distributor item codes or UPC/EAN-backed identifiers.
+- Slow movers carry inventory but have sparse order history, creating overstock and low-confidence review cases.
+- Key accounts show higher order cadence, larger case quantities, and promotional spikes in late summer and holiday months.
+- Several inbound shipments are held or delayed beyond the normal lead-time window.
+- Four active lots are already expired so FEFO and waste-risk views show quarantine/write-off edge cases.
+- Newer/spotty SKUs create lower-confidence forecast explanations rather than false precision.

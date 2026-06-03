@@ -130,8 +130,9 @@ The frontend is configured for static export and deploys from GitHub to Cloudfla
 - Root directory: `frontend`
 - Build command: `npm run build`
 - Build output directory: `out`
-- Demo-only environment variable: `NEXT_PUBLIC_DEMO_MODE=true`
+- Hosted pilot environment variable: `NEXT_PUBLIC_DEMO_MODE=false`
 - Live API environment variable: `NEXT_PUBLIC_API_BASE_URL=https://<your-api-host>`
+- Offline/static fallback only: `NEXT_PUBLIC_DEMO_MODE=true`
 
 Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md). Custom domain and pilot security hardening steps are documented in [docs/custom_domain_and_security.md](docs/custom_domain_and_security.md).
 

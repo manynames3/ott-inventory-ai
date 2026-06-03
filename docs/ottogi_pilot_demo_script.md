@@ -26,7 +26,8 @@ Use the hosted pilot:
 - Frontend: `https://otokistocksense.pages.dev`
 - Login: use the current pilot credential stored outside the repo.
 - Demo files: `sample_data/ottogi_demo/`
-- Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories. Public distributor item codes and UPC-backed identifiers are used where verified; `OTK-DEMO-*` IDs, lots, demand, costs, and customers are demo-specific.
+- Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories. 37 public distributor or UPC/EAN-backed identifiers are used where verified; `OTK-DEMO-*` IDs, lots, demand, costs, and customers are demo-specific.
+- Edge cases: slow movers, promotional spikes, delayed inbound shipments, expired lots, and low-confidence forecasts.
 
 Load these files through the Imports page:
 

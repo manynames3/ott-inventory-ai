@@ -197,13 +197,43 @@ PUBLIC_SKU_OVERRIDES = {
     "OTG-CUR-006": "03635K",
     "OTG-CUR-007": "UPC-645175010036",
     "OTG-CUR-008": "03634K",
+    "OTG-CUR-011": "UPC-645175293309",
     "OTG-CUR-012": "03636K",
+    "OTG-RIC-001": "EAN-8801045890418",
+    "OTG-RIC-002": "UPC-645175930082",
+    "OTG-SAU-002": "EAN-8801045140216",
+    "OTG-SAU-003": "EAN-8801045141213",
+    "OTG-SAU-004": "EAN-8801045122137",
+    "OTG-SAU-009": "EAN-8801045129426",
     "OTG-SAU-011": "02208K",
+    "OTG-OIL-001": "UPC-645175440406",
+    "OTG-VNG-002": "EAN-8801045203218",
+    "OTG-VNG-003": "EAN-8801045200521",
+    "OTG-MIX-001": "EAN-8801045420400",
+    "OTG-MIX-003": "EAN-8801045420509",
+    "OTG-MIX-006": "EAN-8801045053103",
+    "OTG-SOU-001": "UPC-645175620105",
+    "OTG-TEA-003": "UPC-645175200154",
+    "OTG-CAN-001": "EAN-8801045643212",
+    "OTG-SEA-001": "EAN-8801045350288",
 }
 
 
 def public_sku(demo_sku: str) -> str:
     return PUBLIC_SKU_OVERRIDES.get(demo_sku, demo_sku.replace("OTG-", "OTK-DEMO-"))
+
+
+def _public_skus(demo_skus: list[str]) -> list[str]:
+    return [public_sku(sku) for sku in demo_skus]
+
+
+HIGH_VELOCITY_DEMO_SKUS = ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+SLOW_MOVER_DEMO_SKUS = ["OTG-RIC-011", "OTG-SAU-015", "OTG-VNG-004", "OTG-SOU-010", "OTG-FRZ-004", "OTG-TEA-004"]
+PROMO_SPIKE_DEMO_SKUS = ["OTG-RAM-014", "OTG-SAU-007", "OTG-OIL-001", "OTG-MIX-003", "OTG-SEA-001"]
+LOW_CONFIDENCE_DEMO_SKUS = ["OTG-RIC-008", "OTG-CUR-010", "OTG-FRZ-008", "OTG-SNK-002"]
+DELAYED_INBOUND_DEMO_SKUS = ["OTG-RAM-001", "OTG-RIC-001", "OTG-OIL-001", "OTG-SAU-009"]
+
+KEY_ACCOUNT_CUSTOMERS = {"CUST-HMART-WEST", "CUST-HMART-EAST", "CUST-COSTCO-WEST", "CUST-AMZ-GROCERY"}
 
 
 BASE_CUSTOMERS = [
@@ -289,10 +319,10 @@ def build_customers() -> list[Customer]:
 
 def build_orders(products: list[Product], customers: list[Customer]) -> list[CustomerOrder]:
     today = date.today()
-    high_velocity = [
-        public_sku(sku)
-        for sku in ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
-    ]
+    high_velocity = _public_skus(HIGH_VELOCITY_DEMO_SKUS)
+    slow_movers = set(_public_skus(SLOW_MOVER_DEMO_SKUS))
+    promo_spike = set(_public_skus(PROMO_SPIKE_DEMO_SKUS))
+    low_confidence = set(_public_skus(LOW_CONFIDENCE_DEMO_SKUS))
     products_by_sku = {product.sku: product for product in products}
     all_skus = [product.sku for product in products]
     category_skus: dict[str, list[str]] = {}
@@ -324,16 +354,29 @@ def build_orders(products: list[Product], customers: list[Customer]) -> list[Cus
             month_start = _month_start(today, month_back)
             profile = CHANNEL_ORDER_PROFILE[customer.channel]
             monthly_orders = random.randint(*profile["orders"])
+            if customer.customer_id in KEY_ACCOUNT_CUSTOMERS:
+                monthly_orders += random.choice([1, 1, 2])
             if customer.channel == "Distributor" and random.random() < 0.12:
                 monthly_orders += 2
             for order_index in range(monthly_orders):
                 sku = random.choice(preferred if random.random() < 0.82 else all_skus)
+                if sku in slow_movers and random.random() < 0.78:
+                    continue
+                if sku in low_confidence:
+                    if month_back > 5 or random.random() < 0.68:
+                        continue
                 product = products_by_sku[sku]
                 base_qty = random.choice(profile["qty"])
                 if sku in high_velocity:
                     base_qty *= random.choice([2, 2, 3])
                 seasonal_qty = int(round(base_qty * _category_multiplier(product.category, month_start.month)))
                 promo_lift = 1.35 if customer.channel in {"Club", "E-commerce"} and random.random() < 0.08 else 1.0
+                if sku in promo_spike and customer.customer_id in KEY_ACCOUNT_CUSTOMERS and month_start.month in {8, 9, 11, 12}:
+                    promo_lift *= random.choice([2.25, 2.75, 3.5])
+                elif sku in promo_spike and customer.channel in {"Club", "Distributor"} and month_start.month in {8, 9, 11, 12}:
+                    promo_lift *= random.choice([1.6, 1.9])
+                if sku in slow_movers:
+                    seasonal_qty = max(product.case_size, int(round(seasonal_qty * 0.35)))
                 quantity = max(product.case_size, int(round(seasonal_qty * promo_lift / product.case_size)) * product.case_size)
                 order_day = min(27, 2 + order_index * 4 + random.randint(0, 3))
                 orders.append(
@@ -343,6 +386,29 @@ def build_orders(products: list[Product], customers: list[Customer]) -> list[Cus
                         order_date=month_start + timedelta(days=order_day),
                         sku=sku,
                         quantity=quantity,
+                    )
+                )
+                counter += 1
+
+    launch_customers = ["CUST-AMZ-GROCERY", "CUST-HMART-WEST", "CUST-SEATTLE-GROC", "CUST-PACIFIC-DIST"]
+    low_confidence_skus = _public_skus(LOW_CONFIDENCE_DEMO_SKUS)
+    for month_back in range(4, 0, -1):
+        month_start = _month_start(today, month_back)
+        for sku_index, sku in enumerate(low_confidence_skus):
+            product = products_by_sku[sku]
+            for customer_id in launch_customers[: 2 + (sku_index % 2)]:
+                if random.random() < 0.28:
+                    continue
+                launch_qty = random.choice([2, 3, 4, 6]) * product.case_size
+                if month_start.month in {11, 12}:
+                    launch_qty *= 2
+                orders.append(
+                    CustomerOrder(
+                        order_id=f"OTG-ORD-{counter:06d}",
+                        customer_id=customer_id,
+                        order_date=month_start + timedelta(days=random.randint(5, 22)),
+                        sku=sku,
+                        quantity=launch_qty,
                     )
                 )
                 counter += 1
@@ -379,8 +445,39 @@ def build_inventory_lots(products: list[Product]) -> list[InventoryLot]:
         )
         counter += 1
 
+    scenario_lots = {
+        public_sku("OTG-RIC-011"): [("Dallas DC", 480, -14), ("Dallas DC", 720, 37)],
+        public_sku("OTG-SOU-010"): [("Seattle DC", 360, -6), ("Seattle DC", 720, 58)],
+        public_sku("OTG-SAU-015"): [("NJ DC", 480, -21), ("NJ DC", 960, 74)],
+        public_sku("OTG-FRZ-004"): [("LA DC", 240, -9), ("LA DC", 480, 64)],
+        public_sku("OTG-RAM-014"): [("LA DC", 1440, 31), ("Seattle DC", 960, 46)],
+        public_sku("OTG-SAU-007"): [("Dallas DC", 960, 39), ("LA DC", 720, 71)],
+        public_sku("OTG-MIX-003"): [("NJ DC", 720, 53)],
+        public_sku("OTG-SEA-001"): [("Seattle DC", 960, 29)],
+        public_sku("OTG-RIC-008"): [("LA DC", 600, 112)],
+        public_sku("OTG-CUR-010"): [("NJ DC", 720, 128)],
+        public_sku("OTG-FRZ-008"): [("Dallas DC", 480, 96)],
+        public_sku("OTG-SNK-002"): [("Seattle DC", 720, 84)],
+    }
+
     for product in products:
-        for _ in range(5):
+        planned = scenario_lots.get(product.sku, [])[:5]
+        for warehouse, quantity, days_to_expire in planned:
+            expiration = today + timedelta(days=days_to_expire)
+            received = expiration - timedelta(days=product.shelf_life_days)
+            lots.append(
+                InventoryLot(
+                    lot_id=f"OTG-LOT-SCEN-{counter:05d}",
+                    sku=product.sku,
+                    warehouse=warehouse,
+                    quantity_on_hand=quantity,
+                    received_date=received,
+                    expiration_date=expiration,
+                    unit_cost=_unit_cost(product.category),
+                )
+            )
+            counter += 1
+        for _ in range(max(0, 5 - len(planned))):
             warehouse = _weighted_warehouse("West" if product.category in {"Noodles", "Ready Rice", "Seaweed"} else random.choice(list(REGION_WAREHOUSE)))
             if random.random() < 0.18:
                 age = random.randint(max(20, product.shelf_life_days - 110), max(21, product.shelf_life_days - 20))
@@ -414,10 +511,13 @@ def build_inbound_shipments(products: list[Product]) -> list[InboundShipment]:
     shipments: list[InboundShipment] = []
     products_by_sku = {product.sku: product for product in products}
     priority = [
-        public_sku(sku)
-        for sku in ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+        (public_sku("OTG-RAM-001"), 63, "port_hold", "Busan"),
+        (public_sku("OTG-RAM-002"), 28, "confirmed", "Incheon"),
+        (public_sku("OTG-CUR-001"), 35, "in_transit", "Incheon"),
+        (public_sku("OTG-RIC-001"), 70, "port_hold", "Pyeongtaek"),
+        (public_sku("OTG-OIL-001"), 58, "in_transit", "Busan"),
     ]
-    for index, sku in enumerate(priority):
+    for index, (sku, eta_days, status, origin) in enumerate(priority):
         product = products_by_sku[sku]
         quantity = random.choice([60, 90, 120, 150]) * product.case_size
         shipments.append(
@@ -425,23 +525,33 @@ def build_inbound_shipments(products: list[Product]) -> list[InboundShipment]:
                 shipment_id=f"OTG-INB-PRIORITY-{index + 1:03d}",
                 sku=sku,
                 quantity=quantity,
-                eta_date=today + timedelta(days=random.choice([28, 35, 42, 49])),
-                origin=random.choice(["Busan", "Incheon"]),
-                status=random.choice(["in_transit", "port_hold", "confirmed"]),
+                eta_date=today + timedelta(days=eta_days),
+                origin=origin,
+                status=status,
             )
         )
 
+    delayed_skus = _public_skus(DELAYED_INBOUND_DEMO_SKUS)
     for index in range(20):
-        product = random.choice(products)
+        if index < len(delayed_skus):
+            product = products_by_sku[delayed_skus[index]]
+            eta_days = random.choice([52, 61, 75])
+            status = "port_hold"
+            origin = random.choice(["Busan", "Incheon", "Pyeongtaek"])
+        else:
+            product = random.choice(products)
+            eta_days = random.randint(7, 65)
+            status = random.choice(["planned", "in_transit", "port_hold", "confirmed"])
+            origin = random.choice(ORIGINS)
         quantity = random.choice([30, 45, 60, 90, 120]) * product.case_size
         shipments.append(
             InboundShipment(
                 shipment_id=f"OTG-INB-{index + 1:04d}",
                 sku=product.sku,
                 quantity=quantity,
-                eta_date=today + timedelta(days=random.randint(7, 65)),
-                origin=random.choice(ORIGINS),
-                status=random.choice(["planned", "in_transit", "port_hold", "confirmed"]),
+                eta_date=today + timedelta(days=eta_days),
+                origin=origin,
+                status=status,
             )
         )
     return shipments

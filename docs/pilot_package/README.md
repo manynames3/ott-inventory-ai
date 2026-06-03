@@ -5,6 +5,8 @@ This package is the handoff kit for a controlled Ottogi USA-style pilot. It is d
 ## Included Materials
 
 - Customer-specific demo dataset: [`sample_data/ottogi_demo/`](../../sample_data/ottogi_demo)
+- Demo runbook: [`demo_runbook.md`](demo_runbook.md)
+- Data request checklist: [`data_request_checklist.md`](data_request_checklist.md)
 - One-page security brief: [`security_brief.md`](security_brief.md)
 - Weekly ROI report template: [`weekly_roi_report_template.md`](weekly_roi_report_template.md)
 
@@ -25,10 +27,12 @@ The bundled dataset uses Ottogi-inspired product records with public distributor
 - 110 products
 - 555 inventory lots
 - 50 customers
-- 4,907 historical orders across 2 years
+- 4,625 historical orders across 2 years
 - 25 inbound shipments
 
-The dataset is intentionally not real Ottogi business data. It is shaped to resemble the operating problems a food importer or CPG distributor would evaluate: long ocean freight lead times, lot-level expiration risk, reorder timing, and customer allocation.
+The dataset is intentionally not real Ottogi business data. It is shaped to resemble the operating problems a food importer or CPG distributor would evaluate: long ocean freight lead times, lot-level expiration risk, reorder timing, customer allocation, slow movers, promotional spikes, delayed inbound shipments, expired lots, and low-confidence forecasts.
+
+Pilot credentials are created outside the repository and should be shared through a password manager or secure one-time handoff only. Do not add usernames, passwords, API keys, or buyer files to git.
 
 ## Pilot Success Criteria
 

@@ -14,7 +14,7 @@ from app.services.product_context import enrich_product_rows
 from app.services.reorder import generate_reorder_recommendations
 
 
-SKU_PATTERN = re.compile(r"\b(?:UPC-\d{8,14}|[A-Z]{2,5}(?:-[A-Z0-9]{2,12})+|\d{4,8}[A-Z])\b")
+SKU_PATTERN = re.compile(r"\b(?:(?:UPC|EAN)-\d{8,14}|[A-Z]{2,5}(?:-[A-Z0-9]{2,12})+|\d{4,8}[A-Z])\b")
 
 
 def _summary(template: str, rows: List[Dict[str, object]]) -> List[str]:

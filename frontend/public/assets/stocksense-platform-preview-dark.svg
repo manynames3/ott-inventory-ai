@@ -42,7 +42,7 @@
     <text x="152" y="358" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">inventory_lots.csv</text>
     <text x="402" y="358" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">555행</text>
     <text x="152" y="390" fill="#555555" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="18">orders.csv</text>
-    <text x="402" y="390" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">4,907행</text>
+    <text x="402" y="390" fill="#123e8c" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="17" font-weight="800">4,625행</text>
 
     <rect x="526" y="242" width="302" height="174" rx="24" fill="#fffdeb" stroke="#ffed00" stroke-width="2"/>
     <text x="558" y="286" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="22" font-weight="900">폐기 절감 기회</text>

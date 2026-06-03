@@ -33,7 +33,7 @@ ssm = boto3.client("ssm")
 TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
 TENANT_PK = f"tenant#{TENANT_ID}"
 TOKEN_TTL_SECONDS = 12 * 60 * 60
-SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{3,8}\b")
+SKU_PATTERN = re.compile(r"\b(?:(?:UPC|EAN)-\d{8,14}|[A-Z]{2,5}(?:-[A-Z0-9]{2,12})+|\d{4,8}[A-Z])\b")
 AUTH_CACHE: Dict[str, Any] = {"loaded_at": 0, "config": None}
 OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
 APPROVAL_ROLES = {"approver", "admin"}
@@ -386,7 +386,12 @@ def _login(event: Dict[str, Any]) -> Dict[str, Any]:
         {
             "access_token": _create_token(username, config["secret"], role),
             "token_type": "bearer",
-            "user": {"username": username, "tenant_id": TENANT_ID, "role": role},
+            "user": {
+                "username": username,
+                "tenant_id": TENANT_ID,
+                "role": role,
+                "can_approve_actions": role in APPROVAL_ROLES,
+            },
         },
     )
 
