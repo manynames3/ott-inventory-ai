@@ -24,6 +24,7 @@ except ModuleNotFoundError:
 
 TEST_SETTINGS = Settings(
     database_url="postgresql+psycopg://example",
+    tenant_id="default",
     cors_origins=["http://localhost:3000"],
     supplier_lead_time_days=30,
     forecast_interval_seconds=3600,
@@ -31,6 +32,8 @@ TEST_SETTINGS = Settings(
     auth_enabled=True,
     auth_username="planner@example.com",
     auth_password="secret",
+    auth_role="approver",
+    auth_users_json="",
     auth_secret_key="test-secret-key-with-enough-entropy-for-tests",
     auth_token_ttl_minutes=10,
     aws_region="us-west-2",
@@ -55,6 +58,28 @@ class AuthAndTemplatesTest(unittest.TestCase):
 
         self.assertEqual(payload["sub"], "planner@example.com")
         self.assertEqual(payload["aud"], "stocksense")
+        self.assertEqual(payload["tenant_id"], "default")
+        self.assertEqual(payload["role"], "approver")
+
+    def test_multi_user_roles_round_trip(self):
+        if authenticate is None:
+            self.skipTest("fastapi is not installed in this Python environment")
+        settings = replace(
+            TEST_SETTINGS,
+            auth_users_json=(
+                '{"planner@example.com":{"password":"planner-secret","role":"planner"},'
+                '"manager@example.com":{"password":"manager-secret","role":"approver"}}'
+            ),
+        )
+
+        self.assertTrue(authenticate("planner@example.com", "planner-secret", settings=settings))
+        self.assertFalse(authenticate("planner@example.com", "manager-secret", settings=settings))
+
+        planner_payload = verify_access_token(create_access_token("planner@example.com", settings=settings), settings=settings)
+        manager_payload = verify_access_token(create_access_token("manager@example.com", settings=settings), settings=settings)
+
+        self.assertEqual(planner_payload["role"], "planner")
+        self.assertEqual(manager_payload["role"], "approver")
 
     def test_expired_token_rejected(self):
         if create_access_token is None or verify_access_token is None:
@@ -64,6 +89,14 @@ class AuthAndTemplatesTest(unittest.TestCase):
 
         with self.assertRaises(Exception):
             verify_access_token(token, settings=TEST_SETTINGS)
+
+    def test_wrong_tenant_token_rejected(self):
+        if create_access_token is None or verify_access_token is None:
+            self.skipTest("fastapi is not installed in this Python environment")
+        token = create_access_token("planner@example.com", settings=TEST_SETTINGS)
+
+        with self.assertRaises(Exception):
+            verify_access_token(token, settings=replace(TEST_SETTINGS, tenant_id="other-pilot"))
 
     def test_csv_template_imports(self):
         content = csv_template("products")

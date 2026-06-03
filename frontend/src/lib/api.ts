@@ -12,7 +12,57 @@ const TOKEN_KEY = "stocksense_access_token";
 export type LoginResponse = {
   access_token: string;
   token_type: string;
-  user: { username: string };
+  user: { username: string; tenant_id?: string; role?: string; can_approve_actions?: boolean };
+};
+
+export type AuthMeResponse = {
+  user: {
+    username?: string;
+    tenant_id?: string;
+    role?: string;
+    can_approve_actions?: boolean;
+  };
+};
+
+export type HealthResponse = {
+  ok: boolean;
+  service: string;
+  tenant_id?: string;
+};
+
+export type AiStatusResponse = {
+  provider: string;
+  model: string;
+  enabled: boolean;
+  configured: boolean;
+  mode: string;
+  secret_source?: string;
+};
+
+export type ImportRequirementsResponse = {
+  csv_required_columns: Record<string, string[]>;
+  erp_adapters: Record<string, string>;
+  supported_upload_formats?: string[];
+  template_formats?: string[];
+  upload_mode?: "multipart" | "presigned_s3";
+  import_workflow?: string;
+  mapping_preview?: {
+    enabled: boolean;
+    preview_prefix: string;
+    commit_endpoint: string;
+  };
+  raw_file_storage?: {
+    service: string;
+    enabled: boolean;
+    bucket_configured: boolean;
+    bucket?: string;
+    prefix: string;
+  };
+  query_store?: {
+    service: string;
+    records_table?: string;
+    views_table?: string;
+  };
 };
 
 export type TableResponse = {
@@ -139,6 +189,57 @@ export type AuditEventRow = {
 export type AuditEventsResponse = {
   rows: AuditEventRow[];
   count: number;
+};
+
+export type MonitoringCheck = {
+  name: string;
+  status: "ok" | "attention" | "warning" | "checking";
+  count: number;
+  message: string;
+};
+
+export type MonitoringEventRow = {
+  event_type?: string;
+  action?: string;
+  status?: string;
+  resource?: string;
+  message?: string;
+  user?: string;
+  details?: Record<string, unknown>;
+  created_at_epoch?: number;
+  updated_at_epoch?: number;
+};
+
+export type MonitoringSummaryResponse = {
+  generated_at_epoch: number;
+  window_hours: number;
+  checks: MonitoringCheck[];
+  events: MonitoringEventRow[];
+  storage: string;
+};
+
+export type ActionReviewRow = {
+  action_key: string;
+  status: "open" | "accepted" | "dismissed";
+  note?: string;
+  action_snapshot?: Record<string, unknown>;
+  updated_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  approved_at_epoch?: number;
+  updated_at?: string;
+  updated_at_epoch?: number;
+};
+
+export type ActionReviewsResponse = {
+  rows: ActionReviewRow[];
+  count: number;
+  storage?: "server" | "browser";
+};
+
+export type ActionReviewUpsertResponse = {
+  row: ActionReviewRow;
+  storage?: "server" | "browser";
 };
 
 export function getAuthToken(): string | null {

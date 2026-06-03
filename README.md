@@ -46,6 +46,8 @@ Architecture documentation:
 - [docs/adrs/README.md](docs/adrs/README.md): architecture decision records
 - [docs/low_idle_mvp_architecture.md](docs/low_idle_mvp_architecture.md): low-idle AWS MVP rationale
 - [docs/architecture_decisions.md](docs/architecture_decisions.md): earlier implementation rationale and tradeoffs
+- [docs/pilot_readiness.md](docs/pilot_readiness.md): Phase 1-5 sellable-pilot hardening summary
+- [docs/pilot_package/README.md](docs/pilot_package/README.md): guided pilot kit with sample data, security brief, and weekly ROI report template
 
 At a high level, the public demo uses a static Next.js frontend on Cloudflare Pages. The low-idle hosted backend uses AWS Lambda for API/import/refresh work, S3 for raw Excel/CSV files, DynamoDB for canonical records and materialized recommendation/query views, and SSM Parameter Store for secrets. The local/reference development path uses FastAPI and PostgreSQL.
 
@@ -58,6 +60,10 @@ At a high level, the public demo uses a static Next.js frontend on Cloudflare Pa
 - CSV/XLSX upload flow with required-column validation, template downloads, import history, and validation errors.
 - Natural-language query page for common planning questions.
 - SKU detail and customer detail pages.
+- Data Setup, Status, and Security pages for first-run activation, operational visibility, and buyer trust.
+- Planner review queue with server-backed approved/dismissed state, notes, browser fallback, and reviewed CSV export.
+- Pilot RBAC for planner notes/dismissals and approver/admin action approvals.
+- Status-page monitoring summary for API errors, import failures, slow jobs, and failed AI calls.
 - Executive ROI report download.
 - SAP and Oracle adapter placeholders with documented expected ERP fields.
 
@@ -163,7 +169,9 @@ For a controlled Ottogi-style pilot demo, use the generated files in `sample_dat
 PYTHONPATH=backend backend/.venv/bin/python -m app.export_ottogi_demo_csvs
 ```
 
-The exported set includes 110 Ottogi-inspired SKUs, 555 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments. Product names and SKU codes are fictional demo data.
+The exported set includes 110 Ottogi-inspired SKUs, 555 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments. Public distributor item codes and UPC-backed identifiers are used where verified; remaining `OTK-DEMO-*` codes are clearly marked demo records because private ERP item master data is not public. See [public SKU source notes](docs/public_sku_sources.md).
+
+The guided pilot package is in [docs/pilot_package](docs/pilot_package), including a one-page security brief and weekly ROI report template for sponsor reviews.
 
 ## Natural-Language Query And AI Layer
 
@@ -172,10 +180,23 @@ The query page uses safe predefined templates and materialized views rather than
 - "Who needs another order right now?"
 - "Which SKUs will stock out in the next 30 days?"
 - "Which inventory expires soon?"
-- "Which customers usually buy SKU OTG-RAM-001 every month?"
+- "Which customers usually buy SKU 08252K every month?"
 - "What should we reorder this week?"
 
 When `OPENAI_API_KEY_PARAMETER_NAME` points to a valid SSM SecureString, the backend augments the matched safe view with model-generated explanations, action bullets, confidence notes, and planner review notes. If the key is missing or the model call fails, the endpoint falls back to deterministic rule-based explanations. The model never generates SQL and only receives row-limited, matched view context.
+
+## Pilot Auth, Approvals, And Monitoring
+
+The MVP supports pilot RBAC without hardcoding users in source code. For simple demos, set `AUTH_USERNAME`, `AUTH_PASSWORD`, and `AUTH_ROLE`. For a pilot with separate planner and approver accounts, set `AUTH_USERS_JSON` locally or point `auth_users_json_parameter_name` to an SSM SecureString containing:
+
+```json
+{
+  "planner@example.com": { "password": "replace-me", "role": "planner" },
+  "ops-manager@example.com": { "password": "replace-me", "role": "approver" }
+}
+```
+
+Planner roles can add notes and dismiss actions. Approver/admin roles can approve actions and clear review history. The Status page includes monitoring for API errors, import failures, slow requests/jobs, and failed AI calls.
 
 ## Tests
 
@@ -219,6 +240,7 @@ Secrets and database credentials are read from `.env`. Do not commit `.env`.
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `DATABASE_URL`
+- `TENANT_ID`
 - `NEXT_PUBLIC_API_BASE_URL`
 - `CORS_ORIGINS`
 - `AUTH_ENABLED`
@@ -257,4 +279,4 @@ docker-compose.yml  Local Postgres + backend + frontend development stack
 - The MVP uses CSV/XLSX import first; SAP and Oracle adapters are placeholders.
 - The local/reference backend uses PostgreSQL, while the low-idle hosted MVP uses DynamoDB materialized views.
 - Forecasting is intentionally simple and explainable; promotion, holiday, and customer-level ML features are future work.
-- Production pilots should add stronger identity, tenant isolation, role-based access, observability, retry/dead-letter handling, and formal data retention controls.
+- Production pilots should add stronger identity, tenant provisioning, role-based approvals, observability, retry/dead-letter handling, and formal data retention controls.

@@ -6,6 +6,7 @@ import math
 import os
 import statistics
 import time
+import uuid
 import zipfile
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
@@ -20,8 +21,10 @@ import boto3
 s3 = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
 
-TENANT_PK = "tenant#default"
+TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
+TENANT_PK = f"tenant#{TENANT_ID}"
 DATE_STYLE_IDS = set(range(14, 23)) | {27, 30, 36, 45, 46, 47, 50, 57}
+SLOW_JOB_SECONDS = 60
 
 REQUIRED_COLUMNS = {
     "products": ["sku", "name", "category", "case_size", "shelf_life_days"],
@@ -93,6 +96,29 @@ def _put_import_status(bucket: str, key: str, status: str, message: str, **extra
             "status": {"S": status},
             "data": {"S": json.dumps(payload, separators=(",", ":"), default=str)},
             "ttl_epoch": {"N": str(now + 90 * 24 * 60 * 60)},
+        },
+    )
+
+
+def _put_audit_event(action: str, resource: str, details: Dict[str, Any]) -> None:
+    now_ms = int(time.time() * 1000)
+    payload = {
+        "record_type": "audit",
+        "action": action,
+        "resource": resource,
+        "user": "import-worker",
+        "origin": "lambda",
+        "source_ip": "",
+        "details": details,
+        "created_at_epoch": int(now_ms / 1000),
+    }
+    dynamodb.put_item(
+        TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+        Item={
+            "pk": {"S": f"audit#{TENANT_PK}"},
+            "sk": {"S": f"{now_ms:013d}#{uuid.uuid4().hex[:8]}"},
+            "data": {"S": json.dumps(payload, separators=(",", ":"), default=str)},
+            "ttl_epoch": {"N": str(int(now_ms / 1000) + 180 * 24 * 60 * 60)},
         },
     )
 
@@ -946,6 +972,7 @@ def _process_file(bucket: str, key: str) -> Dict[str, Any]:
     normalized, errors = _normalize(entity, rows)
     if errors:
         _put_import_status(bucket, key, "failed", "Import validation failed.", entity=entity, filename=filename, rows_seen=len(rows), errors=errors)
+        _put_audit_event("import_worker_failed", entity, {"key": key, "rows_seen": len(rows), "error_count": len(errors)})
         return {"entity": entity, "status": "failed", "errors": errors}
     _write_records(entity, normalized)
     counts = _materialize_views()
@@ -970,9 +997,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         key = unquote_plus(record.get("s3", {}).get("object", {}).get("key", ""))
         if not bucket or not key:
             continue
+        started = time.perf_counter()
         try:
-            processed.append({"bucket": bucket, "key": key, **_process_file(bucket, key)})
+            result = _process_file(bucket, key)
+            duration_seconds = round(time.perf_counter() - started, 3)
+            if duration_seconds >= SLOW_JOB_SECONDS:
+                _put_audit_event("slow_job", result.get("entity", "import"), {"key": key, "duration_seconds": duration_seconds})
+            processed.append({"bucket": bucket, "key": key, "duration_seconds": duration_seconds, **result})
         except Exception as exc:
             _put_import_status(bucket, key, "failed", str(exc))
+            _put_audit_event("import_worker_failed", "import", {"key": key, "error": type(exc).__name__})
             processed.append({"bucket": bucket, "key": key, "status": "failed", "error": str(exc)})
     return {"statusCode": 200, "body": json.dumps({"processed": processed}, separators=(",", ":"))}

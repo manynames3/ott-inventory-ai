@@ -14,30 +14,12 @@ import {
   ImportHistoryResponse,
   ImportHistoryRow,
   ImportPreviewResponse,
+  ImportRequirementsResponse,
   apiGet,
   apiPost,
   apiUpload,
   authHeaders
 } from "@/lib/api";
-
-type Requirements = {
-  csv_required_columns: Record<string, string[]>;
-  erp_adapters: Record<string, string>;
-  supported_upload_formats?: string[];
-  upload_mode?: "multipart" | "presigned_s3";
-  raw_file_storage?: {
-    service: string;
-    enabled: boolean;
-    bucket_configured: boolean;
-    bucket?: string;
-    prefix: string;
-  };
-  query_store?: {
-    service: string;
-    records_table?: string;
-    views_table?: string;
-  };
-};
 
 type UploadResponse = {
   entity: string;
@@ -93,7 +75,7 @@ const fallbackEntities: Record<string, string[]> = {
 };
 
 export default function ImportsPage() {
-  const [requirements, setRequirements] = useState<Requirements | null>(null);
+  const [requirements, setRequirements] = useState<ImportRequirementsResponse | null>(null);
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [messages, setMessages] = useState<Record<string, { type: "ok" | "error"; text: string }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -107,7 +89,7 @@ export default function ImportsPage() {
   const [auditError, setAuditError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiGet<Requirements>("/api/import/requirements")
+    apiGet<ImportRequirementsResponse>("/api/import/requirements")
       .then(setRequirements)
       .catch(() => setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} }));
     void loadHistory();
@@ -266,15 +248,15 @@ export default function ImportsPage() {
   function demoTemplateRows(entity: string): Record<string, string | number> {
     const samples: Record<string, Record<string, string | number>> = {
       products: {
-        sku: "OTG-RAM-001",
-        name: "Ottogi Jin Ramen Spicy Multi-Pack",
+        sku: "08252K",
+        name: "Ottogi Jin Ramen Hot Case",
         category: "Noodles",
         case_size: 20,
         shelf_life_days: 270
       },
       inventory_lots: {
         lot_id: "LOT-LA-240601-001",
-        sku: "OTG-RAM-001",
+        sku: "08252K",
         warehouse: "LA DC",
         quantity_on_hand: 840,
         received_date: "2026-04-15",
@@ -291,12 +273,12 @@ export default function ImportsPage() {
         order_id: "ORD-20260531-001",
         customer_id: "CUST-HMART-WEST",
         order_date: "2026-05-31",
-        sku: "OTG-RAM-001",
+        sku: "08252K",
         quantity: 120
       },
       inbound_shipments: {
         shipment_id: "INB-BUSAN-001",
-        sku: "OTG-RAM-001",
+        sku: "08252K",
         quantity: 1800,
         eta_date: "2026-06-28",
         origin: "Busan",

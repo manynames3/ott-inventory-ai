@@ -82,3 +82,22 @@ CREATE INDEX IF NOT EXISTS idx_reorder_status_date
 CREATE INDEX IF NOT EXISTS idx_waste_expiration
     ON waste_risk_alerts(expiration_date, risk_bucket);
 
+CREATE TABLE IF NOT EXISTS action_reviews (
+    action_key VARCHAR(512) PRIMARY KEY,
+    status VARCHAR(32) NOT NULL CHECK (status IN ('open', 'accepted', 'dismissed')),
+    note TEXT NOT NULL DEFAULT '',
+    action_snapshot TEXT NOT NULL DEFAULT '{}',
+    updated_by VARCHAR(255) NOT NULL,
+    approved_by VARCHAR(255),
+    approved_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE action_reviews
+    ADD COLUMN IF NOT EXISTS approved_by VARCHAR(255);
+
+ALTER TABLE action_reviews
+    ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_action_reviews_status_updated
+    ON action_reviews(status, updated_at DESC);

@@ -1,6 +1,7 @@
 aws_region  = "us-west-2"
 project_name = "ott-inventory-ai" # Existing AWS resource prefix. Keep stable unless doing a planned migration.
 environment = "mvp"
+tenant_id   = "default"
 
 allowed_origins = [
   "https://otokistocksense.pages.dev",
@@ -25,6 +26,13 @@ enable_refresh_schedule = false
 # Do not put secret values in terraform.tfvars; Terraform state can expose them.
 auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
 auth_password_parameter_name   = "/inventory-ai/mvp/auth/password"
+auth_role                      = "approver"
+# Optional: one SecureString JSON parameter can define multiple pilot users:
+# {
+#   "planner@example.com": {"password": "replace-me", "role": "planner"},
+#   "ops-manager@example.com": {"password": "replace-me", "role": "approver"}
+# }
+auth_users_json_parameter_name = ""
 auth_secret_key_parameter_name = "/inventory-ai/mvp/auth/secret-key"
 
 # Optional OpenAI-backed AI query layer. Store the actual key only in SSM.

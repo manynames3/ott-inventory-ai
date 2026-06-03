@@ -60,11 +60,11 @@
     <rect x="152" y="526" width="546" height="42" rx="21" fill="#f8f8f8"/>
     <rect x="168" y="538" width="42" height="18" rx="9" fill="url(#red)"/>
     <text x="180" y="552" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="900">P1</text>
-    <text x="230" y="553" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-CUR-001 · LA DC · 가용 재고 13.5일</text>
+    <text x="230" y="553" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">03632K · LA DC · 가용 재고 13.5일</text>
     <rect x="152" y="584" width="546" height="42" rx="21" fill="#f8f8f8"/>
     <rect x="168" y="596" width="42" height="18" rx="9" fill="url(#red)"/>
     <text x="180" y="610" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" font-weight="900">P1</text>
-    <text x="230" y="611" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">OTG-RAM-001 · 신규 입고 전 기존 로트 우선 출고</text>
+    <text x="230" y="611" fill="#000000" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Arial, sans-serif" font-size="16">08252K · 신규 입고 전 기존 로트 우선 출고</text>
     <rect x="152" y="642" width="546" height="12" rx="6" fill="url(#yellow)" stroke="#000000" stroke-width="1"/>
 
     <rect x="772" y="448" width="386" height="226" rx="24" fill="#ffffff" stroke="#000000" stroke-width="2"/>

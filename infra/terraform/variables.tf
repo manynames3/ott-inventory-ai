@@ -16,6 +16,12 @@ variable "environment" {
   default     = "mvp"
 }
 
+variable "tenant_id" {
+  description = "Logical tenant partition id used by the hosted MVP data store."
+  type        = string
+  default     = "default"
+}
+
 variable "allowed_origins" {
   description = "Frontend origins allowed to call the Lambda Function URL and S3 upload endpoint."
   type        = list(string)
@@ -133,6 +139,18 @@ variable "auth_secret_key_parameter_name" {
   description = "Optional SSM parameter name for the bearer-token signing secret."
   type        = string
   default     = "/inventory-ai/mvp/auth/secret-key"
+}
+
+variable "auth_role" {
+  description = "Fallback role for the single-user auth mode. Use viewer, planner, approver, or admin."
+  type        = string
+  default     = "approver"
+}
+
+variable "auth_users_json_parameter_name" {
+  description = "Optional SSM SecureString parameter containing a JSON object of pilot users with password and role fields."
+  type        = string
+  default     = ""
 }
 
 variable "openai_api_key_parameter_name" {

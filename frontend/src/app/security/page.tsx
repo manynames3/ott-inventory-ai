@@ -1,0 +1,116 @@
+import Link from "next/link";
+import { BrainCircuit, Database, FileText, LockKeyhole, ShieldCheck, UploadCloud } from "lucide-react";
+
+export default function SecurityPage() {
+  return (
+    <>
+      <header className="page-header">
+        <div>
+          <h1>Security And Data Handling</h1>
+          <p>Plain-English controls and pilot boundaries for inventory, order, customer, and inbound shipment files.</p>
+        </div>
+        <div className="toolbar">
+          <Link className="button secondary" href="/status">
+            System status
+          </Link>
+          <Link className="button" href="/imports">
+            <UploadCloud size={17} />
+            Import files
+          </Link>
+        </div>
+      </header>
+
+      <section className="grid-3 buyer-value-grid">
+        <div className="insight-card compact">
+          <span className="insight-icon planner">
+            <LockKeyhole size={18} />
+          </span>
+          <h2>No Hardcoded Secrets</h2>
+          <p>Local settings use environment variables. Hosted credentials are designed for SSM Parameter Store.</p>
+        </div>
+        <div className="insight-card compact">
+          <span className="insight-icon waste">
+            <Database size={18} />
+          </span>
+          <h2>Private Upload Flow</h2>
+          <p>Hosted imports use private S3 object storage and DynamoDB-backed operational views.</p>
+        </div>
+        <div className="insight-card compact">
+          <span className="insight-icon stockout">
+            <ShieldCheck size={18} />
+          </span>
+          <h2>Approval, Not Writeback</h2>
+          <p>Approver/admin roles can approve recommendations, but the MVP does not change ERP or WMS records.</p>
+        </div>
+      </section>
+
+      <section className="grid-2">
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>What Is Stored</h2>
+              <p>
+                Only the data needed to produce inventory, FEFO (First Expired, First Out), reorder, customer, and query
+                insights.
+              </p>
+            </div>
+          </div>
+          <div className="security-list">
+            <div>
+              <UploadCloud size={18} />
+              <p>Raw CSV/XLSX uploads for products, inventory lots, customers, orders, and inbound shipments.</p>
+            </div>
+            <div>
+              <Database size={18} />
+              <p>Structured records and refreshed views used by the dashboard, action queue, and query page.</p>
+            </div>
+            <div>
+              <ShieldCheck size={18} />
+              <p>Planner review decisions, notes, approver attribution, and reviewed action status.</p>
+            </div>
+            <div>
+              <FileText size={18} />
+              <p>Audit and monitoring events for login, imports, approvals, exports, API errors, slow jobs, and AI fallback.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>AI Boundary</h2>
+              <p>StockSense AI is not an unrestricted database chatbot.</p>
+            </div>
+          </div>
+          <div className="security-list">
+            <div>
+              <BrainCircuit size={18} />
+              <p>Natural-language questions are routed to safe, known operational views.</p>
+            </div>
+            <div>
+              <ShieldCheck size={18} />
+              <p>The LLM can summarize and prioritize bounded query results when configured.</p>
+            </div>
+            <div>
+              <LockKeyhole size={18} />
+              <p>When no AI key is configured, the product falls back to deterministic rule-based answers.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Pilot Boundaries Before Production Rollout</h2>
+            <p>
+              This MVP is suitable for a low-traffic buyer pilot. A production enterprise rollout should add SSO,
+              tenant provisioning, buyer-specific retention policies, alert delivery, audit export, and a reviewed
+              security questionnaire.
+            </p>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

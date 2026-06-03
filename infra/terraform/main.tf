@@ -23,6 +23,7 @@ locals {
     var.auth_username_parameter_name,
     var.auth_password_parameter_name,
     var.auth_secret_key_parameter_name,
+    var.auth_users_json_parameter_name,
     var.openai_api_key_parameter_name
   ])
 }
@@ -291,6 +292,7 @@ locals {
   lambda_environment = {
     PROJECT_NAME                   = var.project_name
     ENVIRONMENT                    = var.environment
+    TENANT_ID                      = var.tenant_id
     AWS_S3_RAW_IMPORT_BUCKET       = aws_s3_bucket.raw_imports.bucket
     AWS_S3_IMPORT_PREFIX           = var.raw_import_prefix
     AWS_DYNAMODB_RECORDS_TABLE     = aws_dynamodb_table.records.name
@@ -299,6 +301,8 @@ locals {
     CORS_ORIGINS                   = join(",", var.allowed_origins)
     AUTH_USERNAME_PARAMETER_NAME   = var.auth_username_parameter_name
     AUTH_PASSWORD_PARAMETER_NAME   = var.auth_password_parameter_name
+    AUTH_ROLE                      = var.auth_role
+    AUTH_USERS_JSON_PARAMETER_NAME = var.auth_users_json_parameter_name
     AUTH_SECRET_KEY_PARAMETER_NAME = var.auth_secret_key_parameter_name
     OPENAI_API_KEY_PARAMETER_NAME  = var.openai_api_key_parameter_name
     OPENAI_MODEL                   = var.openai_model

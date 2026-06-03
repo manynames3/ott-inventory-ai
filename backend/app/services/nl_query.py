@@ -14,7 +14,7 @@ from app.services.product_context import enrich_product_rows
 from app.services.reorder import generate_reorder_recommendations
 
 
-SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{3,8}\b")
+SKU_PATTERN = re.compile(r"\b(?:UPC-\d{8,14}|[A-Z]{2,5}(?:-[A-Z0-9]{2,12})+|\d{4,8}[A-Z])\b")
 
 
 def _summary(template: str, rows: List[Dict[str, object]]) -> List[str]:
@@ -318,7 +318,7 @@ def answer_question(session: Session, question: str, lead_time_days: int) -> Dic
             "explanation": (
                 "I can answer operational inventory questions using safe predefined templates. Try: "
                 "'Which SKUs will stock out in the next 30 days?', 'Which inventory expires soon?', "
-                "'Which customers usually buy SKU OTG-001 every month?', or 'What should we reorder this week?'"
+                "'Which customers usually buy SKU 08252K every month?', or 'What should we reorder this week?'"
             ),
             "columns": [],
             "rows": [],

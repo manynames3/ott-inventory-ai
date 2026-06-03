@@ -52,7 +52,7 @@ StockSense AI is built for that gap.
 
 ## Practical Example
 
-An ERP may show that SKU `OTG-RAM-001` has three lots across two warehouses, with inbound supply arriving in 30 days and historical orders by customer.
+An ERP may show that SKU `08252K` has three lots across two warehouses, with inbound supply arriving in 30 days and historical orders by customer.
 
 StockSense AI turns that into a planner recommendation:
 

@@ -6,6 +6,7 @@ The repository supports two runtime shapes:
 
 - Local/reference development: Next.js frontend, FastAPI backend, PostgreSQL, and a Python worker.
 - Low-idle hosted MVP: Cloudflare Pages, AWS Lambda Function URL, S3, DynamoDB on-demand, S3-triggered import Lambda, optional EventBridge refresh Lambda, and SSM Parameter Store.
+- Pilot tenant partitioning: `TENANT_ID` config scopes hosted DynamoDB records under `tenant#{TENANT_ID}` and bearer tokens are rejected when their tenant claim does not match the runtime tenant.
 
 ## C4-Style Container Diagram
 
@@ -18,13 +19,13 @@ flowchart LR
   end
 
   subgraph aws["Low-idle AWS backend"]
-    api["API Lambda\nFunction URL\nlogin, templates, dashboard, details, query"]
+    api["API Lambda\nFunction URL\nlogin, approvals, templates, dashboard, details, query"]
     importWorker["Import worker Lambda\nS3 event triggered\nCSV/XLSX parse and validation"]
     refreshWorker["Refresh worker Lambda\noptional EventBridge schedule\nrecompute recommendation views"]
     s3["Amazon S3\nraw Excel/CSV uploads"]
     records["DynamoDB records table\ncanonical products, lots, customers, orders, shipments"]
     views["DynamoDB views table\nmaterialized dashboard, FEFO, waste-risk, reorder, query views"]
-    imports["DynamoDB imports table\nimport status, row counts, validation errors"]
+    imports["DynamoDB imports table\nimport status, action reviews, audit and monitoring events"]
     ssm["SSM Parameter Store\nlogin secrets and optional OpenAI key"]
   end
 
@@ -66,9 +67,12 @@ flowchart LR
 4. Hosted flow: the API issues S3 upload targets and records import status in DynamoDB.
 5. S3 object creation invokes the import worker Lambda.
 6. The worker validates required columns, normalizes rows, stores canonical records, and refreshes materialized views.
-7. Dashboard, SKU detail, customer detail, priority action, and query pages read from fast API endpoints.
-8. Natural-language questions map to predefined safe query templates and materialized views.
-9. If configured, the OpenAI layer rewrites the matched safe-view answer into planner-ready explanation text. It does not generate SQL or choose tables.
+7. Dashboard, SKU detail, customer detail, priority action, status, and query pages read from fast API endpoints.
+8. Planner action reviews persist through the API in live mode, with browser-local fallback for demo/offline evaluation.
+9. Planner roles can add notes and dismiss; approver/admin roles are required to approve actions and clear review history.
+10. Monitoring summarizes API errors, import failures, slow requests/jobs, and failed AI calls from audit/import records.
+11. Natural-language questions map to predefined safe query templates and materialized views.
+12. If configured, the OpenAI layer rewrites the matched safe-view answer into planner-ready explanation text. It does not generate SQL or choose tables.
 
 ## Deployment Shape
 
@@ -94,11 +98,15 @@ flowchart LR
 - S3 events trigger import work only when files arrive.
 - Optional EventBridge Scheduler triggers periodic recommendation refresh.
 - SSM Parameter Store holds login secrets and the optional OpenAI key.
+- `TENANT_ID` selects the logical DynamoDB partition for a pilot environment and binds issued tokens to that tenant.
+- Pilot RBAC uses configurable users and roles from environment variables or SSM SecureString JSON. This is a controlled-pilot approval model, not a replacement for enterprise SSO/admin provisioning.
 
 ## Key Constraints
 
 - Keep MVP idle cost low, ideally under $10/month for low-traffic pilots.
 - Avoid hardcoded credentials and keep secrets in environment variables or SSM.
+- Avoid hardcoded tenant partitions so future pilots can be configured without source-code edits.
+- Keep approval and monitoring controls low-idle by reusing API auth, DynamoDB import/audit records, and Status page visibility.
 - Do not depend on live SAP or Oracle credentials for first evaluation.
 - Keep natural-language query safe by using predefined templates and materialized views, not arbitrary SQL generation.
 - Keep forecasting explainable before adding more advanced ML.
@@ -108,5 +116,6 @@ flowchart LR
 
 - DynamoDB materialized views are less flexible than relational SQL, but better aligned with a near-zero-idle hosted MVP.
 - Lambda Function URLs are simpler and cheaper for the MVP than an always-on API container, but production pilots may eventually need API Gateway, WAF, richer auth, and observability.
+- Pilot RBAC and Status-page monitoring are enough for controlled evaluation, but enterprise rollouts should add SSO, admin-managed groups, alert delivery, audit export, and formal incident workflows.
 - CSV/XLSX imports are batch-oriented, but they avoid long enterprise integration cycles during early validation.
 - The AI layer improves explanation quality, but deterministic rule-based fallback remains the source of operational safety.

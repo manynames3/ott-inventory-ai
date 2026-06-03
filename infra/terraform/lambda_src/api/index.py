@@ -30,11 +30,14 @@ s3 = boto3.client(
 dynamodb = boto3.client("dynamodb")
 ssm = boto3.client("ssm")
 
-TENANT_PK = "tenant#default"
+TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
+TENANT_PK = f"tenant#{TENANT_ID}"
 TOKEN_TTL_SECONDS = 12 * 60 * 60
 SKU_PATTERN = re.compile(r"\b[A-Z]{2,5}-[A-Z0-9]{3,8}\b")
 AUTH_CACHE: Dict[str, Any] = {"loaded_at": 0, "config": None}
 OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
+APPROVAL_ROLES = {"approver", "admin"}
+VALID_ROLES = {"viewer", "planner", "approver", "admin"}
 
 REQUIRED_COLUMNS = {
     "products": ["sku", "name", "category", "case_size", "shelf_life_days"],
@@ -199,7 +202,9 @@ def _auth_config() -> Dict[str, str]:
     username = _param("AUTH_USERNAME_PARAMETER_NAME")
     password = _param("AUTH_PASSWORD_PARAMETER_NAME")
     secret = _param("AUTH_SECRET_KEY_PARAMETER_NAME")
-    config = {"username": username, "password": password, "secret": secret}
+    users_json = _param("AUTH_USERS_JSON_PARAMETER_NAME") or os.getenv("AUTH_USERS_JSON", "")
+    role = os.getenv("AUTH_ROLE", "approver")
+    config = {"username": username, "password": password, "secret": secret, "users_json": users_json, "role": role}
     AUTH_CACHE.update({"loaded_at": int(time.time()), "config": config})
     return config
 
@@ -255,12 +260,64 @@ def _sign(message: str, secret: str) -> str:
     return _b64encode(digest)
 
 
-def _create_token(subject: str, secret: str) -> str:
+def _normalize_role(role: str | None) -> str:
+    normalized = (role or "planner").strip().lower()
+    return normalized if normalized in VALID_ROLES else "planner"
+
+
+def _configured_users(config: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+    users_json = str(config.get("users_json", "")).strip()
+    if users_json:
+        try:
+            parsed = json.loads(users_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError("AUTH_USERS_JSON_PARAMETER_NAME does not contain valid JSON.") from exc
+        if not isinstance(parsed, dict):
+            raise ValueError("AUTH_USERS_JSON must be an object keyed by username.")
+        users: Dict[str, Dict[str, str]] = {}
+        for username, raw_config in parsed.items():
+            if not isinstance(raw_config, dict):
+                continue
+            password = str(raw_config.get("password", ""))
+            if not password:
+                continue
+            users[str(username)] = {
+                "password": password,
+                "role": _normalize_role(str(raw_config.get("role", config.get("role", "planner")))),
+            }
+        if users:
+            return users
+    if config.get("username") and config.get("password"):
+        return {
+            str(config["username"]): {
+                "password": str(config["password"]),
+                "role": _normalize_role(config.get("role")),
+            }
+        }
+    return {}
+
+
+def _role_for_user(subject: str, config: Dict[str, str]) -> str:
+    return _configured_users(config).get(subject, {}).get("role", _normalize_role(config.get("role")))
+
+
+def _can_approve_actions(user: Dict[str, Any]) -> bool:
+    return str(user.get("role", "")).lower() in APPROVAL_ROLES
+
+
+def _create_token(subject: str, secret: str, role: str) -> str:
     now = int(time.time())
     header = _b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode("utf-8"))
     payload = _b64encode(
         json.dumps(
-            {"sub": subject, "iat": now, "exp": now + TOKEN_TTL_SECONDS, "aud": "stocksense"},
+            {
+                "sub": subject,
+                "iat": now,
+                "exp": now + TOKEN_TTL_SECONDS,
+                "aud": "stocksense",
+                "tenant_id": TENANT_ID,
+                "role": _normalize_role(role),
+            },
             separators=(",", ":"),
         ).encode("utf-8")
     )
@@ -279,6 +336,8 @@ def _verify_token(token: str, secret: str) -> Dict[str, Any]:
     payload = json.loads(_b64decode(encoded_payload))
     if payload.get("aud") != "stocksense":
         raise ValueError("Invalid token audience.")
+    if payload.get("tenant_id", TENANT_ID) != TENANT_ID:
+        raise ValueError("Invalid token tenant.")
     if int(payload.get("exp", 0)) < int(time.time()):
         raise ValueError("Token expired.")
     return payload
@@ -306,19 +365,29 @@ def _login(event: Dict[str, Any]) -> Dict[str, Any]:
         config = _auth_config()
     except Exception as exc:
         return _json(event, 503, {"detail": f"Authentication is not configured: {exc}"})
-    if not config["username"] or not config["password"] or not config["secret"]:
+    try:
+        users = _configured_users(config)
+    except ValueError as exc:
+        return _json(event, 503, {"detail": str(exc)})
+    if not config["secret"] or not users:
         return _json(event, 503, {"detail": "Authentication SSM parameters are not configured."})
     body = _body(event)
     username = str(body.get("username", ""))
     password = str(body.get("password", ""))
-    if not hmac.compare_digest(username, config["username"]) or not hmac.compare_digest(password, config["password"]):
+    user_config = users.get(username)
+    if not user_config or not hmac.compare_digest(password, user_config["password"]):
         _audit_event(event, "login_failed", "auth", {"username": username}, username or "unknown")
         return _json(event, 401, {"detail": "Invalid username or password."})
+    role = _normalize_role(user_config.get("role"))
     _audit_event(event, "login_success", "auth", {}, username)
     return _json(
         event,
         200,
-        {"access_token": _create_token(username, config["secret"]), "token_type": "bearer", "user": {"username": username}},
+        {
+            "access_token": _create_token(username, config["secret"], role),
+            "token_type": "bearer",
+            "user": {"username": username, "tenant_id": TENANT_ID, "role": role},
+        },
     )
 
 
@@ -590,12 +659,165 @@ def _load_audit_events(limit: int = 100) -> List[Dict[str, Any]]:
     return [json.loads(item.get("data", {}).get("S", "{}")) for item in response.get("Items", [])]
 
 
+def _action_reviews_pk() -> str:
+    return f"action_reviews#{TENANT_PK}"
+
+
+def _load_action_reviews(limit: int = 250) -> List[Dict[str, Any]]:
+    response = dynamodb.query(
+        TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+        KeyConditionExpression="pk = :pk",
+        ExpressionAttributeValues={":pk": {"S": _action_reviews_pk()}},
+        Limit=limit,
+    )
+    rows = [json.loads(item.get("data", {}).get("S", "{}")) for item in response.get("Items", [])]
+    return sorted(rows, key=lambda row: int(row.get("updated_at_epoch", 0) or 0), reverse=True)
+
+
+def _action_reviews(event: Dict[str, Any]) -> Dict[str, Any]:
+    if not _require_user(event):
+        return _json(event, 401, {"detail": "Login required."})
+    rows = _load_action_reviews(limit=_parse_limit(event, default=250, maximum=1000))
+    return _json(event, 200, {"rows": rows, "count": len(rows), "storage": "server"})
+
+
+def _upsert_action_review(event: Dict[str, Any]) -> Dict[str, Any]:
+    user = _require_user(event)
+    if not user:
+        return _json(event, 401, {"detail": "Login required."})
+    body = _body(event)
+    action_key = str(body.get("action_key", "")).strip()
+    review_status = str(body.get("status", "")).strip().lower()
+    note = str(body.get("note", ""))
+    action_snapshot = body.get("action_snapshot") if isinstance(body.get("action_snapshot"), dict) else {}
+    if not action_key:
+        return _json(event, 400, {"detail": "action_key is required."})
+    if review_status not in {"open", "accepted", "dismissed"}:
+        return _json(event, 400, {"detail": "status must be open, accepted, or dismissed."})
+    if review_status == "accepted" and not _can_approve_actions(user):
+        return _json(event, 403, {"detail": "Only approver or admin roles can approve planner actions."})
+    now = int(time.time())
+    payload = {
+        "action_key": action_key,
+        "status": review_status,
+        "note": note,
+        "action_snapshot": action_snapshot,
+        "updated_by": user.get("sub") or "unknown",
+        "updated_at_epoch": now,
+    }
+    if review_status == "accepted":
+        payload["approved_by"] = user.get("sub") or "unknown"
+        payload["approved_at_epoch"] = now
+    dynamodb.put_item(
+        TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+        Item={
+            "pk": {"S": _action_reviews_pk()},
+            "sk": {"S": action_key},
+            "data": {"S": json.dumps(payload, separators=(",", ":"), default=str)},
+            "updated_at_epoch": {"N": str(now)},
+        },
+    )
+    _audit_event(
+        event,
+        "action_review_updated",
+        str(action_snapshot.get("sku") or action_snapshot.get("action_type") or "planner_action"),
+        {"action_key": action_key, "status": review_status},
+        user.get("sub"),
+    )
+    return _json(event, 200, {"row": payload, "storage": "server"})
+
+
+def _clear_action_reviews(event: Dict[str, Any]) -> Dict[str, Any]:
+    user = _require_user(event)
+    if not user:
+        return _json(event, 401, {"detail": "Login required."})
+    if not _can_approve_actions(user):
+        return _json(event, 403, {"detail": "Only approver or admin roles can clear planner review history."})
+    deleted = 0
+    while True:
+        response = dynamodb.query(
+            TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+            KeyConditionExpression="pk = :pk",
+            ExpressionAttributeValues={":pk": {"S": _action_reviews_pk()}},
+            ProjectionExpression="pk, sk",
+            Limit=25,
+        )
+        items = response.get("Items", [])
+        if not items:
+            break
+        for item in items:
+            dynamodb.delete_item(
+                TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+                Key={"pk": item["pk"], "sk": item["sk"]},
+            )
+            deleted += 1
+        if not response.get("LastEvaluatedKey"):
+            break
+    _audit_event(event, "action_reviews_cleared", "planner_actions", {"deleted": deleted}, user.get("sub"))
+    return _json(event, 200, {"deleted": deleted, "storage": "server"})
+
+
 def _audit_events(event: Dict[str, Any]) -> Dict[str, Any]:
     if not _require_user(event):
         return _json(event, 401, {"detail": "Login required."})
     limit = _parse_limit(event, default=100, maximum=250)
     rows = _load_audit_events(limit=limit)
     return _json(event, 200, {"rows": rows, "count": len(rows)})
+
+
+def _monitoring_summary(event: Dict[str, Any]) -> Dict[str, Any]:
+    if not _require_user(event):
+        return _json(event, 401, {"detail": "Login required."})
+    now = int(time.time())
+    cutoff = now - 24 * 60 * 60
+    audits = [row for row in _load_audit_events(limit=250) if int(row.get("created_at_epoch", 0) or 0) >= cutoff]
+    imports = [row for row in _load_import_history(limit=250) if int(row.get("updated_at_epoch", 0) or 0) >= cutoff]
+    api_errors = [row for row in audits if row.get("action") == "api_error"]
+    import_failures = [
+        row
+        for row in imports
+        if row.get("status") == "failed"
+    ] + [row for row in audits if str(row.get("action", "")).startswith("import_") and str(row.get("action", "")).endswith("_failed")]
+    slow_items = [row for row in audits if row.get("action") in {"slow_request", "slow_job"}]
+    ai_failures = [row for row in audits if row.get("action") == "ai_failure"]
+    checks = [
+        {
+            "name": "API errors",
+            "status": "attention" if api_errors else "ok",
+            "count": len(api_errors),
+            "message": "Unhandled API errors captured in the last 24 hours.",
+        },
+        {
+            "name": "Import failures",
+            "status": "attention" if import_failures else "ok",
+            "count": len(import_failures),
+            "message": "CSV/XLSX validation, mapping, or worker failures in the last 24 hours.",
+        },
+        {
+            "name": "Slow requests/jobs",
+            "status": "attention" if slow_items else "ok",
+            "count": len(slow_items),
+            "message": "Requests or jobs that exceeded configured pilot thresholds.",
+        },
+        {
+            "name": "Failed AI calls",
+            "status": "attention" if ai_failures else "ok",
+            "count": len(ai_failures),
+            "message": "LLM failures that fell back to safe materialized views.",
+        },
+    ]
+    events = sorted([*audits, *imports], key=lambda row: int(row.get("created_at_epoch", row.get("updated_at_epoch", 0)) or 0), reverse=True)
+    return _json(
+        event,
+        200,
+        {
+            "generated_at_epoch": now,
+            "window_hours": 24,
+            "checks": checks,
+            "events": events[:25],
+            "storage": "dynamodb_audit_and_import_status",
+        },
+    )
 
 
 def _read_staged_rows(entity: str, bucket: str, key: str) -> List[Dict[str, str]]:
@@ -1265,19 +1487,34 @@ def _empty_dashboard() -> Dict[str, Any]:
     }
 
 
-def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     method = _method(event)
     path = _path(event).rstrip("/") or "/"
 
     if method == "OPTIONS":
         return {"statusCode": 204, "headers": _cors_headers(event), "body": ""}
     if path == "/health":
-        return _json(event, 200, {"ok": True, "service": "stocksense-low-idle-api"})
+        return _json(event, 200, {"ok": True, "service": "stocksense-low-idle-api", "tenant_id": TENANT_ID})
     if method == "POST" and path == "/api/auth/login":
         return _login(event)
     if method == "GET" and path == "/api/auth/me":
         user = _require_user(event)
-        return _json(event, 200, {"user": {"username": user.get("sub")}}) if user else _json(event, 401, {"detail": "Login required."})
+        return (
+            _json(
+                event,
+                200,
+                {
+                    "user": {
+                        "username": user.get("sub"),
+                        "tenant_id": user.get("tenant_id", TENANT_ID),
+                        "role": user.get("role", "planner"),
+                        "can_approve_actions": _can_approve_actions(user),
+                    }
+                },
+            )
+            if user
+            else _json(event, 401, {"detail": "Login required."})
+        )
     if method == "GET" and path == "/api/ai/status":
         return _protected_json(event, _ai_status_payload())
     if path == "/api/import/requirements":
@@ -1329,6 +1566,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _import_history(event)
     if method == "GET" and path == "/api/audit-events":
         return _audit_events(event)
+    if method == "GET" and path == "/api/monitoring/summary":
+        return _monitoring_summary(event)
+    if method == "GET" and path == "/api/action-reviews":
+        return _action_reviews(event)
+    if method == "POST" and path == "/api/action-reviews":
+        return _upsert_action_review(event)
+    if method == "POST" and path == "/api/action-reviews/clear":
+        return _clear_action_reviews(event)
     if method == "GET" and path == "/api/dashboard":
         return _protected_json(event, _get_view("dashboard") or _empty_dashboard())
     if method == "GET" and path == "/api/products":
@@ -1355,6 +1600,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _json(event, 401, {"detail": "Login required."})
         question = str(_body(event).get("question", ""))
         answer = _query_answer(question)
+        if str(answer.get("ai_status", "")).startswith("llm_error"):
+            _audit_event(
+                event,
+                "ai_failure",
+                str(answer.get("template", "query")),
+                {"ai_error": answer.get("ai_error"), "question_preview": question[:160]},
+                user.get("sub"),
+            )
         _audit_event(
             event,
             "query_answered",
@@ -1366,3 +1619,39 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if method == "GET" and path.startswith("/api/views/"):
         return _protected_json(event, _get_view(path.rsplit("/", 1)[-1]) or {"rows": []})
     return _json(event, 404, {"detail": "Route not implemented in the low-idle Lambda API.", "path": path})
+
+
+def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    started = time.perf_counter()
+    method = _method(event)
+    path = _path(event).rstrip("/") or "/"
+    try:
+        response = _dispatch(event, context)
+    except Exception as exc:
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        _audit_event(
+            event,
+            "api_error",
+            path,
+            {"method": method, "duration_ms": duration_ms, "error": type(exc).__name__},
+        )
+        return _json(event, 500, {"detail": "Internal server error."})
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    response.setdefault("headers", {})
+    response["headers"]["x-stocksense-duration-ms"] = str(duration_ms)
+    status_code = int(response.get("statusCode", 200))
+    if status_code >= 500:
+        _audit_event(
+            event,
+            "api_error",
+            path,
+            {"method": method, "duration_ms": duration_ms, "status_code": status_code},
+        )
+    elif path.startswith("/api/") and duration_ms >= 2_000:
+        _audit_event(
+            event,
+            "slow_request",
+            path,
+            {"method": method, "duration_ms": duration_ms, "status_code": status_code},
+        )
+    return response

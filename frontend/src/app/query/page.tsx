@@ -4,15 +4,35 @@ import { FormEvent, useState } from "react";
 import { Search, Send } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
-import { apiPost, QueryResponse } from "@/lib/api";
+import { apiPost, IS_DEMO_MODE, QueryResponse } from "@/lib/api";
 
 const examples = [
   "Who needs another order right now?",
   "Which SKUs will stock out in the next 30 days?",
   "Which inventory expires soon?",
-  "Which customers usually buy SKU OTG-RAM-001 every month?",
+  "Which customers usually buy SKU 08252K every month?",
   "What should we reorder this week?"
 ];
+
+function aiModeLabel(result: QueryResponse): string {
+  if (result.ai_status === "llm_augmented") return "AI reasoning active";
+  if (IS_DEMO_MODE || result.ai_status?.startsWith("demo")) return "Demo rule-based answers";
+  if (result.ai_status?.includes("fallback")) return "Safe rule-based fallback";
+  return "Safe query mode";
+}
+
+function aiSourceLabel(result: QueryResponse): string {
+  if (result.ai_status === "llm_augmented" && result.ai?.provider) {
+    return `${result.ai.provider} ${result.ai.model}`;
+  }
+  if (IS_DEMO_MODE || result.ai_status?.startsWith("demo")) {
+    return "No live model call in public demo";
+  }
+  if (result.ai?.configured === false) {
+    return "AI key not configured";
+  }
+  return "Rule-based materialized views";
+}
 
 export default function QueryPage() {
   const [question, setQuestion] = useState(examples[0]);
@@ -86,11 +106,9 @@ export default function QueryPage() {
           </div>
           <div className="ai-status-row">
             <span className={result.ai_status === "llm_augmented" ? "ai-status-active" : "ai-status-fallback"}>
-              {result.ai_status === "llm_augmented" ? "AI reasoning active" : "Safe fallback mode"}
+              {aiModeLabel(result)}
             </span>
-            <span>
-              {result.ai?.provider ? `${result.ai.provider} ${result.ai.model}` : "Rule-based materialized views"}
-            </span>
+            <span>{aiSourceLabel(result)}</span>
             <span>{result.safe_query_mode.replaceAll("_", " ")}</span>
           </div>
           <p>{result.explanation}</p>

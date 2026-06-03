@@ -64,22 +64,22 @@ CATEGORY_SEASONALITY = {
 }
 
 PRODUCT_CATALOG = [
-    ("OTG-RAM-001", "Ottogi Jin Ramen Spicy Multi-Pack", "Noodles", 20, 270),
-    ("OTG-RAM-002", "Ottogi Jin Ramen Mild Multi-Pack", "Noodles", 20, 270),
+    ("OTG-RAM-001", "Ottogi Jin Ramen Hot Case", "Noodles", 20, 270),
+    ("OTG-RAM-002", "Ottogi Jin Ramen Mild Case", "Noodles", 20, 270),
     ("OTG-RAM-003", "Ottogi Jin Ramen Veggie Multi-Pack", "Noodles", 20, 270),
     ("OTG-RAM-004", "Ottogi Sesame Ramen with Egg Block", "Noodles", 20, 270),
     ("OTG-RAM-005", "Ottogi Cheese Ramen Multi-Pack", "Noodles", 20, 270),
     ("OTG-RAM-006", "Ottogi Yeul Ramen Hot Pepper", "Noodles", 20, 270),
     ("OTG-RAM-007", "Ottogi Snack Ramen Multi-Pack", "Noodles", 20, 270),
     ("OTG-RAM-008", "Ottogi Ramen Sari Plain Noodle", "Noodles", 40, 270),
-    ("OTG-RAM-009", "Ottogi Jin Jjambbong Spicy Seafood", "Noodles", 16, 270),
-    ("OTG-RAM-010", "Ottogi Jin Jjajang Black Bean Noodle", "Noodles", 16, 270),
+    ("OTG-RAM-009", "Ottogi Champong Noodles Spicy Seafood 5-Pack", "Noodles", 16, 270),
+    ("OTG-RAM-010", "Ottogi Jjajang Noodles Black Bean 5-Pack", "Noodles", 16, 270),
     ("OTG-RAM-011", "Ottogi Spaghetti Ramen", "Noodles", 16, 270),
     ("OTG-RAM-012", "Ottogi Curry Ramen", "Noodles", 16, 270),
     ("OTG-RAM-013", "Ottogi Odongtong Myon Seafood Noodle", "Noodles", 16, 270),
     ("OTG-RAM-014", "Ottogi Buckwheat Bibim Noodle", "Noodles", 16, 240),
-    ("OTG-RAM-015", "Ottogi Cup Noodle Spicy", "Noodles", 12, 240),
-    ("OTG-RAM-016", "Ottogi Cup Noodle Udon", "Noodles", 12, 240),
+    ("OTG-RAM-015", "Ottogi Jin Ramen Cup Hot Case", "Noodles", 12, 240),
+    ("OTG-RAM-016", "Ottogi Jin Ramen Cup Mild Case", "Noodles", 12, 240),
     ("OTG-CUR-001", "Ottogi 3 Minute Curry Mild Pouch", "Curry", 24, 365),
     ("OTG-CUR-002", "Ottogi 3 Minute Curry Medium Pouch", "Curry", 24, 365),
     ("OTG-CUR-003", "Ottogi 3 Minute Curry Hot Pouch", "Curry", 24, 365),
@@ -176,6 +176,36 @@ PRODUCT_CATALOG = [
     ("OTG-SEA-002", "Ottogi Seaweed Crisps", "Seaweed", 24, 300),
 ]
 
+PUBLIC_SKU_OVERRIDES = {
+    # Public distributor item numbers or UPC-backed retail identifiers found in indexed catalogs/listings.
+    # These are demo identifiers, not private Ottogi ERP item master records.
+    "OTG-RAM-001": "08252K",
+    "OTG-RAM-002": "08253K",
+    "OTG-RAM-004": "UPC-645175525196",
+    "OTG-RAM-006": "08256K",
+    "OTG-RAM-007": "UPC-645175572640",
+    "OTG-RAM-009": "08258K",
+    "OTG-RAM-010": "08257K",
+    "OTG-RAM-013": "08262K",
+    "OTG-RAM-015": "08324K",
+    "OTG-RAM-016": "08325K",
+    "OTG-CUR-001": "03632K",
+    "OTG-CUR-002": "03633K",
+    "OTG-CUR-003": "03631K",
+    "OTG-CUR-004": "03477K",
+    "OTG-CUR-005": "03637K",
+    "OTG-CUR-006": "03635K",
+    "OTG-CUR-007": "UPC-645175010036",
+    "OTG-CUR-008": "03634K",
+    "OTG-CUR-012": "03636K",
+    "OTG-SAU-011": "02208K",
+}
+
+
+def public_sku(demo_sku: str) -> str:
+    return PUBLIC_SKU_OVERRIDES.get(demo_sku, demo_sku.replace("OTG-", "OTK-DEMO-"))
+
+
 BASE_CUSTOMERS = [
     ("CUST-HMART-WEST", "H Mart West", "West", "Retail"),
     ("CUST-HMART-EAST", "H Mart East", "Northeast", "Retail"),
@@ -240,7 +270,7 @@ def _weighted_warehouse(region: str) -> str:
 def build_products() -> list[Product]:
     return [
         Product(
-            sku=sku,
+            sku=public_sku(sku),
             name=name,
             category=category,
             case_size=case_size,
@@ -259,7 +289,10 @@ def build_customers() -> list[Customer]:
 
 def build_orders(products: list[Product], customers: list[Customer]) -> list[CustomerOrder]:
     today = date.today()
-    high_velocity = ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+    high_velocity = [
+        public_sku(sku)
+        for sku in ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+    ]
     products_by_sku = {product.sku: product for product in products}
     all_skus = [product.sku for product in products]
     category_skus: dict[str, list[str]] = {}
@@ -323,11 +356,11 @@ def build_inventory_lots(products: list[Product]) -> list[InventoryLot]:
     counter = 1
 
     critical_lots = [
-        ("OTG-RAM-001", "LA DC", 840, 18),
-        ("OTG-CUR-001", "NJ DC", 720, 26),
-        ("OTG-RIC-001", "Dallas DC", 640, 42),
-        ("OTG-OIL-001", "LA DC", 510, 58),
-        ("OTG-SAU-001", "Seattle DC", 620, 82),
+        (public_sku("OTG-RAM-001"), "LA DC", 840, 18),
+        (public_sku("OTG-CUR-001"), "NJ DC", 720, 26),
+        (public_sku("OTG-RIC-001"), "Dallas DC", 640, 42),
+        (public_sku("OTG-OIL-001"), "LA DC", 510, 58),
+        (public_sku("OTG-SAU-001"), "Seattle DC", 620, 82),
     ]
     for sku, warehouse, quantity, days_to_expire in critical_lots:
         product = products_by_sku[sku]
@@ -380,7 +413,10 @@ def build_inbound_shipments(products: list[Product]) -> list[InboundShipment]:
     today = date.today()
     shipments: list[InboundShipment] = []
     products_by_sku = {product.sku: product for product in products}
-    priority = ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+    priority = [
+        public_sku(sku)
+        for sku in ["OTG-RAM-001", "OTG-RAM-002", "OTG-CUR-001", "OTG-RIC-001", "OTG-OIL-001"]
+    ]
     for index, sku in enumerate(priority):
         product = products_by_sku[sku]
         quantity = random.choice([60, 90, 120, 150]) * product.case_size

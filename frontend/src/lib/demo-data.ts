@@ -1,114 +1,114 @@
 const products = [
-  { sku: "OTG-RAM-001", name: "Ottogi Jin Ramen Spicy Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-002", name: "Ottogi Jin Ramen Mild Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-003", name: "Ottogi Jin Ramen Veggie Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-004", name: "Ottogi Sesame Ramen with Egg Block", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-005", name: "Ottogi Cheese Ramen Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-006", name: "Ottogi Yeul Ramen Hot Pepper", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-007", name: "Ottogi Snack Ramen Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
-  { sku: "OTG-RAM-008", name: "Ottogi Ramen Sari Plain Noodle", category: "Noodles", case_size: 40, shelf_life_days: 270 },
-  { sku: "OTG-RAM-009", name: "Ottogi Jin Jjambbong Spicy Seafood", category: "Noodles", case_size: 16, shelf_life_days: 270 },
-  { sku: "OTG-RAM-010", name: "Ottogi Jin Jjajang Black Bean Noodle", category: "Noodles", case_size: 16, shelf_life_days: 270 },
-  { sku: "OTG-RAM-011", name: "Ottogi Spaghetti Ramen", category: "Noodles", case_size: 16, shelf_life_days: 270 },
-  { sku: "OTG-RAM-012", name: "Ottogi Curry Ramen", category: "Noodles", case_size: 16, shelf_life_days: 270 },
-  { sku: "OTG-RAM-013", name: "Ottogi Odongtong Myon Seafood Noodle", category: "Noodles", case_size: 16, shelf_life_days: 270 },
-  { sku: "OTG-RAM-014", name: "Ottogi Buckwheat Bibim Noodle", category: "Noodles", case_size: 16, shelf_life_days: 240 },
-  { sku: "OTG-RAM-015", name: "Ottogi Cup Noodle Spicy", category: "Noodles", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RAM-016", name: "Ottogi Cup Noodle Udon", category: "Noodles", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-CUR-001", name: "Ottogi 3 Minute Curry Mild Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-002", name: "Ottogi 3 Minute Curry Medium Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-003", name: "Ottogi 3 Minute Curry Hot Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-004", name: "Ottogi 3 Minute Jjajang Sauce Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-005", name: "Ottogi Vermont Curry Mild Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-CUR-006", name: "Ottogi Vermont Curry Hot Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-CUR-007", name: "Ottogi Baekse Curry Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-CUR-008", name: "Ottogi 3-Day Aged Curry Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-CUR-009", name: "Ottogi Butter Chicken Curry Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-010", name: "Ottogi Honey Mango Curry Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-011", name: "Ottogi Hash Rice Sauce Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-CUR-012", name: "Ottogi Curry Powder Mild", category: "Curry", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-RIC-001", name: "Ottogi Cooked Rice White Bowl", category: "Ready Rice", case_size: 18, shelf_life_days: 240 },
-  { sku: "OTG-RIC-002", name: "Ottogi Cooked Rice Brown Bowl", category: "Ready Rice", case_size: 18, shelf_life_days: 240 },
-  { sku: "OTG-RIC-003", name: "Ottogi Cooked Rice Kimchi Tuna Sauce", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-004", name: "Ottogi Cooked Rice Jeonju Bibimbap", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-005", name: "Ottogi Cooked Rice Teriyaki Tuna Mayo", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-006", name: "Ottogi Cooked Rice Spicy Octopus Sauce", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-007", name: "Ottogi Cooked Rice Bean Sprout Pollock", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-008", name: "Ottogi Cooked Rice Hamburg Steak", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-009", name: "Ottogi Cooked Rice Soybean Paste Beef", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-RIC-010", name: "Ottogi 3 Minute Hamburg Steak", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-RIC-011", name: "Ottogi 3 Minute Meatball Sweet Sour", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-RIC-012", name: "Ottogi 3 Minute Barbecue Chicken", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-SAU-001", name: "Ottogi Tomato Ketchup", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-002", name: "Ottogi Mayonnaise", category: "Sauce", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SAU-003", name: "Ottogi Gold Mayonnaise", category: "Sauce", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SAU-004", name: "Ottogi Tonkatsu Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-005", name: "Ottogi Worcestershire Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-006", name: "Ottogi Tartar Sauce", category: "Sauce", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SAU-007", name: "Ottogi Honey Mustard", category: "Sauce", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SAU-008", name: "Ottogi Sesame Dressing", category: "Sauce", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SAU-009", name: "Ottogi Korean BBQ Bulgogi Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-010", name: "Ottogi Gochujang Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-011", name: "Ottogi Jjajang Sauce", category: "Sauce", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-SAU-012", name: "Ottogi Spaghetti Tomato Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-013", name: "Ottogi Pizza Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-014", name: "Ottogi Sweet Chili Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-015", name: "Ottogi Black Pepper Steak Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SAU-016", name: "Ottogi Pickling Sauce Base", category: "Sauce", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-OIL-001", name: "Ottogi Sesame Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-OIL-002", name: "Ottogi Perilla Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-OIL-003", name: "Ottogi Roasted Sesame Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-OIL-004", name: "Ottogi Canola Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-OIL-005", name: "Ottogi Corn Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-OIL-006", name: "Ottogi Cooking Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-VNG-001", name: "Ottogi Apple Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-VNG-002", name: "Ottogi Brown Rice Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-VNG-003", name: "Ottogi Brewed Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-VNG-004", name: "Ottogi White Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SSN-001", name: "Ottogi Roasted Sesame Seeds", category: "Seasoning", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-SSN-002", name: "Ottogi Black Sesame Seeds", category: "Seasoning", case_size: 24, shelf_life_days: 365 },
-  { sku: "OTG-MIX-001", name: "Ottogi Frying Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
-  { sku: "OTG-MIX-002", name: "Ottogi Pancake Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
-  { sku: "OTG-MIX-003", name: "Ottogi Tempura Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
-  { sku: "OTG-MIX-004", name: "Ottogi Hotcake Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
-  { sku: "OTG-MIX-005", name: "Ottogi Bread Crumbs", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-006", name: "Ottogi Corn Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-007", name: "Ottogi Cream Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-008", name: "Ottogi Onion Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-009", name: "Ottogi Beef Stock Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-010", name: "Ottogi Anchovy Stock Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-011", name: "Ottogi Kimchi Seasoning Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-MIX-012", name: "Ottogi Curry Flake", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-001", name: "Ottogi Seaweed Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-002", name: "Ottogi Beef Bone Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-003", name: "Ottogi Dried Pollack Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-004", name: "Ottogi Soybean Paste Stew", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-005", name: "Ottogi Kimchi Stew", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
-  { sku: "OTG-SOU-006", name: "Ottogi Rice Cake Soup Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-SOU-007", name: "Ottogi Beef Bulgogi Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-SOU-008", name: "Ottogi Pork Kimchi Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-SOU-009", name: "Ottogi Spicy Chicken Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-SOU-010", name: "Ottogi Japchae Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
-  { sku: "OTG-FRZ-001", name: "Ottogi Mandu Tray Original", category: "Frozen", case_size: 8, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-002", name: "Ottogi Kimchi Mandu Tray", category: "Frozen", case_size: 8, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-003", name: "Ottogi Vegetable Mandu Tray", category: "Frozen", case_size: 8, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-004", name: "Ottogi Frozen Cheese Pizza", category: "Frozen", case_size: 8, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-005", name: "Ottogi Frozen Bulgogi Pizza", category: "Frozen", case_size: 8, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-006", name: "Ottogi Shrimp Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-007", name: "Ottogi Kimchi Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-FRZ-008", name: "Ottogi Curry Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-SNK-001", name: "Ottogi Ppushu Ppushu Bulgogi Snack Noodle", category: "Snacks", case_size: 12, shelf_life_days: 300 },
-  { sku: "OTG-SNK-002", name: "Ottogi Ppushu Ppushu Tteokbokki Snack Noodle", category: "Snacks", case_size: 12, shelf_life_days: 300 },
-  { sku: "OTG-TEA-001", name: "Ottogi Barley Tea", category: "Beverage", case_size: 20, shelf_life_days: 540 },
-  { sku: "OTG-TEA-002", name: "Ottogi Corn Tea", category: "Beverage", case_size: 20, shelf_life_days: 540 },
-  { sku: "OTG-TEA-003", name: "Ottogi Honey Citron Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-TEA-004", name: "Ottogi Jujube Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-TEA-005", name: "Ottogi Ginger Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
-  { sku: "OTG-CAN-001", name: "Ottogi Hot Pepper Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
-  { sku: "OTG-CAN-002", name: "Ottogi Vegetable Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
-  { sku: "OTG-CAN-003", name: "Ottogi Light Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
-  { sku: "OTG-SEA-001", name: "Ottogi Roasted Seaweed Snack", category: "Seaweed", case_size: 24, shelf_life_days: 300 },
-  { sku: "OTG-SEA-002", name: "Ottogi Seaweed Crisps", category: "Seaweed", case_size: 24, shelf_life_days: 300 }
+  { sku: "08252K", name: "Ottogi Jin Ramen Hot Case", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "08253K", name: "Ottogi Jin Ramen Mild Case", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-003", name: "Ottogi Jin Ramen Veggie Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "UPC-645175525196", name: "Ottogi Sesame Ramen with Egg Block", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-005", name: "Ottogi Cheese Ramen Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "08256K", name: "Ottogi Yeul Ramen Hot Pepper", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "UPC-645175572640", name: "Ottogi Snack Ramen Multi-Pack", category: "Noodles", case_size: 20, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-008", name: "Ottogi Ramen Sari Plain Noodle", category: "Noodles", case_size: 40, shelf_life_days: 270 },
+  { sku: "08258K", name: "Ottogi Champong Noodles Spicy Seafood 5-Pack", category: "Noodles", case_size: 16, shelf_life_days: 270 },
+  { sku: "08257K", name: "Ottogi Jjajang Noodles Black Bean 5-Pack", category: "Noodles", case_size: 16, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-011", name: "Ottogi Spaghetti Ramen", category: "Noodles", case_size: 16, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-012", name: "Ottogi Curry Ramen", category: "Noodles", case_size: 16, shelf_life_days: 270 },
+  { sku: "08262K", name: "Ottogi Odongtong Myon Seafood Noodle", category: "Noodles", case_size: 16, shelf_life_days: 270 },
+  { sku: "OTK-DEMO-RAM-014", name: "Ottogi Buckwheat Bibim Noodle", category: "Noodles", case_size: 16, shelf_life_days: 240 },
+  { sku: "08324K", name: "Ottogi Jin Ramen Cup Hot Case", category: "Noodles", case_size: 12, shelf_life_days: 240 },
+  { sku: "08325K", name: "Ottogi Jin Ramen Cup Mild Case", category: "Noodles", case_size: 12, shelf_life_days: 240 },
+  { sku: "03632K", name: "Ottogi 3 Minute Curry Mild Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "03633K", name: "Ottogi 3 Minute Curry Medium Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "03631K", name: "Ottogi 3 Minute Curry Hot Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "03477K", name: "Ottogi 3 Minute Jjajang Sauce Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "03637K", name: "Ottogi Vermont Curry Mild Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
+  { sku: "03635K", name: "Ottogi Vermont Curry Hot Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
+  { sku: "UPC-645175010036", name: "Ottogi Baekse Curry Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
+  { sku: "03634K", name: "Ottogi 3-Day Aged Curry Powder", category: "Curry", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-CUR-009", name: "Ottogi Butter Chicken Curry Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-CUR-010", name: "Ottogi Honey Mango Curry Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-CUR-011", name: "Ottogi Hash Rice Sauce Pouch", category: "Curry", case_size: 24, shelf_life_days: 365 },
+  { sku: "03636K", name: "Ottogi Curry Powder Mild", category: "Curry", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-RIC-001", name: "Ottogi Cooked Rice White Bowl", category: "Ready Rice", case_size: 18, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-002", name: "Ottogi Cooked Rice Brown Bowl", category: "Ready Rice", case_size: 18, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-003", name: "Ottogi Cooked Rice Kimchi Tuna Sauce", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-004", name: "Ottogi Cooked Rice Jeonju Bibimbap", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-005", name: "Ottogi Cooked Rice Teriyaki Tuna Mayo", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-006", name: "Ottogi Cooked Rice Spicy Octopus Sauce", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-007", name: "Ottogi Cooked Rice Bean Sprout Pollock", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-008", name: "Ottogi Cooked Rice Hamburg Steak", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-009", name: "Ottogi Cooked Rice Soybean Paste Beef", category: "Ready Rice", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-RIC-010", name: "Ottogi 3 Minute Hamburg Steak", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-RIC-011", name: "Ottogi 3 Minute Meatball Sweet Sour", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-RIC-012", name: "Ottogi 3 Minute Barbecue Chicken", category: "Ready Meals", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-001", name: "Ottogi Tomato Ketchup", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-002", name: "Ottogi Mayonnaise", category: "Sauce", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-003", name: "Ottogi Gold Mayonnaise", category: "Sauce", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-004", name: "Ottogi Tonkatsu Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-005", name: "Ottogi Worcestershire Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-006", name: "Ottogi Tartar Sauce", category: "Sauce", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-007", name: "Ottogi Honey Mustard", category: "Sauce", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-008", name: "Ottogi Sesame Dressing", category: "Sauce", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-009", name: "Ottogi Korean BBQ Bulgogi Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-010", name: "Ottogi Gochujang Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "02208K", name: "Ottogi Jjajang Sauce", category: "Sauce", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SAU-012", name: "Ottogi Spaghetti Tomato Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-013", name: "Ottogi Pizza Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-014", name: "Ottogi Sweet Chili Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-015", name: "Ottogi Black Pepper Steak Sauce", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SAU-016", name: "Ottogi Pickling Sauce Base", category: "Sauce", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-OIL-001", name: "Ottogi Sesame Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-OIL-002", name: "Ottogi Perilla Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-OIL-003", name: "Ottogi Roasted Sesame Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-OIL-004", name: "Ottogi Canola Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-OIL-005", name: "Ottogi Corn Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-OIL-006", name: "Ottogi Cooking Oil", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-VNG-001", name: "Ottogi Apple Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-VNG-002", name: "Ottogi Brown Rice Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-VNG-003", name: "Ottogi Brewed Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-VNG-004", name: "Ottogi White Vinegar", category: "Oil & Vinegar", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SSN-001", name: "Ottogi Roasted Sesame Seeds", category: "Seasoning", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SSN-002", name: "Ottogi Black Sesame Seeds", category: "Seasoning", case_size: 24, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-001", name: "Ottogi Frying Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-002", name: "Ottogi Pancake Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-003", name: "Ottogi Tempura Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-004", name: "Ottogi Hotcake Mix", category: "Mix & Powder", case_size: 10, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-005", name: "Ottogi Bread Crumbs", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-006", name: "Ottogi Corn Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-007", name: "Ottogi Cream Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-008", name: "Ottogi Onion Soup Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-009", name: "Ottogi Beef Stock Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-010", name: "Ottogi Anchovy Stock Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-011", name: "Ottogi Kimchi Seasoning Powder", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-MIX-012", name: "Ottogi Curry Flake", category: "Mix & Powder", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-001", name: "Ottogi Seaweed Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-002", name: "Ottogi Beef Bone Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-003", name: "Ottogi Dried Pollack Soup", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-004", name: "Ottogi Soybean Paste Stew", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-005", name: "Ottogi Kimchi Stew", category: "Soup & HMR", case_size: 12, shelf_life_days: 365 },
+  { sku: "OTK-DEMO-SOU-006", name: "Ottogi Rice Cake Soup Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-SOU-007", name: "Ottogi Beef Bulgogi Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-SOU-008", name: "Ottogi Pork Kimchi Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-SOU-009", name: "Ottogi Spicy Chicken Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-SOU-010", name: "Ottogi Japchae Bowl", category: "Soup & HMR", case_size: 12, shelf_life_days: 240 },
+  { sku: "OTK-DEMO-FRZ-001", name: "Ottogi Mandu Tray Original", category: "Frozen", case_size: 8, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-002", name: "Ottogi Kimchi Mandu Tray", category: "Frozen", case_size: 8, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-003", name: "Ottogi Vegetable Mandu Tray", category: "Frozen", case_size: 8, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-004", name: "Ottogi Frozen Cheese Pizza", category: "Frozen", case_size: 8, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-005", name: "Ottogi Frozen Bulgogi Pizza", category: "Frozen", case_size: 8, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-006", name: "Ottogi Shrimp Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-007", name: "Ottogi Kimchi Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-FRZ-008", name: "Ottogi Curry Fried Rice", category: "Frozen", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SNK-001", name: "Ottogi Ppushu Ppushu Bulgogi Snack Noodle", category: "Snacks", case_size: 12, shelf_life_days: 300 },
+  { sku: "OTK-DEMO-SNK-002", name: "Ottogi Ppushu Ppushu Tteokbokki Snack Noodle", category: "Snacks", case_size: 12, shelf_life_days: 300 },
+  { sku: "OTK-DEMO-TEA-001", name: "Ottogi Barley Tea", category: "Beverage", case_size: 20, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-TEA-002", name: "Ottogi Corn Tea", category: "Beverage", case_size: 20, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-TEA-003", name: "Ottogi Honey Citron Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-TEA-004", name: "Ottogi Jujube Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-TEA-005", name: "Ottogi Ginger Tea", category: "Beverage", case_size: 12, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-CAN-001", name: "Ottogi Hot Pepper Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-CAN-002", name: "Ottogi Vegetable Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-CAN-003", name: "Ottogi Light Tuna", category: "Canned", case_size: 24, shelf_life_days: 540 },
+  { sku: "OTK-DEMO-SEA-001", name: "Ottogi Roasted Seaweed Snack", category: "Seaweed", case_size: 24, shelf_life_days: 300 },
+  { sku: "OTK-DEMO-SEA-002", name: "Ottogi Seaweed Crisps", category: "Seaweed", case_size: 24, shelf_life_days: 300 }
 ];
 
 const customers = [
@@ -129,7 +129,7 @@ export const demoDashboard = {
   charts: {
     demand_trend_by_sku: [
       {
-        sku: "OTG-RAM-001",
+        sku: "08252K",
         points: [
           { label: "2025-07", value: 820 },
           { label: "2025-08", value: 880 },
@@ -146,7 +146,7 @@ export const demoDashboard = {
         ]
       },
       {
-        sku: "OTG-SOU-005",
+        sku: "OTK-DEMO-SOU-005",
         points: [
           { label: "2025-07", value: 520 },
           { label: "2025-08", value: 610 },
@@ -179,8 +179,8 @@ export const demoDashboard = {
   },
   recommendations: [
     {
-      sku: "OTG-RAM-001",
-      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      sku: "08252K",
+      product_name: "Ottogi Jin Ramen Hot Case",
       category: "Noodles",
       warehouse: "LA DC",
       status: "stockout risk",
@@ -193,8 +193,8 @@ export const demoDashboard = {
       reason: "Stockout risk due to 30-day ocean freight lead time: effective inventory is below lead-time demand after excluding units expiring before replenishment."
     },
     {
-      sku: "OTG-RAM-002",
-      product_name: "Ottogi Jin Ramen Mild Multi-Pack",
+      sku: "08253K",
+      product_name: "Ottogi Jin Ramen Mild Case",
       category: "Noodles",
       warehouse: "NJ DC",
       status: "reorder now",
@@ -207,7 +207,7 @@ export const demoDashboard = {
       reason: "Reorder now because inventory position is at the reorder point based on average daily demand plus safety stock."
     },
     {
-      sku: "OTG-SOU-005",
+      sku: "OTK-DEMO-SOU-005",
       product_name: "Ottogi Kimchi Stew",
       category: "Soup & HMR",
       warehouse: "Dallas DC",
@@ -223,8 +223,8 @@ export const demoDashboard = {
   ],
   fefo: [
     {
-      sku: "OTG-RAM-001",
-      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      sku: "08252K",
+      product_name: "Ottogi Jin Ramen Hot Case",
       category: "Noodles",
       warehouse: "LA DC",
       ship_first_lot: "LOT-00124",
@@ -234,7 +234,7 @@ export const demoDashboard = {
       reason: "Ship Lot LOT-00124 first because it expires 45 days before Lot LOT-00318."
     },
     {
-      sku: "OTG-SOU-005",
+      sku: "OTK-DEMO-SOU-005",
       product_name: "Ottogi Kimchi Stew",
       category: "Soup & HMR",
       warehouse: "Dallas DC",
@@ -247,7 +247,7 @@ export const demoDashboard = {
   ],
   waste_risk_alerts: [
     {
-      sku: "OTG-SOU-005",
+      sku: "OTK-DEMO-SOU-005",
       product_name: "Ottogi Kimchi Stew",
       category: "Soup & HMR",
       lot_id: "LOT-00047",
@@ -259,8 +259,8 @@ export const demoDashboard = {
       suggested_action: "Priority allocate to fastest-turning customers or discount immediately."
     },
     {
-      sku: "OTG-RAM-001",
-      product_name: "Ottogi Jin Ramen Spicy Multi-Pack",
+      sku: "08252K",
+      product_name: "Ottogi Jin Ramen Hot Case",
       category: "Noodles",
       lot_id: "LOT-00124",
       warehouse: "LA DC",
@@ -280,9 +280,9 @@ const demoImportHistory = {
     {
       entity: "orders",
       status: "imported",
-      message: "Imported 5,434 order rows and refreshed materialized insights.",
-      rows_seen: 5434,
-      rows_imported: 5434,
+      message: "Imported 4,907 order rows and refreshed materialized insights.",
+      rows_seen: 4907,
+      rows_imported: 4907,
       errors: [],
       filename: "orders_ottogi_demo.csv",
       updated_at_epoch: 1780344000
@@ -373,8 +373,8 @@ const demoImportHistory = {
       label: "Orders",
       status: "complete",
       required_columns: ["order_id", "customer_id", "order_date", "sku", "quantity"],
-      message: "5,434 rows imported.",
-      rows_imported: 5434,
+      message: "4,907 rows imported.",
+      rows_imported: 4907,
       error_count: 0,
       updated_at_epoch: 1780344000
     },
@@ -429,6 +429,100 @@ const demoAuditEvents = {
   count: 4
 };
 
+const demoImportRequirements = {
+  csv_required_columns: {
+    products: ["sku", "name", "category", "case_size", "shelf_life_days"],
+    inventory_lots: [
+      "lot_id",
+      "sku",
+      "warehouse",
+      "quantity_on_hand",
+      "received_date",
+      "expiration_date",
+      "unit_cost"
+    ],
+    customers: ["customer_id", "name", "region", "channel"],
+    orders: ["order_id", "customer_id", "order_date", "sku", "quantity"],
+    inbound_shipments: ["shipment_id", "sku", "quantity", "eta_date", "origin", "status"]
+  },
+  supported_upload_formats: [".csv", ".xlsx", ".xlsm"],
+  template_formats: ["csv", "xlsx"],
+  upload_mode: "presigned_s3",
+  import_workflow: "preview_map_commit",
+  mapping_preview: {
+    enabled: true,
+    preview_prefix: "inventory-ai/raw-imports/previews/",
+    commit_endpoint: "/api/imports/commit"
+  },
+  raw_file_storage: {
+    service: "s3",
+    enabled: true,
+    bucket_configured: true,
+    bucket: "demo-private-raw-imports",
+    prefix: "inventory-ai/raw-imports/incoming/"
+  },
+  query_store: {
+    service: "dynamodb",
+    records_table: "ott-inventory-ai-mvp-records",
+    views_table: "ott-inventory-ai-mvp-views"
+  },
+  erp_adapters: {
+    sap: "placeholder only; see docs/erp_integration.md",
+    oracle: "placeholder only; see docs/erp_integration.md"
+  }
+};
+
+const demoAiStatus = {
+  provider: "openai",
+  model: "gpt-5-mini",
+  enabled: true,
+  configured: false,
+  mode: "rule_based_fallback",
+  secret_source: "ssm_parameter"
+};
+
+const demoMonitoringSummary = {
+  generated_at_epoch: 1780344300,
+  window_hours: 24,
+  storage: "demo_bundled_status",
+  checks: [
+    {
+      name: "API errors",
+      status: "ok",
+      count: 0,
+      message: "No API errors in the demo monitoring window."
+    },
+    {
+      name: "Import failures",
+      status: "ok",
+      count: 0,
+      message: "All five demo datasets imported successfully."
+    },
+    {
+      name: "Slow requests/jobs",
+      status: "ok",
+      count: 0,
+      message: "No slow import or refresh jobs in the demo monitoring window."
+    },
+    {
+      name: "Failed AI calls",
+      status: "ok",
+      count: 0,
+      message: "Public demo uses safe rule-based answers unless a live AI key is configured."
+    }
+  ],
+  events: [
+    {
+      action: "imported",
+      status: "imported",
+      resource: "orders",
+      message: "Imported 4,907 order rows and refreshed views.",
+      user: "demo-import",
+      updated_at_epoch: 1780344000
+    }
+  ]
+};
+
 export function demoSkuDetail(sku: string) {
   const product = products.find((item) => item.sku === sku) || products[0];
   return {
@@ -481,9 +575,9 @@ export function demoCustomerDetail(customerId: string) {
       last_order_date: "2026-05-19"
     },
     top_skus: [
-      { sku: "OTG-RAM-001", name: "Ottogi Jin Ramen Spicy Multi-Pack", category: "Noodles", quantity: 6240 },
-      { sku: "OTG-CUR-001", name: "Ottogi 3 Minute Curry Mild Pouch", category: "Curry", quantity: 4160 },
-      { sku: "OTG-RAM-002", name: "Ottogi Jin Ramen Mild Multi-Pack", category: "Noodles", quantity: 3720 }
+      { sku: "08252K", name: "Ottogi Jin Ramen Hot Case", category: "Noodles", quantity: 6240 },
+      { sku: "03632K", name: "Ottogi 3 Minute Curry Mild Pouch", category: "Curry", quantity: 4160 },
+      { sku: "08253K", name: "Ottogi Jin Ramen Mild Case", category: "Noodles", quantity: 3720 }
     ],
     monthly_trend: [
       { label: "2026-01", value: 1640 },
@@ -505,13 +599,13 @@ function demoQuery(question: string) {
     mode: "demo_rule_based_fallback",
     secret_source: "demo"
   };
-  if (normalized.includes("customer") && normalized.includes("otg-ram-001")) {
+  if (normalized.includes("customer") && (normalized.includes("08252k") || normalized.includes("jin ramen"))) {
     return {
       question,
       template: "monthly_sku_buyers",
-      explanation: "Customers shown here buy OTG-RAM-001 with recurring monthly behavior in the loaded order history.",
+      explanation: "Customers shown here buy 08252K with recurring monthly behavior in the loaded order history.",
       action_summary: [
-        "2 customers show recurring monthly demand for OTG-RAM-001.",
+        "2 customers show recurring monthly demand for 08252K.",
         "Top recurring buyer: H Mart Foods 1.",
         "Use this list to protect allocation when supply is constrained."
       ],
@@ -532,7 +626,7 @@ function demoQuery(question: string) {
       explanation: "These lots expire within 90 days and should be prioritized before newer inventory.",
       action_summary: [
         "2 lots are inside the 90-day expiration action window.",
-        "Oldest priority: lot LOT-00047 for OTG-SOU-005 Ottogi Kimchi Stew in Dallas DC.",
+        "Oldest priority: lot LOT-00047 for OTK-DEMO-SOU-005 Ottogi Kimchi Stew in Dallas DC.",
         "Use FEFO allocation, transfer, promotion, or discount before newer lots ship."
       ],
       columns: ["sku", "product_name", "category", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "risk_bucket", "suggested_action"],
@@ -548,7 +642,7 @@ function demoQuery(question: string) {
     explanation: "These replenishment actions are due within the next 7 days based on stock position and lead-time demand.",
     action_summary: [
       "2 replenishment actions are due this week.",
-      "Top buy: OTG-RAM-001 Ottogi Jin Ramen Spicy Multi-Pack for LA DC at 1800 cases.",
+      "Top buy: 08252K Ottogi Jin Ramen Hot Case for LA DC at 1800 cases.",
       "Quantities include lead-time demand, safety stock, inbound supply, and expiration risk."
     ],
     columns: ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence", "confidence_reason"],
@@ -560,9 +654,23 @@ function demoQuery(question: string) {
 }
 
 export function getDemoGet(path: string) {
+  if (path.startsWith("/health")) return { ok: true, service: "stocksense-demo-api", tenant_id: "demo" };
+  if (path.startsWith("/api/auth/me")) {
+    return {
+      user: {
+        username: "demo-approver",
+        tenant_id: "demo",
+        role: "approver",
+        can_approve_actions: true
+      }
+    };
+  }
+  if (path.startsWith("/api/ai/status")) return demoAiStatus;
+  if (path.startsWith("/api/import/requirements")) return demoImportRequirements;
   if (path.startsWith("/api/dashboard")) return demoDashboard;
   if (path.startsWith("/api/import-history")) return demoImportHistory;
   if (path.startsWith("/api/audit-events")) return demoAuditEvents;
+  if (path.startsWith("/api/monitoring/summary")) return demoMonitoringSummary;
   if (path.startsWith("/api/products")) return { rows: products, count: products.length };
   if (path.startsWith("/api/customers?")) return { rows: customers, count: customers.length };
   if (path.startsWith("/api/sku/")) return demoSkuDetail(decodeURIComponent(path.split("/api/sku/")[1]));

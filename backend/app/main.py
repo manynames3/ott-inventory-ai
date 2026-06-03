@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-from datetime import date
+import json
+import time
+from datetime import date, datetime, timezone
 from typing import Dict, Optional
 
 import pandas as pd
-from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.adapters.base import REQUIRED_COLUMNS
 from app.adapters.csv_adapter import CSVImportAdapter
-from app.auth import authenticate, create_access_token, require_user
+from app.auth import authenticate, can_approve_actions, create_access_token, require_user, role_for_user
 from app.config import get_settings
 from app.database import get_db
-from app.models import Customer, Product
+from app.models import ActionReview, Customer, Product
 from app.services.dashboard import build_customer_detail, build_dashboard, build_sku_detail
 from app.services.dataframes import load_core_dataframes, model_to_dataframe
 from app.services.fefo import recommend_fefo, waste_risk_alerts
@@ -29,6 +31,9 @@ from app.services.templates import csv_template, next_questions, xlsx_template
 
 
 settings = get_settings()
+MONITORING_EVENTS: list[Dict[str, object]] = []
+SLOW_REQUEST_MS = 2_000
+SLOW_JOB_MS = 10_000
 
 app = FastAPI(
     title="StockSense AI API",
@@ -44,6 +49,57 @@ app.add_middleware(
 )
 
 
+def _record_monitoring_event(
+    event_type: str,
+    severity: str,
+    message: str,
+    details: Optional[Dict[str, object]] = None,
+) -> None:
+    MONITORING_EVENTS.append(
+        {
+            "event_type": event_type,
+            "severity": severity,
+            "message": message,
+            "details": details or {},
+            "created_at_epoch": int(time.time()),
+        }
+    )
+    del MONITORING_EVENTS[:-250]
+
+
+@app.middleware("http")
+async def monitoring_middleware(request: Request, call_next):
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        _record_monitoring_event(
+            "api_error",
+            "critical",
+            f"{request.method} {request.url.path} failed.",
+            {"path": request.url.path, "method": request.method, "duration_ms": duration_ms, "error": type(exc).__name__},
+        )
+        raise
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    response.headers["x-stocksense-duration-ms"] = str(duration_ms)
+    if response.status_code >= 500:
+        _record_monitoring_event(
+            "api_error",
+            "critical",
+            f"{request.method} {request.url.path} returned HTTP {response.status_code}.",
+            {"path": request.url.path, "method": request.method, "duration_ms": duration_ms, "status_code": response.status_code},
+        )
+    elif duration_ms >= SLOW_REQUEST_MS and request.url.path.startswith("/api/"):
+        _record_monitoring_event(
+            "slow_request",
+            "warning",
+            f"{request.method} {request.url.path} took {duration_ms} ms.",
+            {"path": request.url.path, "method": request.method, "duration_ms": duration_ms},
+        )
+    return response
+
+
 class QueryRequest(BaseModel):
     question: str
 
@@ -51,6 +107,13 @@ class QueryRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class ActionReviewRequest(BaseModel):
+    action_key: str
+    status: str
+    note: str = ""
+    action_snapshot: Dict[str, object] = Field(default_factory=dict)
 
 
 def _records(df: pd.DataFrame):
@@ -70,7 +133,7 @@ def _records(df: pd.DataFrame):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "stocksense-api"}
+    return {"ok": True, "service": "stocksense-api", "tenant_id": settings.tenant_id}
 
 
 @app.post("/api/auth/login")
@@ -79,20 +142,28 @@ def login(request: LoginRequest):
         return {
             "access_token": create_access_token("auth-disabled", settings=settings),
             "token_type": "bearer",
-            "user": {"username": "auth-disabled"},
+            "user": {"username": "auth-disabled", "tenant_id": settings.tenant_id, "role": "admin"},
         }
     if not authenticate(request.username, request.password, settings=settings):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password.")
+    role = role_for_user(request.username, settings=settings)
     return {
         "access_token": create_access_token(request.username, settings=settings),
         "token_type": "bearer",
-        "user": {"username": request.username},
+        "user": {"username": request.username, "tenant_id": settings.tenant_id, "role": role},
     }
 
 
 @app.get("/api/auth/me")
 def me(user: Dict[str, object] = Depends(require_user)):
-    return {"user": {"username": user.get("sub")}}
+    return {
+        "user": {
+            "username": user.get("sub"),
+            "tenant_id": user.get("tenant_id", settings.tenant_id),
+            "role": user.get("role", "planner"),
+            "can_approve_actions": can_approve_actions(user),
+        }
+    }
 
 
 @app.get("/api/import/requirements")
@@ -157,6 +228,12 @@ def import_csv(
 
     result = adapter.load_file(entity, file.filename or f"{entity}.csv", content)
     if result.errors:
+        _record_monitoring_event(
+            "import_failure",
+            "warning",
+            f"{entity} import validation failed.",
+            {"entity": entity, "rows_seen": result.rows_seen, "error_count": len(result.errors)},
+        )
         raise HTTPException(
             status_code=400,
             detail={
@@ -170,6 +247,12 @@ def import_csv(
     dataframe = getattr(result, "dataframe")
     db_result = adapter.import_dataframe(db, entity, dataframe)
     if db_result.errors:
+        _record_monitoring_event(
+            "import_failure",
+            "warning",
+            f"{entity} import database load failed.",
+            {"entity": entity, "rows_seen": db_result.rows_seen, "error_count": len(db_result.errors)},
+        )
         raise HTTPException(
             status_code=400,
             detail={
@@ -288,7 +371,15 @@ def query(
 ):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question is required.")
-    return answer_question(db, request.question, lead_time_days=settings.supplier_lead_time_days)
+    answer = answer_question(db, request.question, lead_time_days=settings.supplier_lead_time_days)
+    if str(answer.get("ai_status", "")).startswith("llm_error"):
+        _record_monitoring_event(
+            "ai_failure",
+            "warning",
+            "AI query augmentation failed and fell back to safe materialized views.",
+            {"template": answer.get("template"), "ai_error": answer.get("ai_error")},
+        )
+    return answer
 
 
 @app.get("/api/ai/status")
@@ -296,13 +387,152 @@ def ai_layer_status(_: Dict[str, object] = Depends(require_user)):
     return ai_status()
 
 
+@app.get("/api/monitoring/summary")
+def monitoring_summary(_: Dict[str, object] = Depends(require_user)):
+    now = int(time.time())
+    recent = [event for event in MONITORING_EVENTS if now - int(event.get("created_at_epoch", 0) or 0) <= 24 * 60 * 60]
+    counts = {
+        event_type: sum(1 for event in recent if event.get("event_type") == event_type)
+        for event_type in ["api_error", "import_failure", "slow_request", "slow_job", "ai_failure"]
+    }
+    checks = [
+        {
+            "name": "API errors",
+            "status": "attention" if counts["api_error"] else "ok",
+            "count": counts["api_error"],
+            "message": "Unhandled API errors captured in the last 24 hours.",
+        },
+        {
+            "name": "Import failures",
+            "status": "attention" if counts["import_failure"] else "ok",
+            "count": counts["import_failure"],
+            "message": "CSV/XLSX validation or database import failures in the last 24 hours.",
+        },
+        {
+            "name": "Slow requests/jobs",
+            "status": "attention" if counts["slow_request"] + counts["slow_job"] else "ok",
+            "count": counts["slow_request"] + counts["slow_job"],
+            "message": "Requests over 2s or recommendation jobs over 10s.",
+        },
+        {
+            "name": "Failed AI calls",
+            "status": "attention" if counts["ai_failure"] else "ok",
+            "count": counts["ai_failure"],
+            "message": "LLM failures that fell back to safe materialized views.",
+        },
+    ]
+    return {
+        "generated_at_epoch": now,
+        "window_hours": 24,
+        "checks": checks,
+        "events": list(reversed(recent[-25:])),
+        "storage": "in_memory_local",
+    }
+
+
+@app.get("/api/action-reviews")
+def list_action_reviews(
+    db: Session = Depends(get_db),
+    _: Dict[str, object] = Depends(require_user),
+):
+    reviews = db.query(ActionReview).order_by(ActionReview.updated_at.desc()).all()
+    return {
+        "rows": [
+            {
+                "action_key": row.action_key,
+                "status": row.status,
+                "note": row.note,
+                "action_snapshot": json.loads(row.action_snapshot or "{}"),
+                "updated_by": row.updated_by,
+                "approved_by": row.approved_by,
+                "approved_at": row.approved_at.isoformat() if row.approved_at else None,
+                "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+            }
+            for row in reviews
+        ],
+        "count": len(reviews),
+        "storage": "server",
+    }
+
+
+@app.post("/api/action-reviews")
+def upsert_action_review(
+    request: ActionReviewRequest,
+    db: Session = Depends(get_db),
+    user: Dict[str, object] = Depends(require_user),
+):
+    if not request.action_key.strip():
+        raise HTTPException(status_code=400, detail="action_key is required.")
+    if request.status not in {"open", "accepted", "dismissed"}:
+        raise HTTPException(status_code=400, detail="status must be open, accepted, or dismissed.")
+    if request.status == "accepted" and not can_approve_actions(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approver or admin roles can approve planner actions.",
+        )
+
+    row = db.get(ActionReview, request.action_key)
+    if row is None:
+        row = ActionReview(action_key=request.action_key)
+        db.add(row)
+    row.status = request.status
+    row.note = request.note
+    row.action_snapshot = json.dumps(request.action_snapshot, separators=(",", ":"), default=str)
+    row.updated_by = str(user.get("sub") or "unknown")
+    if request.status == "accepted":
+        row.approved_by = str(user.get("sub") or "unknown")
+        row.approved_at = datetime.now(timezone.utc)
+    elif request.status == "open":
+        row.approved_by = None
+        row.approved_at = None
+    db.commit()
+    db.refresh(row)
+    return {
+        "row": {
+            "action_key": row.action_key,
+            "status": row.status,
+            "note": row.note,
+            "action_snapshot": json.loads(row.action_snapshot or "{}"),
+            "updated_by": row.updated_by,
+            "approved_by": row.approved_by,
+            "approved_at": row.approved_at.isoformat() if row.approved_at else None,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        },
+        "storage": "server",
+    }
+
+
+@app.post("/api/action-reviews/clear")
+def clear_action_reviews(
+    db: Session = Depends(get_db),
+    user: Dict[str, object] = Depends(require_user),
+):
+    if not can_approve_actions(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approver or admin roles can clear planner review history.",
+        )
+    deleted = db.query(ActionReview).delete()
+    db.commit()
+    return {"deleted": deleted, "storage": "server"}
+
+
 @app.post("/api/jobs/recalculate")
 def recalculate(db: Session = Depends(get_db), _: Dict[str, object] = Depends(require_user)):
+    started = time.perf_counter()
     counts = refresh_recommendation_tables(
         db,
         as_of=date.today(),
         lead_time_days=settings.supplier_lead_time_days,
     )
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    if duration_ms >= SLOW_JOB_MS:
+        _record_monitoring_event(
+            "slow_job",
+            "warning",
+            f"Recommendation refresh took {duration_ms} ms.",
+            {"duration_ms": duration_ms, "counts": counts},
+        )
     return {"message": "Recommendation tables refreshed.", "counts": counts}
 
 

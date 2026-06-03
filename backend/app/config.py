@@ -15,6 +15,7 @@ def _get_required(name: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     database_url: str
+    tenant_id: str
     cors_origins: List[str]
     supplier_lead_time_days: int
     forecast_interval_seconds: int
@@ -22,6 +23,8 @@ class Settings:
     auth_enabled: bool
     auth_username: str
     auth_password: str
+    auth_role: str
+    auth_users_json: str
     auth_secret_key: str
     auth_token_ttl_minutes: int
     aws_region: str
@@ -41,6 +44,7 @@ def get_settings() -> Settings:
     origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
     return Settings(
         database_url=_get_required("DATABASE_URL"),
+        tenant_id=os.getenv("TENANT_ID", "default").strip() or "default",
         cors_origins=[origin.strip() for origin in origins.split(",") if origin.strip()],
         supplier_lead_time_days=int(os.getenv("SUPPLIER_LEAD_TIME_DAYS", "30")),
         forecast_interval_seconds=int(os.getenv("FORECAST_INTERVAL_SECONDS", "3600")),
@@ -48,6 +52,8 @@ def get_settings() -> Settings:
         auth_enabled=_get_bool("AUTH_ENABLED", "true"),
         auth_username=os.getenv("AUTH_USERNAME", ""),
         auth_password=os.getenv("AUTH_PASSWORD", ""),
+        auth_role=os.getenv("AUTH_ROLE", "approver"),
+        auth_users_json=os.getenv("AUTH_USERS_JSON", ""),
         auth_secret_key=os.getenv("AUTH_SECRET_KEY", ""),
         auth_token_ttl_minutes=int(os.getenv("AUTH_TOKEN_TTL_MINUTES", "720")),
         aws_region=os.getenv("AWS_REGION", "us-west-2"),

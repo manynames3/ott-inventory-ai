@@ -87,7 +87,7 @@ function SkuReorderActions({ rows }: { rows: Record<string, unknown>[] }) {
 
 export function SkuDetailClient() {
   const params = useSearchParams();
-  const sku = params.get("sku") || "OTG-RAM-001";
+  const sku = params.get("sku") || "08252K";
   const [detail, setDetail] = useState<SkuDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 

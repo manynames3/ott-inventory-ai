@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
+import { Activity, BarChart3, ClipboardCheck, ListChecks, LogIn, LogOut, Search, UploadCloud } from "lucide-react";
 
 import { clearAuthToken, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
+  { href: "/onboarding", label: "Data Setup", icon: ClipboardCheck },
   { href: "/actions", label: "Actions", icon: ListChecks },
   { href: "/imports", label: "Imports", icon: UploadCloud },
-  { href: "/query", label: "Query", icon: Search }
+  { href: "/query", label: "Query", icon: Search },
+  { href: "/status", label: "Status", icon: Activity }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

@@ -96,3 +96,15 @@ class WasteRiskAlert(Base):
     risk_bucket = Column(String(80), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+
+class ActionReview(Base):
+    __tablename__ = "action_reviews"
+
+    action_key = Column(String(512), primary_key=True)
+    status = Column(String(32), nullable=False, index=True)
+    note = Column(Text, nullable=False, default="")
+    action_snapshot = Column(Text, nullable=False, default="{}")
+    updated_by = Column(String(255), nullable=False)
+    approved_by = Column(String(255), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

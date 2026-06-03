@@ -14,6 +14,8 @@ from app.config import Settings, get_settings
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
+APPROVAL_ROLES = {"approver", "admin"}
+VALID_ROLES = {"viewer", "planner", "approver", "admin"}
 
 
 def _b64encode(payload: bytes) -> str:
@@ -36,8 +38,8 @@ def _require_auth_config(settings: Settings) -> None:
     missing = [
         name
         for name, value in {
-            "AUTH_USERNAME": settings.auth_username,
-            "AUTH_PASSWORD": settings.auth_password,
+            "AUTH_USERNAME/AUTH_USERS_JSON": settings.auth_username or settings.auth_users_json,
+            "AUTH_PASSWORD/AUTH_USERS_JSON": settings.auth_password or settings.auth_users_json,
             "AUTH_SECRET_KEY": settings.auth_secret_key,
         }.items()
         if not value
@@ -47,6 +49,58 @@ def _require_auth_config(settings: Settings) -> None:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Authentication is enabled but missing config: {', '.join(missing)}",
         )
+
+
+def _normalize_role(role: str | None) -> str:
+    normalized = (role or "planner").strip().lower()
+    return normalized if normalized in VALID_ROLES else "planner"
+
+
+def _configured_users(settings: Settings) -> Dict[str, Dict[str, str]]:
+    if settings.auth_users_json.strip():
+        try:
+            parsed = json.loads(settings.auth_users_json)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AUTH_USERS_JSON is not valid JSON.",
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AUTH_USERS_JSON must be an object keyed by username.",
+            )
+        users: Dict[str, Dict[str, str]] = {}
+        for username, raw_config in parsed.items():
+            if not isinstance(raw_config, dict):
+                continue
+            password = str(raw_config.get("password", ""))
+            if not password:
+                continue
+            users[str(username)] = {
+                "password": password,
+                "role": _normalize_role(str(raw_config.get("role", settings.auth_role))),
+            }
+        if users:
+            return users
+    if settings.auth_username and settings.auth_password:
+        return {
+            settings.auth_username: {
+                "password": settings.auth_password,
+                "role": _normalize_role(settings.auth_role),
+            }
+        }
+    return {}
+
+
+def role_for_user(subject: str, settings: Settings | None = None) -> str:
+    settings = settings or get_settings()
+    users = _configured_users(settings)
+    return users.get(subject, {}).get("role", _normalize_role(settings.auth_role))
+
+
+def can_approve_actions(user: Dict[str, Any]) -> bool:
+    return str(user.get("role", "")).lower() in APPROVAL_ROLES
 
 
 def create_access_token(subject: str, settings: Settings | None = None) -> str:
@@ -59,6 +113,8 @@ def create_access_token(subject: str, settings: Settings | None = None) -> str:
         "iat": now,
         "exp": now + settings.auth_token_ttl_minutes * 60,
         "aud": "stocksense",
+        "tenant_id": settings.tenant_id,
+        "role": role_for_user(subject, settings=settings),
     }
     encoded_header = _b64encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
     encoded_payload = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
@@ -87,6 +143,8 @@ def verify_access_token(token: str, settings: Settings | None = None) -> Dict[st
 
     if payload.get("aud") != "stocksense":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token audience.")
+    if payload.get("tenant_id", settings.tenant_id) != settings.tenant_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token tenant.")
     if int(payload.get("exp", 0)) < int(time.time()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired.")
     return payload
@@ -95,9 +153,11 @@ def verify_access_token(token: str, settings: Settings | None = None) -> Dict[st
 def authenticate(username: str, password: str, settings: Settings | None = None) -> bool:
     settings = settings or get_settings()
     _require_auth_config(settings)
-    username_ok = hmac.compare_digest(username, settings.auth_username)
-    password_ok = hmac.compare_digest(password, settings.auth_password)
-    return username_ok and password_ok
+    users = _configured_users(settings)
+    user = users.get(username)
+    if not user:
+        return False
+    return hmac.compare_digest(password, user["password"])
 
 
 def require_user(
@@ -105,7 +165,7 @@ def require_user(
 ) -> Dict[str, Any]:
     settings = get_settings()
     if not settings.auth_enabled:
-        return {"sub": "auth-disabled"}
+        return {"sub": "auth-disabled", "tenant_id": settings.tenant_id, "role": "admin"}
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required.")
     return verify_access_token(credentials.credentials, settings=settings)

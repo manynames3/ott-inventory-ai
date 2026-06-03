@@ -14,12 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.node-version
-      - run: npm install
-      - run: npm run typecheck
+      - run: npm ci
       - run: npm run build
         env:
           NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || 'true' }}
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws' }}
+      - run: npm run typecheck
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler pages project create otokistocksense --production-branch=main || true
         env:

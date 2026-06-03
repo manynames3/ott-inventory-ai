@@ -21,8 +21,8 @@ BASE_ANSWER = {
     "columns": ["sku", "recommended_order_qty", "reason"],
     "rows": [
         {
-            "sku": "OTG-RAM-001",
-            "product_name": "Demo ramen",
+            "sku": "08252K",
+            "product_name": "Ottogi Jin Ramen Hot Case",
             "recommended_order_qty": 120,
             "estimated_order_value": 4200,
             "reason": "Stockout risk due to lead-time demand.",
@@ -42,7 +42,7 @@ class _FakeOpenAIResponse:
     def read(self):
         model_payload = {
             "explanation": "AI-planner explanation using the safe view.",
-            "action_summary": ["Order OTG-RAM-001 this week.", "Confirm inbound timing before allocation."],
+            "action_summary": ["Order 08252K this week.", "Confirm inbound timing before allocation."],
             "risk_notes": ["Lead-time demand is above effective inventory."],
             "confidence_note": "Confidence is strongest when recent order history is complete.",
         }
@@ -102,7 +102,7 @@ class AIQueryTest(unittest.TestCase):
         self.assertEqual(result["ai_status"], "llm_augmented")
         self.assertEqual(result["safe_query_mode"], "openai_augmented_materialized_views")
         self.assertEqual(result["explanation"], "AI-planner explanation using the safe view.")
-        self.assertEqual(result["action_summary"][0], "Order OTG-RAM-001 this week.")
+        self.assertEqual(result["action_summary"][0], "Order 08252K this week.")
         self.assertEqual(result["ai_risk_notes"], ["Lead-time demand is above effective inventory."])
         self.assertIn("recent order history", result["ai_confidence_note"])
 
