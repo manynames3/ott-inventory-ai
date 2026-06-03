@@ -1,60 +1,73 @@
 # StockSense AI
 
-StockSense AI is an expiration-aware inventory optimization and natural-language query tool for imported food and CPG distributors. It is framed for operators who manage long replenishment lead times, lot-level expiration dates, retailer fill-rate expectations, and margin loss from slow-moving inventory.
+StockSense AI is an expiration-aware inventory optimization MVP for food and CPG operators. I built it as a full-stack pilot application that turns product, lot, order, customer, and inbound-shipment exports into FEFO pick priorities, waste-risk alerts, demand forecasts, reorder recommendations, executive ROI metrics, and safe natural-language answers.
 
-The MVP is intentionally built around a buyer problem: planners know which SKUs are in stock, but not always which lots should move first, which customers should receive constrained inventory, which inbound shipments arrive too late, or how much cash is tied up in stock that may expire before it sells.
+Live demo: [https://otokistocksense.pages.dev](https://otokistocksense.pages.dev)
 
-## Buyer Pain Points
+## About
 
-StockSense AI addresses common operating problems for Korean food and CPG import/distribution teams:
+The app is designed for inventory planners and operations teams managing imported grocery or CPG products with long replenishment lead times and lot-level shelf-life risk. It helps answer questions such as:
 
-- Near-expiring lots are discovered too late, forcing write-offs or heavy discounts.
-- FEFO discipline depends on manual spreadsheet checks across warehouses.
-- Ocean freight and import lead times make stockout risk visible only after it is expensive to fix.
-- Reorder decisions miss the combined impact of demand variability, inbound shipments, current inventory, and expiration risk.
-- Sales, operations, and finance teams lack a shared answer to "what should we ship, transfer, promote, or reorder this week?"
-- ERP/WMS exports contain the data, but it is difficult to turn those exports into explainable daily actions.
+- Which lots should ship first?
+- Which inventory expires in the next 30, 60, or 90 days?
+- Which SKUs are likely to stock out before replenishment arrives?
+- What should be reordered this week, and why?
+- Which customers usually buy a constrained SKU?
 
-## Business Value
+The MVP is framed around a realistic Ottogi-style food distribution pilot, using fictional operating data and Korean food/CPG-style SKUs.
 
-The product is designed to prove ROI quickly in a pilot:
+## Tech Stack
 
-- Reduce waste by identifying lots expiring in 30, 60, and 90 days and recommending discount, promotion, transfer, or priority allocation.
-- Prevent missed sales by projecting SKU-level stockouts against lead-time demand and inbound shipment ETAs.
-- Improve margin by shipping older lots first instead of discounting them after they become urgent.
-- Improve planner speed by replacing manual spreadsheet reconciliation with explainable recommendations.
-- Align customer allocation with buying cadence so high-velocity customers receive constrained inventory first.
-- Create a clean path from CSV exports to ERP-ready adapters without requiring live SAP or Oracle access on day one.
+- Frontend: Next.js, React, TypeScript, static export, Cloudflare Pages
+- Backend: FastAPI, Python, SQLAlchemy, PostgreSQL for local/reference development
+- Hosted low-idle backend: AWS Lambda Function URL, S3, DynamoDB on-demand, SSM Parameter Store
+- Data/forecasting: Pandas, NumPy, moving average, exponential smoothing
+- Imports: CSV/XLSX validation, column mapping preview, raw-file retention path
+- AI/query layer: safe rule-based query routing with optional OpenAI explanation augmentation
+- Infrastructure: Terraform, Docker Compose for local development
+- Tests: Python unit tests for FEFO, forecasting, reorder logic, auth/templates, and AI fallback
 
-## ERP Positioning
+## Engineering Highlights
 
-StockSense AI does not replace SAP or Oracle. Those systems remain the system of record for transactions, master data, purchasing, financial controls, inventory movements, and formal planning workflows.
+- Built a working full-stack inventory SaaS MVP with dashboard, imports, SKU detail, customer detail, priority actions, login, and natural-language query pages.
+- Implemented FEFO logic that ranks lots by expiration date and explains why one lot should ship before another.
+- Built reorder recommendations from average demand, demand variability, lead time, inbound shipments, usable inventory, safety stock, and expiration risk.
+- Kept forecasting modular with a `ForecastModel` interface and baseline moving-average/exponential-smoothing models.
+- Added safe natural-language query handling that maps user questions to predefined operational views instead of allowing arbitrary SQL generation.
+- Added optional OpenAI augmentation for planner-ready explanations while preserving deterministic fallback when no model key is configured.
+- Designed a low-idle deployment path using Cloudflare Pages, Lambda Function URLs, S3, DynamoDB on-demand, and event-triggered workers instead of always-on containers.
+- Added Terraform infrastructure for the hosted MVP path and kept secrets in environment variables or SSM, not source code.
 
-StockSense AI sits above ERP/WMS data as an expiration-aware decision layer. It helps planners answer "what should we ship, transfer, promote, discount, or reorder this week, and why?" using plain-language explanations that connect lot expiration, demand, inbound supply, lead time, customer buying cadence, and inventory value.
+## Architecture
 
-See [docs/erp_positioning.md](docs/erp_positioning.md) for the buyer-facing comparison.
+Architecture documentation:
 
-## Pilot Framing
+- [docs/architecture.md](docs/architecture.md): overview, C4-style container diagram, runtime flow, deployment shape, constraints
+- [docs/adrs/README.md](docs/adrs/README.md): architecture decision records
+- [docs/low_idle_mvp_architecture.md](docs/low_idle_mvp_architecture.md): low-idle AWS MVP rationale
+- [docs/architecture_decisions.md](docs/architecture_decisions.md): earlier implementation rationale and tradeoffs
 
-For a target account such as Ottogi USA / Ottogi America, the pilot should be scoped around one warehouse or a focused set of imported SKUs:
+At a high level, the public demo uses a static Next.js frontend on Cloudflare Pages. The low-idle hosted backend uses AWS Lambda for API/import/refresh work, S3 for raw Excel/CSV files, DynamoDB for canonical records and materialized recommendation/query views, and SSM Parameter Store for secrets. The local/reference development path uses FastAPI and PostgreSQL.
 
-- Load product, lot, order, customer, and inbound shipment CSV exports.
-- Measure inventory value at expiration risk, projected stockouts, reorder value, and recoverable waste opportunity.
-- Review FEFO pick lists and reorder recommendations with operations.
-- Validate whether recommendations match planner judgment and quantify preventable write-off or stockout exposure.
-- Expand only after the team trusts the explanations and the CSV field contract.
+## Core Features
 
-See [docs/buyer_value.md](docs/buyer_value.md) for the buyer-facing narrative, [docs/erp_positioning.md](docs/erp_positioning.md) for SAP/Oracle positioning, [docs/ottogi_pilot_demo_script.md](docs/ottogi_pilot_demo_script.md) for the guided buyer demo, and [docs/architecture_decisions.md](docs/architecture_decisions.md) for implementation rationale.
+- Dashboard KPIs for inventory value, expiration risk, projected stockouts, recommended reorder value, and recoverable waste opportunity.
+- FEFO pick priority and waste-risk actions for near-expiring lots.
+- Demand forecasting for 30, 60, and 90 day horizons.
+- Reorder decisions with business explanations and confidence notes.
+- CSV/XLSX upload flow with required-column validation, template downloads, import history, and validation errors.
+- Natural-language query page for common planning questions.
+- SKU detail and customer detail pages.
+- Executive ROI report download.
+- SAP and Oracle adapter placeholders with documented expected ERP fields.
 
-## Stack
+## Business Context
 
-- Frontend: Next.js + TypeScript
-- Backend: FastAPI
-- Local/reference database: PostgreSQL
-- Low-idle hosted MVP store: S3 + DynamoDB on-demand materialized views
-- Forecasting: Pandas + NumPy
-- Worker: Python background process for recommendation refresh jobs
-- Local development: Docker Compose
+StockSense AI does not replace SAP or Oracle. Those systems remain the system of record for transactions, purchasing, financial controls, inventory movements, and formal planning workflows.
+
+StockSense AI sits above ERP/WMS exports as an expiration-aware decision layer. It helps planners decide what to ship, transfer, promote, discount, or reorder this week, with explanations that connect lot expiration, demand, inbound supply, lead time, customer buying cadence, and inventory value.
+
+See [docs/erp_positioning.md](docs/erp_positioning.md), [docs/buyer_value.md](docs/buyer_value.md), and [docs/ottogi_pilot_demo_script.md](docs/ottogi_pilot_demo_script.md) for buyer-facing framing.
 
 ## Quick Start With Docker
 
@@ -72,7 +85,7 @@ Edit `.env` and replace the example PostgreSQL password.
 docker compose up --build
 ```
 
-3. Seed realistic sample data:
+3. Seed sample data:
 
 ```bash
 docker compose exec backend python -m app.seed
@@ -103,51 +116,34 @@ Detailed no-Docker steps are in [docs/no_docker_local_dev.md](docs/no_docker_loc
 
 Live deployment:
 
-- GitHub: https://github.com/manynames3/stocksense-ai
-- Cloudflare Pages: https://otokistocksense.pages.dev
+- GitHub: [https://github.com/manynames3/ott-inventory-ai](https://github.com/manynames3/ott-inventory-ai)
+- Cloudflare Pages: [https://otokistocksense.pages.dev](https://otokistocksense.pages.dev)
 
-The frontend is configured for static export and deploys from GitHub to Cloudflare Pages. Use:
+The frontend is configured for static export and deploys from GitHub to Cloudflare Pages.
 
 - Root directory: `frontend`
 - Build command: `npm run build`
 - Build output directory: `out`
-- Environment variable for demo-only deployment: `NEXT_PUBLIC_DEMO_MODE=true`
-- Environment variable for the live API: `NEXT_PUBLIC_API_BASE_URL=https://<your-api-host>`
+- Demo-only environment variable: `NEXT_PUBLIC_DEMO_MODE=true`
+- Live API environment variable: `NEXT_PUBLIC_API_BASE_URL=https://<your-api-host>`
 
-Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md).
+Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md). Custom domain and pilot security hardening steps are documented in [docs/custom_domain_and_security.md](docs/custom_domain_and_security.md).
 
-Custom domain and pilot security hardening steps are documented in [docs/custom_domain_and_security.md](docs/custom_domain_and_security.md).
+## Low-Idle Hosted Backend
 
-The included Cloudflare Pages workflow is a manual fallback, not the primary push deploy path. Cloudflare's Git integration deploys pushes to `main`; the manual workflow requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets before it can be run.
+The hosted MVP target avoids services with meaningful idle cost. Terraform in [infra/terraform](infra/terraform) provisions:
 
-## Low-Idle Hosted Backend, Login, And AWS File Intake
+- AWS Lambda Function URL API
+- S3 raw upload bucket
+- DynamoDB on-demand records, views, and import-status tables
+- S3-triggered import worker Lambda
+- Optional EventBridge Scheduler refresh worker
+- Optional AWS Budget alerts
+- SSM-backed secrets for login and optional OpenAI access
 
-The repo now includes the next pilot layer:
+The API Lambda handles login, templates, upload URLs, dashboard reads, detail views, safe natural-language query routing, and optional AI-generated explanations. The import Lambda parses uploaded CSV/XLSX files, validates required columns, writes canonical rows, and refreshes materialized FEFO, waste-risk, stockout, reorder, dashboard, and query views.
 
-- Login endpoints backed by environment variables and bearer tokens.
-- Downloadable CSV and Excel templates for every import entity.
-- First-run import checklist with upload history and validation errors.
-- Downloadable executive ROI report from the dashboard.
-- Column mapping preview and approval before files change live recommendations.
-- Per-user audit trail for login, upload, preview, commit, import, and query actions.
-- Excel/CSV upload support through the same validated import path.
-- Optional Amazon S3 raw-file storage for uploaded Excel/CSV files.
-- Fast natural-language insights from normalized operational records and materialized recommendation views.
-- A resettable Ottogi-style demo seed script for controlled backend demos.
-- Exported Ottogi-style pilot CSVs in `sample_data/ottogi_demo/` for direct hosted uploads.
-
-Low-idle MVP hosting target:
-
-- Cloudflare Pages for the static frontend.
-- AWS Lambda Function URL for the live API instead of an always-on container.
-- Amazon S3 for raw Excel/CSV upload retention.
-- Amazon DynamoDB on-demand for canonical records and materialized recommendation/query views.
-- S3 events and/or EventBridge Scheduler to run import and forecast jobs only when needed.
-- SSM Parameter Store, Secrets Manager, or Lambda environment variables for secrets.
-
-The MVP should avoid ECS Fargate, App Runner, RDS, Aurora, Application Load Balancers, and NAT Gateway until a paid pilot justifies their idle cost. Details are in [docs/low_idle_mvp_architecture.md](docs/low_idle_mvp_architecture.md) and [docs/aws_backend_and_data_lake.md](docs/aws_backend_and_data_lake.md).
-
-Terraform for the low-idle AWS MVP lives in [infra/terraform](infra/terraform). The repo does not use CloudFormation for this path.
+The MVP intentionally avoids ECS Fargate, App Runner, RDS, Aurora, Application Load Balancers, and NAT Gateway until a paid pilot justifies their baseline cost.
 
 ## File Imports
 
@@ -159,11 +155,7 @@ The import page accepts `.csv`, `.xlsx`, and `.xlsm` files for:
 - `orders`: `order_id`, `customer_id`, `order_date`, `sku`, `quantity`
 - `inbound_shipments`: `shipment_id`, `sku`, `quantity`, `eta_date`, `origin`, `status`
 
-Validation errors are returned by the backend with missing or invalid columns. Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`.
-
-The hosted MVP also exposes `/api/import-history`, which powers the first-run checklist, import audit table, and validation error view in the frontend. The upload flow stages files for preview first, suggests a source-to-target column mapping, validates sample rows, and only commits the import after the user approves the mapping.
-
-When `AWS_S3_RAW_IMPORT_BUCKET` is configured, the backend stores the original uploaded file in S3. The local/reference backend imports normalized rows into PostgreSQL. The low-idle hosted MVP uses presigned S3 upload URLs, imports canonical rows into DynamoDB, and refreshes materialized insight views so dashboards and natural-language questions stay fast without an always-on database.
+Template files are available from the import page and from `/api/templates/{entity}.csv` or `/api/templates/{entity}.xlsx`. Validation errors include missing or invalid columns.
 
 For a controlled Ottogi-style pilot demo, use the generated files in `sample_data/ottogi_demo/`:
 
@@ -171,26 +163,11 @@ For a controlled Ottogi-style pilot demo, use the generated files in `sample_dat
 PYTHONPATH=backend backend/.venv/bin/python -m app.export_ottogi_demo_csvs
 ```
 
-The exported set includes 110 Ottogi-inspired SKUs, 555 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments. The product catalog is grounded in Ottogi's public global sales catalog and product/category pages for ramen, curry, sauces, oils, vinegar, rice, retort meals, soup, frozen, tea, tuna, and seaweed items; SKU codes and operating data are demo-specific.
-
-The worker also supports a file-drop import queue. Place a CSV in `import_queue/` using a filename that starts with the entity, such as `products__june.csv` or `orders__week_22.csv`. The worker validates and imports it, then moves it to `import_queue/processed/` or `import_queue/failed/`.
-
-## Recommendations
-
-The MVP prioritizes explanations that connect actions to ROI:
-
-- FEFO: ships the earliest-expiring lot first and explains the expiration gap between lots.
-- Waste risk: flags lots expiring in 30, 60, and 90 day buckets with discount, transfer, promotion, or priority-allocation actions.
-- Forecasting: blends simple moving average and exponential smoothing, with trend and seasonality placeholders for later ML models.
-- Reorder: uses average daily demand, demand variability, lead time, inbound shipments, current inventory, safety stock, and expiration risk.
-
-Recommendation statuses are `stockout risk`, `reorder now`, `wait`, and `overstocked`.
+The exported set includes 110 Ottogi-inspired SKUs, 555 inventory lots, 50 customers, two years of historical orders, and 25 inbound shipments. Product names and SKU codes are fictional demo data.
 
 ## Natural-Language Query And AI Layer
 
-The query page uses safe materialized query views rather than arbitrary SQL execution. When `OPENAI_API_KEY_PARAMETER_NAME` points to a valid SSM SecureString, the backend augments the matched safe view with OpenAI-generated explanations, action bullets, confidence notes, and planner review notes. If the key is missing or the model call fails, the endpoint falls back to the deterministic rule-based answer.
-
-Supported examples:
+The query page uses safe predefined templates and materialized views rather than arbitrary SQL execution. Supported examples include:
 
 - "Who needs another order right now?"
 - "Which SKUs will stock out in the next 30 days?"
@@ -198,27 +175,29 @@ Supported examples:
 - "Which customers usually buy SKU OTG-RAM-001 every month?"
 - "What should we reorder this week?"
 
-The AI layer never generates SQL and never chooses tables directly. It receives only the matched safe view, row-limited context, KPI summaries, and recommendation snippets.
-
-## ERP Integration
-
-CSV is the first adapter. SAP and Oracle placeholders are included without live connections or credentials. The expected ERP field contract is documented in [docs/erp_integration.md](docs/erp_integration.md), and the positioning against SAP/Oracle is documented in [docs/erp_positioning.md](docs/erp_positioning.md).
+When `OPENAI_API_KEY_PARAMETER_NAME` points to a valid SSM SecureString, the backend augments the matched safe view with model-generated explanations, action bullets, confidence notes, and planner review notes. If the key is missing or the model call fails, the endpoint falls back to deterministic rule-based explanations. The model never generates SQL and only receives row-limited, matched view context.
 
 ## Tests
 
-Run backend unit tests locally:
+Run backend unit tests:
 
 ```bash
-python3 -m unittest discover -s backend/tests/unit -p 'test_*.py'
+backend/.venv/bin/python -m unittest discover -s backend/tests/unit -p 'test_*.py'
 ```
 
-Or inside Docker:
+Run frontend checks:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Docker test fallback:
 
 ```bash
 docker compose exec backend pytest
 ```
-
-Current unit coverage focuses on FEFO picking, demand forecasting, and reorder recommendations.
 
 ## Migrations
 
@@ -253,4 +232,29 @@ Secrets and database credentials are read from `.env`. Do not commit `.env`.
 - `AWS_REGION`
 - `AWS_S3_RAW_IMPORT_BUCKET`
 - `AWS_S3_IMPORT_PREFIX`
+- `AWS_DYNAMODB_RECORDS_TABLE`
+- `AWS_DYNAMODB_VIEWS_TABLE`
+- `AWS_DYNAMODB_IMPORTS_TABLE`
+- `OPENAI_API_KEY`
+- `OPENAI_API_KEY_PARAMETER_NAME`
+- `OPENAI_MODEL`
+- `AI_QUERY_ENABLED`
 - `ALLOW_DEMO_SEED`
+
+## Project Structure
+
+```text
+backend/            FastAPI app, import adapters, recommendation services, migrations, tests
+frontend/           Next.js static frontend, dashboard/query/import pages, demo data
+infra/terraform/    Low-idle AWS infrastructure and Lambda handlers
+docs/               Architecture, ADRs, deployment, ERP, buyer, and pilot documentation
+sample_data/        Generated Ottogi-style demo import files
+docker-compose.yml  Local Postgres + backend + frontend development stack
+```
+
+## Limitations And Next Steps
+
+- The MVP uses CSV/XLSX import first; SAP and Oracle adapters are placeholders.
+- The local/reference backend uses PostgreSQL, while the low-idle hosted MVP uses DynamoDB materialized views.
+- Forecasting is intentionally simple and explainable; promotion, holiday, and customer-level ML features are future work.
+- Production pilots should add stronger identity, tenant isolation, role-based access, observability, retry/dead-letter handling, and formal data retention controls.

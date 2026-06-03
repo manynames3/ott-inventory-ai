@@ -35,7 +35,7 @@ The repo also includes `.github/workflows/cloudflare-pages-deploy.yml` as a manu
 
 Current deployment:
 
-- GitHub: https://github.com/manynames3/stocksense-ai
+- GitHub: https://github.com/manynames3/ott-inventory-ai
 - Cloudflare Pages: https://otokistocksense.pages.dev
 
 To use the manual fallback, add these GitHub repository secrets and run the workflow with `workflow_dispatch`:
