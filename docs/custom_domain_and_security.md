@@ -9,9 +9,10 @@ This document describes the buyer-facing access story for the low-idle StockSens
 - Raw upload storage: private Amazon S3 bucket.
 - Query and dashboard store: DynamoDB on-demand tables.
 - Secrets: AWS SSM Parameter Store.
-- Authentication: pilot username/password exchanged for a signed bearer token.
+- Authentication: pilot username/password exchanged for a signed bearer token, or Cognito Hosted UI plus API Gateway JWT authorizer when `enable_cognito_auth=true`.
+- Optional WAF: AWS managed common rules and per-IP rate limiting on the Cognito Hosted UI/auth path. API-request WAF would require CloudFront in front of HTTP API or a REST API Gateway path.
 
-This is intentionally not an enterprise identity platform yet. It is enough for a controlled low-traffic pilot where named users test uploaded exports and recommendations before any ERP integration is approved.
+This is intentionally still a controlled low-traffic pilot design. It is enough for named users to test uploaded exports and recommendations before any ERP integration or buyer SSO rollout is approved.
 
 ## Custom Domain Plan
 
@@ -55,18 +56,31 @@ terraform plan
 terraform apply
 ```
 
-Cloudflare Pages environment variables do not need to change for a frontend-only custom domain. Keep:
+Cloudflare Pages environment variables do not need to change for a frontend-only custom domain when the backend URL remains the same. Keep:
 
 ```text
-NEXT_PUBLIC_API_BASE_URL=https://<lambda-function-url>
+NEXT_PUBLIC_API_BASE_URL=https://<lambda-function-url-or-api-gateway-url>
 NEXT_PUBLIC_DEMO_MODE=false
 ```
 
 Only change `NEXT_PUBLIC_API_BASE_URL` if the API itself later receives a custom domain.
 
+## Security Headers
+
+The Cloudflare Pages `_headers` file configures:
+
+- `Strict-Transport-Security`
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` for camera, microphone, and geolocation
+- A conservative CSP allowing the static app, AWS API endpoints, Cognito, and the configured API path
+
+Review CSP again when adding a custom domain, third-party analytics, or a customer SIEM/browser telemetry tool.
+
 ## Login And Session Story
 
-For the MVP:
+For the password-mode MVP:
 
 - The login form posts credentials directly to the Lambda API.
 - The API compares credentials with values stored in SSM Parameter Store.
@@ -81,7 +95,7 @@ Why this is acceptable for a pilot:
 - The backend is the only component that can read SSM secrets.
 - The public Cloudflare Pages site cannot fetch live operational data without a valid token.
 - Raw uploads land in a private S3 bucket and are processed into normalized query tables.
-- Login, upload URL creation, import preview, import commit, and query actions are written to the audit trail.
+- Login, upload URL creation, import preview, import commit, query, export, and planner-review actions are written to the audit trail.
 - The MVP has no ERP writeback path, so it cannot create purchase orders, shipments, or financial transactions.
 
 ## Security Hardening Before A Paid Pilot
@@ -104,17 +118,18 @@ Note: add the Pages custom domain before layering access policies. Cloudflare do
 
 ## Production Security Path
 
-For a larger paid rollout, replace the pilot login with one of these:
+For a stronger pilot or larger paid rollout, use one of these:
 
 - Cloudflare Access in front of the whole app for low-cost SSO/email allowlisting.
-- Amazon Cognito for app-native user pools and per-user claims.
+- Amazon Cognito for app-native user pools, Hosted UI, groups, API Gateway JWT validation, and per-user claims.
 - Buyer SSO through OIDC/SAML once procurement/security review starts.
 
 Recommended path:
 
 1. Keep the current SSM-backed pilot login for the first controlled demo.
-2. Add Cloudflare Access for buyer-facing pilot users because it can gate the Pages custom domain without adding always-on compute.
-3. Move to buyer SSO or Cognito only when multiple customer accounts, roles, and audit requirements appear.
+2. Enable Cognito/API Gateway when planner versus approver users need to be live-tested.
+3. Add WAF and custom domain review before a paid buyer pilot with external users.
+4. Move to buyer SSO/OIDC/SAML when procurement/security review starts.
 
 ## Buyer Explanation
 

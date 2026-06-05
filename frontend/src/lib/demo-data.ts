@@ -394,9 +394,25 @@ const demoImportHistory = {
 const demoAuditEvents = {
   rows: [
     {
+      action: "action_review_updated",
+      resource: "08252K",
+      user: "ops-manager@otokistocksense.demo",
+      origin: "https://otokistocksense.pages.dev",
+      details: { action_key: "P1::reorder::08252K::LA DC::sku::2026-06-01", status: "accepted" },
+      created_at_epoch: 1780344420
+    },
+    {
+      action: "export_downloaded",
+      resource: "planner_actions",
+      user: "planner@otokistocksense.demo",
+      origin: "https://otokistocksense.pages.dev",
+      details: { rows: 312, format: "csv" },
+      created_at_epoch: 1780344360
+    },
+    {
       action: "login_success",
       resource: "auth",
-      user: "planner@stocksense.local",
+      user: "planner@otokistocksense.demo",
       origin: "https://otokistocksense.pages.dev",
       details: {},
       created_at_epoch: 1780344300
@@ -404,7 +420,7 @@ const demoAuditEvents = {
     {
       action: "import_previewed",
       resource: "orders",
-      user: "planner@stocksense.local",
+      user: "planner@otokistocksense.demo",
       origin: "https://otokistocksense.pages.dev",
       details: { filename: "orders_ottogi_demo.csv", rows_seen: 4625, missing_mappings: [] },
       created_at_epoch: 1780344000
@@ -412,7 +428,7 @@ const demoAuditEvents = {
     {
       action: "import_committed",
       resource: "orders",
-      user: "planner@stocksense.local",
+      user: "planner@otokistocksense.demo",
       origin: "https://otokistocksense.pages.dev",
       details: { rows_seen: 4625, mapped_columns: 5 },
       created_at_epoch: 1780343940
@@ -420,13 +436,58 @@ const demoAuditEvents = {
     {
       action: "query_answered",
       resource: "stockout_risk",
-      user: "planner@stocksense.local",
+      user: "planner@otokistocksense.demo",
       origin: "https://otokistocksense.pages.dev",
       details: { question_preview: "Which SKUs will stock out in the next 30 days?", row_count: 7 },
       created_at_epoch: 1780343880
     }
   ],
-  count: 4
+  count: 6
+};
+
+const demoActionReviews = {
+  rows: [
+    {
+      action_key: "P1::reorder::08252K::LA DC::sku::2026-06-01",
+      status: "accepted",
+      note: "Approve expedited reorder; keep FEFO allocation active until inbound container clears.",
+      action_snapshot: {
+        priority: "P1",
+        action_type: "Protect fill rate",
+        sku: "08252K",
+        product_name: "Ottogi Jin Ramen Hot Case",
+        warehouse: "LA DC",
+        financial_impact: "$34,200",
+        recommended_action: "Order replenishment and prioritize allocation until inbound supply arrives.",
+        reason: "Stockout risk due to 30-day ocean freight lead time.",
+        confidence_reason: "High confidence: demand history is broad and recent variability is manageable."
+      },
+      updated_by: "planner@otokistocksense.demo",
+      updated_at_epoch: 1780344240,
+      approved_by: "ops-manager@otokistocksense.demo",
+      approved_at_epoch: 1780344420
+    },
+    {
+      action_key: "P1::waste::08324K::NJ DC::LOT-NJ-260201-014::2026-06-15",
+      status: "dismissed",
+      note: "Customer promo already scheduled for week 24; monitor depletion before discounting.",
+      action_snapshot: {
+        priority: "P1",
+        action_type: "Prevent waste",
+        sku: "08324K",
+        product_name: "Ottogi Jin Ramen Cup Hot Case",
+        warehouse: "NJ DC",
+        lot_id: "LOT-NJ-260201-014",
+        financial_impact: "$11,480",
+        recommended_action: "Priority allocate to fastest-turning customers before discounting.",
+        reason: "Customer promo already scheduled; buyer dismissed additional discount."
+      },
+      updated_by: "planner@otokistocksense.demo",
+      updated_at_epoch: 1780344180
+    }
+  ],
+  count: 2,
+  storage: "server"
 };
 
 const demoImportRequirements = {
@@ -466,10 +527,90 @@ const demoImportRequirements = {
     records_table: "ott-inventory-ai-mvp-records",
     views_table: "ott-inventory-ai-mvp-views"
   },
+  scheduled_imports: {
+    enabled: true,
+    prefixes: ["inventory-ai/raw-imports/scheduled/", "inventory-ai/raw-imports/sftp/"],
+    mode: "scheduled_s3_scan_sftp_landing_ready"
+  },
+  auth: {
+    mode: "cognito_or_password",
+    cognito_ready: true,
+    cognito_user_pool_id: "demo-user-pool"
+  },
+  audit: {
+    immutable_archive_configured: true,
+    alerts_configured: true
+  },
+  retention: {
+    raw_upload_days: 365,
+    audit_event_days: 180,
+    import_status_days: 90,
+    immutable_archive_days: 2555
+  },
+  siem: {
+    mode: "s3_archive_or_customer_forwarder",
+    configured: false
+  },
   erp_adapters: {
     sap: "placeholder only; see docs/erp_integration.md",
     oracle: "placeholder only; see docs/erp_integration.md"
   }
+};
+
+const demoForecastValidation = {
+  summary: {
+    sku_count: 18,
+    horizon_days: 30,
+    median_absolute_percentage_error: 0.18,
+    weighted_absolute_percentage_error: 0.16,
+    total_forecast_quantity: 38240,
+    total_actual_quantity: 39780,
+    low_confidence_skus: 4
+  },
+  rows: [
+    {
+      sku: "08252K",
+      product_name: "Ottogi Jin Ramen Hot Case",
+      category: "Noodles",
+      forecast_quantity: 1263,
+      actual_quantity: 1290,
+      absolute_error: 27,
+      absolute_percentage_error: 0.021,
+      bias: -27,
+      confidence: "high",
+      history_days: 700,
+      validation_window: "2026-05-03 to 2026-06-01",
+      business_note: "Forecast is close enough for pilot reorder-point calibration."
+    },
+    {
+      sku: "UPC-645175200154",
+      product_name: "Ottogi Honey Citron Tea",
+      category: "Beverage",
+      forecast_quantity: 420,
+      actual_quantity: 780,
+      absolute_error: 360,
+      absolute_percentage_error: 0.462,
+      bias: -360,
+      confidence: "medium",
+      history_days: 690,
+      validation_window: "2026-05-03 to 2026-06-01",
+      business_note: "Forecast undercalled demand; review promotional spikes, customer onboarding, or allocation constraints."
+    },
+    {
+      sku: "OTK-DEMO-SOU-005",
+      product_name: "Ottogi Kimchi Stew",
+      category: "Soup & HMR",
+      forecast_quantity: 890,
+      actual_quantity: 510,
+      absolute_error: 380,
+      absolute_percentage_error: 0.745,
+      bias: 380,
+      confidence: "low",
+      history_days: 74,
+      validation_window: "2026-05-03 to 2026-06-01",
+      business_note: "Low-confidence SKU: sparse or short demand history; use planner override until more buyer data is loaded."
+    }
+  ]
 };
 
 const demoAiStatus = {
@@ -599,7 +740,23 @@ function demoQuery(question: string) {
     mode: "demo_rule_based_fallback",
     secret_source: "demo"
   };
+  const sources = (template: string, rows: Record<string, unknown>[]) => [
+    {
+      source_id: `view:${template}`,
+      source_type: "materialized_view",
+      description: "Demo materialized operational view generated from the Ottogi-style pilot dataset.",
+      row_count: rows.length,
+      columns: Object.keys(rows[0] || {}),
+      sample_record_ids: rows
+        .slice(0, 3)
+        .map((row) => [row.sku, row.warehouse, row.lot_id || row.customer_id].filter(Boolean).join(" / ") || "row")
+    }
+  ];
   if (normalized.includes("customer") && (normalized.includes("08252k") || normalized.includes("jin ramen"))) {
+    const rows = [
+      { customer_id: "CUST-001", name: "H Mart Foods 1", region: "West", channel: "Retail", months_with_orders: 21, monthly_coverage: 0.88, avg_monthly_quantity: 260 },
+      { customer_id: "CUST-002", name: "Pacific Market 2", region: "Northeast", channel: "Distributor", months_with_orders: 19, monthly_coverage: 0.79, avg_monthly_quantity: 210 }
+    ];
     return {
       question,
       template: "monthly_sku_buyers",
@@ -610,10 +767,8 @@ function demoQuery(question: string) {
         "Use this list to protect allocation when supply is constrained."
       ],
       columns: ["customer_id", "name", "region", "channel", "months_with_orders", "monthly_coverage", "avg_monthly_quantity"],
-      rows: [
-        { customer_id: "CUST-001", name: "H Mart Foods 1", region: "West", channel: "Retail", months_with_orders: 21, monthly_coverage: 0.88, avg_monthly_quantity: 260 },
-        { customer_id: "CUST-002", name: "Pacific Market 2", region: "Northeast", channel: "Distributor", months_with_orders: 19, monthly_coverage: 0.79, avg_monthly_quantity: 210 }
-      ],
+      rows,
+      sources: sources("monthly_sku_buyers", rows),
       ai,
       ai_status: "demo_rule_based_fallback",
       safe_query_mode: "demo_rule_based_templates_only"
@@ -631,6 +786,7 @@ function demoQuery(question: string) {
       ],
       columns: ["sku", "product_name", "category", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "risk_bucket", "suggested_action"],
       rows: demoDashboard.waste_risk_alerts,
+      sources: sources("expiring_inventory", demoDashboard.waste_risk_alerts),
       ai,
       ai_status: "demo_rule_based_fallback",
       safe_query_mode: "demo_rule_based_templates_only"
@@ -647,6 +803,7 @@ function demoQuery(question: string) {
     ],
     columns: ["sku", "product_name", "category", "warehouse", "status", "recommended_order_qty", "estimated_order_value", "reorder_by_date", "action", "reason", "confidence", "confidence_reason"],
     rows: demoDashboard.recommendations,
+    sources: sources("reorder_this_week", demoDashboard.recommendations),
     ai,
     ai_status: "demo_rule_based_fallback",
     safe_query_mode: "demo_rule_based_templates_only"
@@ -670,7 +827,9 @@ export function getDemoGet(path: string) {
   if (path.startsWith("/api/dashboard")) return demoDashboard;
   if (path.startsWith("/api/import-history")) return demoImportHistory;
   if (path.startsWith("/api/audit-events")) return demoAuditEvents;
+  if (path.startsWith("/api/action-reviews")) return demoActionReviews;
   if (path.startsWith("/api/monitoring/summary")) return demoMonitoringSummary;
+  if (path.startsWith("/api/validation/forecast")) return demoForecastValidation;
   if (path.startsWith("/api/products")) return { rows: products, count: products.length };
   if (path.startsWith("/api/customers?")) return { rows: customers, count: customers.length };
   if (path.startsWith("/api/sku/")) return demoSkuDetail(decodeURIComponent(path.split("/api/sku/")[1]));

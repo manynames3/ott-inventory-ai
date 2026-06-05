@@ -10,6 +10,7 @@ import re
 import time
 import uuid
 import zipfile
+from datetime import datetime
 from io import BytesIO, StringIO
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
@@ -29,6 +30,7 @@ s3 = boto3.client(
 )
 dynamodb = boto3.client("dynamodb")
 ssm = boto3.client("ssm")
+sns = boto3.client("sns")
 
 TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
 TENANT_PK = f"tenant#{TENANT_ID}"
@@ -38,6 +40,15 @@ AUTH_CACHE: Dict[str, Any] = {"loaded_at": 0, "config": None}
 OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
 APPROVAL_ROLES = {"approver", "admin"}
 VALID_ROLES = {"viewer", "planner", "approver", "admin"}
+ALERT_ACTIONS = {
+    "api_error",
+    "ai_failure",
+    "import_preview_failed",
+    "import_commit_failed",
+    "import_worker_failed",
+    "slow_job",
+    "slow_request",
+}
 
 REQUIRED_COLUMNS = {
     "products": ["sku", "name", "category", "case_size", "shelf_life_days"],
@@ -343,7 +354,56 @@ def _verify_token(token: str, secret: str) -> Dict[str, Any]:
     return payload
 
 
+def _role_from_cognito_groups(groups_claim: Any) -> str:
+    if isinstance(groups_claim, str):
+        try:
+            parsed = json.loads(groups_claim)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list):
+            groups = {str(part).strip().lower() for part in parsed if str(part).strip()}
+        else:
+            groups = {
+                part.strip().strip("\"'[]").lower()
+                for part in groups_claim.replace(",", " ").split()
+                if part.strip().strip("\"'[]")
+            }
+    elif isinstance(groups_claim, list):
+        groups = {str(part).strip().lower() for part in groups_claim if str(part).strip()}
+    else:
+        groups = set()
+    if "admin" in groups:
+        return "admin"
+    if "approver" in groups or "ops-manager" in groups:
+        return "approver"
+    if "viewer" in groups:
+        return "viewer"
+    return "planner"
+
+
+def _cognito_authorized_user(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    jwt = event.get("requestContext", {}).get("authorizer", {}).get("jwt")
+    if not isinstance(jwt, dict):
+        return None
+    claims = jwt.get("claims") or {}
+    if not isinstance(claims, dict):
+        return None
+    subject = claims.get("email") or claims.get("username") or claims.get("cognito:username") or claims.get("sub")
+    if not subject:
+        return None
+    return {
+        "sub": str(subject),
+        "tenant_id": TENANT_ID,
+        "role": _role_from_cognito_groups(claims.get("cognito:groups")),
+        "auth_provider": "cognito",
+        "claims": {"sub": claims.get("sub"), "email": claims.get("email")},
+    }
+
+
 def _require_user(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    cognito_user = _cognito_authorized_user(event)
+    if cognito_user:
+        return cognito_user
     try:
         config = _auth_config()
     except Exception:
@@ -648,6 +708,42 @@ def _audit_event(
                 "data": {"S": json.dumps(payload, separators=(",", ":"), default=str)},
                 "ttl_epoch": {"N": str(int(now_ms / 1000) + 180 * 24 * 60 * 60)},
             },
+        )
+        _archive_audit_event(payload, now_ms)
+        _publish_alert(payload)
+    except Exception:
+        return
+
+
+def _archive_audit_event(payload: Dict[str, Any], now_ms: int) -> None:
+    bucket = os.getenv("AWS_S3_AUDIT_ARCHIVE_BUCKET", "").strip()
+    if not bucket:
+        return
+    try:
+        created = datetime.utcfromtimestamp(int(payload.get("created_at_epoch", int(now_ms / 1000)))).date()
+        key = (
+            f"tenant={TENANT_ID}/year={created.year:04d}/month={created.month:02d}/day={created.day:02d}/"
+            f"{now_ms:013d}-{uuid.uuid4().hex}.json"
+        )
+        s3.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=(json.dumps(payload, separators=(",", ":"), default=str) + "\n").encode("utf-8"),
+            ContentType="application/json",
+        )
+    except Exception:
+        return
+
+
+def _publish_alert(payload: Dict[str, Any]) -> None:
+    topic_arn = os.getenv("ALERT_SNS_TOPIC_ARN", "").strip()
+    if not topic_arn or payload.get("action") not in ALERT_ACTIONS:
+        return
+    try:
+        sns.publish(
+            TopicArn=topic_arn,
+            Subject=f"StockSense {payload.get('action')} - {TENANT_ID}",
+            Message=json.dumps(payload, indent=2, default=str),
         )
     except Exception:
         return
@@ -1182,6 +1278,45 @@ def _compact_rows(rows: List[Dict[str, Any]], limit: int = 10) -> List[Dict[str,
     return compacted
 
 
+def _row_identifier(row: Dict[str, Any]) -> str:
+    for fields in [
+        ("sku", "warehouse", "lot_id"),
+        ("sku", "warehouse"),
+        ("sku", "customer_id"),
+        ("customer_id",),
+        ("lot_id",),
+        ("sku",),
+    ]:
+        values = [str(row.get(field, "")).strip() for field in fields if row.get(field)]
+        if values:
+            return " / ".join(values)
+    return "row"
+
+
+def _source_citations(answer: Dict[str, Any]) -> List[Dict[str, Any]]:
+    template = str(answer.get("template") or "unsupported")
+    rows = answer.get("rows", [])
+    if not isinstance(rows, list):
+        rows = []
+    descriptions = {
+        "stockout_risk": "Materialized reorder recommendations joined with product, inventory, order, inbound, and warehouse context.",
+        "reorder_this_week": "Materialized reorder recommendations filtered to actions due within seven days.",
+        "expiring_inventory": "Materialized waste-risk alerts generated from inventory lots inside the 90-day expiration window.",
+        "customer_reorder_cadence": "Historical orders grouped by customer and compared with each customer's average reorder interval.",
+        "monthly_sku_buyers": "Historical orders for the requested SKU grouped by customer and monthly buying coverage.",
+    }
+    return [
+        {
+            "source_id": f"view:{template}",
+            "source_type": "materialized_view",
+            "description": descriptions.get(template, "Safe predefined query template over structured inventory data."),
+            "row_count": len(rows),
+            "columns": answer.get("columns", []),
+            "sample_record_ids": [_row_identifier(row) for row in rows[:5] if isinstance(row, dict)],
+        }
+    ]
+
+
 def _query_context(question: str, answer: Dict[str, Any]) -> Dict[str, Any]:
     dashboard = _get_view("dashboard") or _empty_dashboard()
     return {
@@ -1191,6 +1326,7 @@ def _query_context(question: str, answer: Dict[str, Any]) -> Dict[str, Any]:
         "row_count": len(answer.get("rows", [])),
         "columns": answer.get("columns", []),
         "rows": _compact_rows(answer.get("rows", []), 12),
+        "sources": answer.get("sources", []),
         "dashboard_kpis": dashboard.get("kpis", {}),
         "top_reorder_recommendations": _compact_rows(dashboard.get("recommendations", []), 5),
         "top_fefo_actions": _compact_rows(dashboard.get("fefo", []), 5),
@@ -1229,7 +1365,8 @@ def _ai_augmented_answer(question: str, answer: Dict[str, Any]) -> Dict[str, Any
         "You are StockSense AI, a decision-support assistant for food and CPG inventory planners. "
         "Use only the provided JSON context. Do not invent SKUs, customers, lots, quantities, dates, costs, or ERP facts. "
         "Do not produce SQL. Your job is to explain the matched safe materialized view in business language, "
-        "prioritize actions that protect fill rate and reduce expiration waste, and call out confidence limits."
+        "prioritize actions that protect fill rate and reduce expiration waste, and call out confidence limits. "
+        "Treat the sources array as the citations backing the answer."
     )
     payload = {
         "model": status["model"],
@@ -1305,7 +1442,7 @@ def _query_answer(question: str) -> Dict[str, Any]:
     elif "reorder" in normalized or "order this week" in normalized:
         key = "query#reorder_this_week"
     else:
-        return {
+        answer = {
             "question": question,
             "template": "unsupported",
             "explanation": "Try asking: Which SKUs will stock out in the next 30 days? Which inventory expires soon? What should we reorder this week?",
@@ -1316,9 +1453,11 @@ def _query_answer(question: str) -> Dict[str, Any]:
             "ai": _ai_status_payload(),
             "ai_status": "unsupported_template",
         }
+        answer["sources"] = []
+        return answer
     answer = _get_view(key)
     if not answer:
-        return {
+        answer = {
             "question": question,
             "template": key.replace("query#", ""),
             "explanation": "No materialized answer is available yet. Upload inventory, order, customer, and inbound files, then let the import worker refresh views.",
@@ -1329,9 +1468,12 @@ def _query_answer(question: str) -> Dict[str, Any]:
             "ai": _ai_status_payload(),
             "ai_status": "missing_materialized_view",
         }
+        answer["sources"] = _source_citations(answer)
+        return answer
     answer = json.loads(json.dumps(answer, default=str))
     answer["question"] = question
     answer["safe_query_mode"] = "rule_based_materialized_views"
+    answer["sources"] = _source_citations(answer)
     return _ai_augmented_answer(question, answer)
 
 
@@ -1351,6 +1493,113 @@ def _as_epoch(value: Any) -> Optional[float]:
 
 def _month_key(value: Any) -> str:
     return _to_date(value)[:7]
+
+
+def _safe_float(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _forecast_validation(horizon_days: int = 30) -> Dict[str, Any]:
+    horizon = max(7, min(int(horizon_days or 30), 90))
+    today_epoch = time.time()
+    cutoff_epoch = today_epoch - horizon * 24 * 60 * 60
+    today_iso = time.strftime("%Y-%m-%d", time.localtime(today_epoch))
+    window_start_iso = time.strftime("%Y-%m-%d", time.localtime(cutoff_epoch + 24 * 60 * 60))
+    products = {str(row.get("sku", "")): row for row in _query_records("products", limit=1000)}
+    orders = _query_all_records("orders")
+    by_sku: Dict[str, List[Dict[str, Any]]] = {}
+    for order in orders:
+        sku = str(order.get("sku", "")).strip()
+        order_epoch = _as_epoch(order.get("order_date"))
+        if not sku or not order_epoch:
+            continue
+        by_sku.setdefault(sku, []).append({**order, "_epoch": order_epoch})
+
+    rows: List[Dict[str, Any]] = []
+    for sku, sku_orders in sorted(by_sku.items()):
+        train = [order for order in sku_orders if float(order["_epoch"]) <= cutoff_epoch]
+        test = [order for order in sku_orders if cutoff_epoch < float(order["_epoch"]) <= today_epoch]
+        if not train or not test:
+            continue
+
+        train_start = min(float(order["_epoch"]) for order in train)
+        history_days = max(1, int((cutoff_epoch - train_start) / (24 * 60 * 60)) + 1)
+        recent_start = cutoff_epoch - min(90, history_days) * 24 * 60 * 60
+        recent_train = [order for order in train if float(order["_epoch"]) >= recent_start]
+        recent_days = max(1, int((cutoff_epoch - recent_start) / (24 * 60 * 60)))
+        recent_quantity = sum(_safe_float(order.get("quantity")) for order in recent_train)
+        forecast_quantity = (recent_quantity / recent_days) * horizon
+        actual_quantity = sum(_safe_float(order.get("quantity")) for order in test)
+        absolute_error = abs(forecast_quantity - actual_quantity)
+        ape = None if actual_quantity <= 0 else absolute_error / actual_quantity
+        nonzero_days = len({time.strftime("%Y-%m-%d", time.localtime(float(order["_epoch"]))) for order in train if _safe_float(order.get("quantity")) > 0})
+        if history_days < 90 or nonzero_days < 45:
+            confidence = "low"
+        elif ape is not None and ape > 0.45:
+            confidence = "medium"
+        else:
+            confidence = "high"
+        if ape is None:
+            note = "No actual demand in the holdout window; planner should review before using this SKU for reorder tuning."
+        elif confidence == "low":
+            note = "Low-confidence SKU: sparse or short demand history; use planner override until more buyer data is loaded."
+        elif ape <= 0.2:
+            note = "Forecast is close enough for pilot reorder-point calibration."
+        elif forecast_quantity > actual_quantity:
+            note = "Forecast overcalled demand; review promotion flags, discontinued accounts, or slow-moving lots."
+        else:
+            note = "Forecast undercalled demand; review promotional spikes, customer onboarding, or allocation constraints."
+
+        product = products.get(sku, {})
+        rows.append(
+            {
+                "sku": sku,
+                "product_name": product.get("name", ""),
+                "category": product.get("category", ""),
+                "forecast_quantity": round(forecast_quantity, 1),
+                "actual_quantity": round(actual_quantity, 1),
+                "absolute_error": round(absolute_error, 1),
+                "absolute_percentage_error": None if ape is None else round(ape, 3),
+                "bias": round(forecast_quantity - actual_quantity, 1),
+                "confidence": confidence,
+                "history_days": history_days,
+                "validation_window": f"{window_start_iso} to {today_iso}",
+                "business_note": note,
+            }
+        )
+
+    rows.sort(
+        key=lambda row: (
+            row.get("absolute_percentage_error") is None,
+            -float(row.get("absolute_percentage_error") or 0),
+            -float(row.get("absolute_error") or 0),
+        )
+    )
+    total_forecast = sum(float(row.get("forecast_quantity") or 0) for row in rows)
+    total_actual = sum(float(row.get("actual_quantity") or 0) for row in rows)
+    total_error = sum(float(row.get("absolute_error") or 0) for row in rows)
+    apes = [float(row["absolute_percentage_error"]) for row in rows if row.get("absolute_percentage_error") is not None]
+    apes.sort()
+    if apes:
+        midpoint = len(apes) // 2
+        median_ape = apes[midpoint] if len(apes) % 2 else (apes[midpoint - 1] + apes[midpoint]) / 2
+    else:
+        median_ape = None
+    return {
+        "summary": {
+            "sku_count": len(rows),
+            "horizon_days": horizon,
+            "median_absolute_percentage_error": None if median_ape is None else round(median_ape, 3),
+            "weighted_absolute_percentage_error": round(total_error / total_actual, 3) if total_actual > 0 else None,
+            "total_forecast_quantity": round(total_forecast, 1),
+            "total_actual_quantity": round(total_actual, 1),
+            "low_confidence_skus": sum(1 for row in rows if row.get("confidence") == "low"),
+        },
+        "rows": rows[:100],
+    }
 
 
 def _sku_detail(sku: str) -> Dict[str, Any]:
@@ -1549,6 +1798,30 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "records_table": os.environ["AWS_DYNAMODB_RECORDS_TABLE"],
                     "views_table": os.environ["AWS_DYNAMODB_VIEWS_TABLE"],
                 },
+                "scheduled_imports": {
+                    "enabled": bool(os.getenv("SCHEDULED_IMPORT_PREFIXES", "").strip()),
+                    "prefixes": [part.strip() for part in os.getenv("SCHEDULED_IMPORT_PREFIXES", "").split(",") if part.strip()],
+                    "mode": "scheduled_s3_scan_sftp_landing_ready",
+                },
+                "auth": {
+                    "mode": "cognito_or_password",
+                    "cognito_ready": bool(os.getenv("COGNITO_USER_POOL_ID", "").strip()),
+                    "cognito_user_pool_id": os.getenv("COGNITO_USER_POOL_ID", ""),
+                },
+                "audit": {
+                    "immutable_archive_configured": bool(os.getenv("AWS_S3_AUDIT_ARCHIVE_BUCKET", "").strip()),
+                    "alerts_configured": bool(os.getenv("ALERT_SNS_TOPIC_ARN", "").strip()),
+                },
+                "retention": {
+                    "raw_upload_days": int(os.getenv("RAW_FILE_RETENTION_DAYS", "365")),
+                    "audit_event_days": int(os.getenv("AUDIT_EVENT_RETENTION_DAYS", "180")),
+                    "import_status_days": int(os.getenv("IMPORT_STATUS_RETENTION_DAYS", "90")),
+                    "immutable_archive_days": int(os.getenv("AUDIT_ARCHIVE_RETENTION_DAYS", "2555")),
+                },
+                "siem": {
+                    "mode": "s3_archive_or_customer_forwarder",
+                    "configured": bool(os.getenv("SIEM_HTTP_ENDPOINT", "").strip()),
+                },
                 "erp_adapters": {
                     "sap": "placeholder only; see docs/erp_integration.md",
                     "oracle": "placeholder only; see docs/erp_integration.md",
@@ -1599,6 +1872,12 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _protected_json(event, {"rows": (_get_view("waste_risk_alerts") or {}).get("rows", [])})
     if method == "GET" and path == "/api/reorder-recommendations":
         return _protected_json(event, {"rows": (_get_view("reorder_recommendations") or {}).get("rows", [])})
+    if method == "GET" and path == "/api/validation/forecast":
+        try:
+            horizon_days = int(_query_params(event).get("horizon_days", "30"))
+        except ValueError:
+            horizon_days = 30
+        return _protected_json(event, _forecast_validation(horizon_days))
     if method == "POST" and path == "/api/query":
         user = _require_user(event)
         if not user:

@@ -99,6 +99,123 @@ variable "refresh_schedule_expression" {
   default     = "rate(1 day)"
 }
 
+variable "enable_scheduled_import_scan" {
+  description = "Whether to create an EventBridge Scheduler rule that scans S3 landing prefixes for scheduled imports."
+  type        = bool
+  default     = false
+}
+
+variable "scheduled_import_schedule_expression" {
+  description = "EventBridge Scheduler expression for scheduled S3 import scans."
+  type        = string
+  default     = "rate(1 hour)"
+}
+
+variable "scheduled_import_prefixes" {
+  description = "S3 prefixes scanned by the import worker for scheduled or SFTP-landed files."
+  type        = list(string)
+  default = [
+    "inventory-ai/raw-imports/scheduled/",
+    "inventory-ai/raw-imports/sftp/"
+  ]
+}
+
+variable "enable_managed_sftp" {
+  description = "Create a native AWS Transfer Family SFTP server for enterprise pilots. Disabled by default because it has fixed monthly cost."
+  type        = bool
+  default     = false
+}
+
+variable "sftp_user_name" {
+  description = "Service-managed AWS Transfer Family user name when enable_managed_sftp is true."
+  type        = string
+  default     = "stocksense-sftp"
+}
+
+variable "sftp_public_key" {
+  description = "SSH public key for the Transfer Family SFTP user. Leave empty to create the server without a user key."
+  type        = string
+  default     = ""
+}
+
+variable "enable_api_waf" {
+  description = "Create an AWS WAF web ACL for the Cognito Hosted UI/auth path. API Gateway v2 HTTP APIs do not support direct regional WAF association."
+  type        = bool
+  default     = false
+}
+
+variable "waf_rate_limit_per_5_min" {
+  description = "WAF rate limit per IP over 5 minutes."
+  type        = number
+  default     = 1000
+}
+
+variable "waf_blocked_country_codes" {
+  description = "Optional ISO country codes to block at WAF. Leave empty for no geo block."
+  type        = list(string)
+  default     = []
+}
+
+variable "siem_http_endpoint" {
+  description = "Optional SIEM HTTP endpoint placeholder for security review documentation. Runtime forwarding is intentionally not enabled without a customer-approved secret."
+  type        = string
+  default     = ""
+}
+
+variable "enable_cognito_auth" {
+  description = "Create Cognito User Pool and API Gateway JWT authorizer for SSO-ready pilot auth."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_domain_prefix" {
+  description = "Optional Cognito Hosted UI domain prefix. Leave empty to derive one from project and environment."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_callback_urls" {
+  description = "Allowed Cognito OAuth callback URLs."
+  type        = list(string)
+  default = [
+    "https://otokistocksense.pages.dev/login",
+    "http://localhost:3000/login"
+  ]
+}
+
+variable "cognito_logout_urls" {
+  description = "Allowed Cognito OAuth logout URLs."
+  type        = list(string)
+  default = [
+    "https://otokistocksense.pages.dev/login",
+    "http://localhost:3000/login"
+  ]
+}
+
+variable "alert_email" {
+  description = "Optional email for operational alerts. Leave empty to skip SNS alert subscription."
+  type        = string
+  default     = ""
+}
+
+variable "enable_immutable_audit_archive" {
+  description = "Create an S3 Object Lock bucket and write append-only audit events to it."
+  type        = bool
+  default     = false
+}
+
+variable "audit_archive_bucket_name" {
+  description = "Optional globally unique immutable audit archive bucket name."
+  type        = string
+  default     = ""
+}
+
+variable "audit_archive_retention_days" {
+  description = "Default Object Lock retention for audit archive objects."
+  type        = number
+  default     = 2555
+}
+
 variable "enable_budget" {
   description = "Whether to create an AWS monthly cost budget."
   type        = bool

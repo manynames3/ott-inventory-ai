@@ -4,6 +4,12 @@ locals {
   name_prefix = lower("${var.project_name}-${var.environment}")
 
   raw_import_bucket_name = var.raw_import_bucket_name != "" ? var.raw_import_bucket_name : lower("${local.name_prefix}-${data.aws_caller_identity.current.account_id}-${var.aws_region}-raw-imports")
+  audit_archive_bucket_name = (
+    var.audit_archive_bucket_name != ""
+    ? var.audit_archive_bucket_name
+    : lower("${local.name_prefix}-${data.aws_caller_identity.current.account_id}-${var.aws_region}-audit-archive")
+  )
+  cognito_domain_prefix = var.cognito_domain_prefix != "" ? var.cognito_domain_prefix : lower("${local.name_prefix}-${data.aws_caller_identity.current.account_id}")
 
   records_table_name = "${local.name_prefix}-records"
   views_table_name   = "${local.name_prefix}-views"
@@ -31,6 +37,57 @@ locals {
 resource "aws_s3_bucket" "raw_imports" {
   bucket = local.raw_import_bucket_name
   tags   = local.common_tags
+}
+
+resource "aws_s3_bucket" "audit_archive" {
+  count               = var.enable_immutable_audit_archive ? 1 : 0
+  bucket              = local.audit_archive_bucket_name
+  object_lock_enabled = true
+  tags                = local.common_tags
+}
+
+resource "aws_s3_bucket_public_access_block" "audit_archive" {
+  count  = var.enable_immutable_audit_archive ? 1 : 0
+  bucket = aws_s3_bucket.audit_archive[0].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "audit_archive" {
+  count  = var.enable_immutable_audit_archive ? 1 : 0
+  bucket = aws_s3_bucket.audit_archive[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "audit_archive" {
+  count  = var.enable_immutable_audit_archive ? 1 : 0
+  bucket = aws_s3_bucket.audit_archive[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "audit_archive" {
+  count  = var.enable_immutable_audit_archive ? 1 : 0
+  bucket = aws_s3_bucket.audit_archive[0].id
+
+  depends_on = [aws_s3_bucket_versioning.audit_archive]
+
+  rule {
+    default_retention {
+      mode = "GOVERNANCE"
+      days = var.audit_archive_retention_days
+    }
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "raw_imports" {
@@ -245,6 +302,16 @@ data "aws_iam_policy_document" "lambda_data_access" {
     resources = ["${aws_s3_bucket.raw_imports.arn}/*"]
   }
 
+  dynamic "statement" {
+    for_each = var.enable_immutable_audit_archive ? [1] : []
+
+    content {
+      sid       = "ImmutableAuditArchiveObjects"
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.audit_archive[0].arn}/*"]
+    }
+  }
+
   statement {
     sid       = "RawImportBucketList"
     actions   = ["s3:ListBucket"]
@@ -280,6 +347,16 @@ data "aws_iam_policy_document" "lambda_data_access" {
       resources = [for name in local.ssm_parameter_names : "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${startswith(name, "/") ? name : "/${name}"}"]
     }
   }
+
+  dynamic "statement" {
+    for_each = var.alert_email != "" ? [1] : []
+
+    content {
+      sid       = "PublishOperationalAlerts"
+      actions   = ["sns:Publish"]
+      resources = [aws_sns_topic.operational_alerts[0].arn]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "lambda_data_access" {
@@ -307,6 +384,16 @@ locals {
     OPENAI_API_KEY_PARAMETER_NAME  = var.openai_api_key_parameter_name
     OPENAI_MODEL                   = var.openai_model
     AI_QUERY_ENABLED               = tostring(var.ai_query_enabled)
+    SCHEDULED_IMPORT_PREFIXES      = join(",", var.scheduled_import_prefixes)
+    AWS_S3_AUDIT_ARCHIVE_BUCKET    = var.enable_immutable_audit_archive ? aws_s3_bucket.audit_archive[0].bucket : ""
+    RAW_FILE_RETENTION_DAYS        = tostring(var.raw_file_retention_days)
+    AUDIT_ARCHIVE_RETENTION_DAYS   = tostring(var.audit_archive_retention_days)
+    AUDIT_EVENT_RETENTION_DAYS     = "180"
+    IMPORT_STATUS_RETENTION_DAYS   = "90"
+    SIEM_HTTP_ENDPOINT             = var.siem_http_endpoint
+    ALERT_SNS_TOPIC_ARN            = var.alert_email != "" ? aws_sns_topic.operational_alerts[0].arn : ""
+    COGNITO_USER_POOL_ID           = var.enable_cognito_auth ? aws_cognito_user_pool.main[0].id : ""
+    COGNITO_USER_POOL_CLIENT_ID    = var.enable_cognito_auth ? aws_cognito_user_pool_client.frontend[0].id : ""
   }
 }
 
@@ -378,6 +465,280 @@ resource "aws_lambda_function_url" "api" {
   authorization_type = "NONE"
 }
 
+resource "aws_cognito_user_pool" "main" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name = "${local.name_prefix}-users"
+
+  username_attributes      = ["email"]
+  auto_verified_attributes = ["email"]
+
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
+
+  password_policy {
+    minimum_length                   = 12
+    require_lowercase                = true
+    require_numbers                  = true
+    require_symbols                  = false
+    require_uppercase                = true
+    temporary_password_validity_days = 7
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_cognito_user_pool_client" "frontend" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name         = "${local.name_prefix}-frontend"
+  user_pool_id = aws_cognito_user_pool.main[0].id
+
+  generate_secret                      = false
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["openid", "email", "profile"]
+  callback_urls                        = var.cognito_callback_urls
+  logout_urls                          = var.cognito_logout_urls
+  supported_identity_providers         = ["COGNITO"]
+  prevent_user_existence_errors        = "ENABLED"
+  explicit_auth_flows                  = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  access_token_validity                = 60
+  id_token_validity                    = 60
+  refresh_token_validity               = 1
+
+  token_validity_units {
+    access_token  = "minutes"
+    id_token      = "minutes"
+    refresh_token = "days"
+  }
+}
+
+resource "aws_cognito_user_pool_domain" "main" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  domain       = local.cognito_domain_prefix
+  user_pool_id = aws_cognito_user_pool.main[0].id
+}
+
+resource "aws_cognito_user_group" "planner" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name         = "planner"
+  user_pool_id = aws_cognito_user_pool.main[0].id
+  description  = "Can review, note, and dismiss planner actions."
+  precedence   = 30
+}
+
+resource "aws_cognito_user_group" "approver" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name         = "approver"
+  user_pool_id = aws_cognito_user_pool.main[0].id
+  description  = "Can approve planner actions."
+  precedence   = 20
+}
+
+resource "aws_cognito_user_group" "admin" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name         = "admin"
+  user_pool_id = aws_cognito_user_pool.main[0].id
+  description  = "Can administer pilot access and clear review state."
+  precedence   = 10
+}
+
+resource "aws_apigatewayv2_api" "http" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name          = "${local.name_prefix}-http-api"
+  protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_credentials = true
+    allow_headers     = ["authorization", "content-type"]
+    allow_methods     = ["GET", "POST", "OPTIONS"]
+    allow_origins     = var.allowed_origins
+    max_age           = 300
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_apigatewayv2_integration" "lambda" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id                 = aws_apigatewayv2_api.http[0].id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.api.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_authorizer" "cognito" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id           = aws_apigatewayv2_api.http[0].id
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+  name             = "${local.name_prefix}-cognito"
+
+  jwt_configuration {
+    audience = [aws_cognito_user_pool_client.frontend[0].id]
+    issuer   = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main[0].id}"
+  }
+}
+
+resource "aws_apigatewayv2_route" "proxy" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id             = aws_apigatewayv2_api.http[0].id
+  route_key          = "ANY /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito[0].id
+}
+
+resource "aws_apigatewayv2_route" "root" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id             = aws_apigatewayv2_api.http[0].id
+  route_key          = "ANY /"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito[0].id
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id      = aws_apigatewayv2_api.http[0].id
+  name        = "$default"
+  auto_deploy = true
+  tags        = local.common_tags
+}
+
+resource "aws_lambda_permission" "allow_api_gateway" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  statement_id  = "AllowApiGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http[0].execution_arn}/*/*"
+}
+
+resource "aws_wafv2_web_acl" "api" {
+  count = var.enable_api_waf && var.enable_cognito_auth ? 1 : 0
+
+  name        = "${local.name_prefix}-api-waf"
+  description = "StockSense AI Cognito auth WAF for buyer pilot hardening."
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AWSManagedCommonRules"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-common-rules"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimit"
+    priority = 2
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = var.waf_rate_limit_per_5_min
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-rate-limit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  dynamic "rule" {
+    for_each = length(var.waf_blocked_country_codes) > 0 ? [1] : []
+
+    content {
+      name     = "GeoBlock"
+      priority = 3
+
+      action {
+        block {}
+      }
+
+      statement {
+        geo_match_statement {
+          country_codes = var.waf_blocked_country_codes
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${local.name_prefix}-geo-block"
+        sampled_requests_enabled   = true
+      }
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${local.name_prefix}-api-waf"
+    sampled_requests_enabled   = true
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_wafv2_web_acl_association" "cognito" {
+  count = var.enable_api_waf && var.enable_cognito_auth ? 1 : 0
+
+  resource_arn = aws_cognito_user_pool.main[0].arn
+  web_acl_arn  = aws_wafv2_web_acl.api[0].arn
+}
+
+resource "aws_sns_topic" "operational_alerts" {
+  count = var.alert_email != "" ? 1 : 0
+
+  name = "${local.name_prefix}-operational-alerts"
+  tags = local.common_tags
+}
+
+resource "aws_sns_topic_subscription" "operational_alert_email" {
+  count = var.alert_email != "" ? 1 : 0
+
+  topic_arn = aws_sns_topic.operational_alerts[0].arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
 resource "aws_lambda_permission" "allow_s3_import_worker" {
   statement_id  = "AllowS3InvokeImportWorker"
   action        = "lambda:InvokeFunction"
@@ -396,6 +757,88 @@ resource "aws_s3_bucket_notification" "raw_imports" {
   }
 
   depends_on = [aws_lambda_permission.allow_s3_import_worker]
+}
+
+data "aws_iam_policy_document" "transfer_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["transfer.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "transfer_user" {
+  count              = var.enable_managed_sftp ? 1 : 0
+  name               = "${local.name_prefix}-sftp-user"
+  assume_role_policy = data.aws_iam_policy_document.transfer_assume_role.json
+  tags               = local.common_tags
+}
+
+data "aws_iam_policy_document" "transfer_user_access" {
+  count = var.enable_managed_sftp ? 1 : 0
+
+  statement {
+    sid       = "ListRawImportBucket"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.raw_imports.arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["inventory-ai/raw-imports/sftp/*"]
+    }
+  }
+
+  statement {
+    sid = "WriteSftpLandingPrefix"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = ["${aws_s3_bucket.raw_imports.arn}/inventory-ai/raw-imports/sftp/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "transfer_user_access" {
+  count  = var.enable_managed_sftp ? 1 : 0
+  name   = "${local.name_prefix}-sftp-user-access"
+  role   = aws_iam_role.transfer_user[0].id
+  policy = data.aws_iam_policy_document.transfer_user_access[0].json
+}
+
+resource "aws_transfer_server" "sftp" {
+  count = var.enable_managed_sftp ? 1 : 0
+
+  protocols              = ["SFTP"]
+  identity_provider_type = "SERVICE_MANAGED"
+  endpoint_type          = "PUBLIC"
+  tags                   = local.common_tags
+}
+
+resource "aws_transfer_user" "sftp" {
+  count = var.enable_managed_sftp ? 1 : 0
+
+  server_id           = aws_transfer_server.sftp[0].id
+  user_name           = var.sftp_user_name
+  role                = aws_iam_role.transfer_user[0].arn
+  home_directory_type = "LOGICAL"
+
+  home_directory_mappings {
+    entry  = "/"
+    target = "/${aws_s3_bucket.raw_imports.bucket}/inventory-ai/raw-imports/sftp"
+  }
+}
+
+resource "aws_transfer_ssh_key" "sftp" {
+  count = var.enable_managed_sftp && var.sftp_public_key != "" ? 1 : 0
+
+  server_id = aws_transfer_server.sftp[0].id
+  user_name = aws_transfer_user.sftp[0].user_name
+  body      = var.sftp_public_key
 }
 
 data "aws_iam_policy_document" "scheduler_assume_role" {
@@ -446,6 +889,58 @@ resource "aws_scheduler_schedule" "refresh" {
   target {
     arn      = aws_lambda_function.refresh_worker.arn
     role_arn = aws_iam_role.scheduler[0].arn
+  }
+}
+
+data "aws_iam_policy_document" "import_scheduler_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["scheduler.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "import_scheduler" {
+  count              = var.enable_scheduled_import_scan ? 1 : 0
+  name               = "${local.name_prefix}-import-scheduler"
+  assume_role_policy = data.aws_iam_policy_document.import_scheduler_assume_role.json
+  tags               = local.common_tags
+}
+
+data "aws_iam_policy_document" "import_scheduler_invoke" {
+  count = var.enable_scheduled_import_scan ? 1 : 0
+
+  statement {
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.import_worker.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "import_scheduler_invoke" {
+  count  = var.enable_scheduled_import_scan ? 1 : 0
+  name   = "${local.name_prefix}-import-scheduler-invoke"
+  role   = aws_iam_role.import_scheduler[0].id
+  policy = data.aws_iam_policy_document.import_scheduler_invoke[0].json
+}
+
+resource "aws_scheduler_schedule" "import_scan" {
+  count = var.enable_scheduled_import_scan ? 1 : 0
+
+  name                = "${local.name_prefix}-import-scan"
+  description         = "Periodic StockSense AI S3/SFTP landing-prefix import scan."
+  schedule_expression = var.scheduled_import_schedule_expression
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.import_worker.arn
+    role_arn = aws_iam_role.import_scheduler[0].arn
+    input    = jsonencode({ source = "stocksense.scheduled_import_scan" })
   }
 }
 

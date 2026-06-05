@@ -74,7 +74,11 @@ Implemented:
 - Lambda data partitioning now uses `tenant#{TENANT_ID}` instead of a hardcoded default partition.
 - Auth tokens and `/api/auth/me` expose tenant context, and token verification rejects mismatched tenant claims.
 - Pilot auth supports configurable planner, approver, and admin roles without storing credentials in source code.
+- Optional Cognito Hosted UI and API Gateway JWT authorizer support SSO-ready buyer pilots.
 - Status monitoring summarizes API errors, import failures, slow requests/jobs, and failed AI calls.
+- Optional SNS alerts and immutable S3 Object Lock audit archive support stronger pilot operations evidence.
+- Scheduled S3 landing-prefix scans support ERP exports or SFTP-bridged file drops.
+- Natural-language query answers include deterministic source citations.
 - Terraform includes a `tenant_id` variable and passes it into Lambda environment variables.
 - The guided pilot package includes customer-specific sample data, a security brief, and weekly ROI report template.
 
@@ -88,7 +92,7 @@ Success criteria:
 
 Remaining work before a serious enterprise rollout:
 
-- SSO/SAML or OAuth and admin user management.
-- Formal tenant provisioning, retention policy controls, audit export, and monitoring alert delivery.
-- ERP adapter implementation for SAP/Oracle extracts or scheduled secure file transfer.
+- Admin-managed identity lifecycle, buyer IdP federation details, and user deprovisioning runbooks.
+- Formal tenant provisioning, retention policy controls, SIEM forwarding, and security-review evidence collection.
+- Native ERP adapter implementation for SAP/Oracle APIs or buyer-approved scheduled file transfer automation.
 - A signed security questionnaire, DPA, and incident-response/runbook materials.

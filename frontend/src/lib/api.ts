@@ -6,8 +6,18 @@ const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || HOSTED_API_BASE
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE || "password";
+export const IS_COGNITO_AUTH = AUTH_MODE === "cognito";
+
+const COGNITO_DOMAIN = (process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "").replace(/\/+$/, "");
+const COGNITO_CLIENT_ID = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
+const COGNITO_REDIRECT_URI = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI || "";
+const COGNITO_LOGOUT_URI = process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI || "";
 
 const TOKEN_KEY = "stocksense_access_token";
+const COGNITO_CODE_VERIFIER_KEY = "stocksense_cognito_code_verifier";
+const COGNITO_STATE_KEY = "stocksense_cognito_state";
+const COGNITO_NEXT_KEY = "stocksense_cognito_next";
 
 export type LoginResponse = {
   access_token: string;
@@ -63,6 +73,30 @@ export type ImportRequirementsResponse = {
     records_table?: string;
     views_table?: string;
   };
+  scheduled_imports?: {
+    enabled: boolean;
+    prefixes?: string[];
+    mode?: string;
+  };
+  auth?: {
+    mode: string;
+    cognito_ready?: boolean;
+    cognito_user_pool_id?: string;
+  };
+  audit?: {
+    immutable_archive_configured: boolean;
+    alerts_configured: boolean;
+  };
+  retention?: {
+    raw_upload_days: number;
+    audit_event_days: number;
+    import_status_days: number;
+    immutable_archive_days: number;
+  };
+  siem?: {
+    mode: string;
+    configured: boolean;
+  };
 };
 
 export type TableResponse = {
@@ -112,6 +146,14 @@ export type QueryResponse = {
   ai_status?: string;
   ai_risk_notes?: string[];
   ai_confidence_note?: string;
+  sources?: {
+    source_id: string;
+    source_type: string;
+    description: string;
+    row_count: number;
+    columns: string[];
+    sample_record_ids?: string[];
+  }[];
   columns: string[];
   rows: Record<string, unknown>[];
   safe_query_mode: string;
@@ -237,6 +279,19 @@ export type ActionReviewsResponse = {
   storage?: "server" | "browser";
 };
 
+export type ForecastValidationResponse = {
+  summary: {
+    sku_count: number;
+    horizon_days: number;
+    median_absolute_percentage_error: number | null;
+    weighted_absolute_percentage_error: number | null;
+    total_forecast_quantity: number;
+    total_actual_quantity: number;
+    low_confidence_skus: number;
+  };
+  rows: Record<string, unknown>[];
+};
+
 export type ActionReviewUpsertResponse = {
   row: ActionReviewRow;
   storage?: "server" | "browser";
@@ -257,6 +312,107 @@ export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
   window.dispatchEvent(new Event("stocksense-auth"));
+}
+
+function authRedirectUri(): string {
+  if (COGNITO_REDIRECT_URI) return COGNITO_REDIRECT_URI;
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/login`;
+}
+
+function authLogoutUri(): string {
+  if (COGNITO_LOGOUT_URI) return COGNITO_LOGOUT_URI;
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/login`;
+}
+
+function base64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function sha256(value: string): Promise<ArrayBuffer> {
+  return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+}
+
+function randomString(byteLength = 48): string {
+  const bytes = new Uint8Array(byteLength);
+  window.crypto.getRandomValues(bytes);
+  return base64Url(bytes.buffer);
+}
+
+export async function startCognitoLogin(nextPath = "/"): Promise<void> {
+  if (!COGNITO_DOMAIN || !COGNITO_CLIENT_ID) {
+    throw new Error("Cognito auth is not configured. Set NEXT_PUBLIC_COGNITO_DOMAIN and NEXT_PUBLIC_COGNITO_CLIENT_ID.");
+  }
+  const verifier = randomString();
+  const challenge = base64Url(await sha256(verifier));
+  const state = randomString(24);
+  window.localStorage.setItem(COGNITO_CODE_VERIFIER_KEY, verifier);
+  window.localStorage.setItem(COGNITO_STATE_KEY, state);
+  window.localStorage.setItem(COGNITO_NEXT_KEY, nextPath || "/");
+
+  const params = new URLSearchParams({
+    client_id: COGNITO_CLIENT_ID,
+    response_type: "code",
+    scope: "openid email profile",
+    redirect_uri: authRedirectUri(),
+    code_challenge_method: "S256",
+    code_challenge: challenge,
+    state
+  });
+  window.location.href = `${COGNITO_DOMAIN}/oauth2/authorize?${params.toString()}`;
+}
+
+export async function completeCognitoLoginFromUrl(): Promise<string | null> {
+  if (typeof window === "undefined" || !IS_COGNITO_AUTH) return null;
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  if (!code) return null;
+  const state = params.get("state") || "";
+  const expectedState = window.localStorage.getItem(COGNITO_STATE_KEY) || "";
+  const verifier = window.localStorage.getItem(COGNITO_CODE_VERIFIER_KEY) || "";
+  if (!expectedState || state !== expectedState || !verifier) {
+    throw new Error("Cognito login state could not be verified. Please try signing in again.");
+  }
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: COGNITO_CLIENT_ID,
+    code,
+    redirect_uri: authRedirectUri(),
+    code_verifier: verifier
+  });
+  const response = await fetch(`${COGNITO_DOMAIN}/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  if (!response.ok) {
+    throw new Error(`Cognito token exchange failed: ${response.status}`);
+  }
+  const tokenBody = await response.json();
+  const authToken = tokenBody.id_token || tokenBody.access_token;
+  if (!authToken) {
+    throw new Error("Cognito did not return an ID or access token.");
+  }
+  setAuthToken(String(authToken));
+  window.localStorage.removeItem(COGNITO_CODE_VERIFIER_KEY);
+  window.localStorage.removeItem(COGNITO_STATE_KEY);
+  const next = window.localStorage.getItem(COGNITO_NEXT_KEY) || "/";
+  window.localStorage.removeItem(COGNITO_NEXT_KEY);
+  window.history.replaceState({}, "", "/login");
+  return next;
+}
+
+export function cognitoLogoutUrl(): string | null {
+  if (!IS_COGNITO_AUTH || !COGNITO_DOMAIN || !COGNITO_CLIENT_ID) return null;
+  const params = new URLSearchParams({
+    client_id: COGNITO_CLIENT_ID,
+    logout_uri: authLogoutUri()
+  });
+  return `${COGNITO_DOMAIN}/logout?${params.toString()}`;
 }
 
 export function authHeaders(): HeadersInit {

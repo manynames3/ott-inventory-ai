@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import date, datetime, timezone
 from typing import Dict, Optional
@@ -28,10 +29,12 @@ from app.services.product_context import enrich_product_rows
 from app.services.raw_file_storage import RawFileStorage
 from app.services.reorder import generate_reorder_recommendations
 from app.services.templates import csv_template, next_questions, xlsx_template
+from app.services.validation import forecast_backtest
 
 
 settings = get_settings()
 MONITORING_EVENTS: list[Dict[str, object]] = []
+AUDIT_EVENTS: list[Dict[str, object]] = []
 SLOW_REQUEST_MS = 2_000
 SLOW_JOB_MS = 10_000
 
@@ -65,6 +68,27 @@ def _record_monitoring_event(
         }
     )
     del MONITORING_EVENTS[:-250]
+
+
+def _record_audit_event(
+    action: str,
+    resource: str,
+    user: str,
+    details: Optional[Dict[str, object]] = None,
+    request: Optional[Request] = None,
+) -> None:
+    AUDIT_EVENTS.append(
+        {
+            "action": action,
+            "resource": resource,
+            "user": user,
+            "origin": request.headers.get("origin", "") if request else "",
+            "source_ip": request.client.host if request and request.client else "",
+            "details": details or {},
+            "created_at_epoch": int(time.time()),
+        }
+    )
+    del AUDIT_EVENTS[:-500]
 
 
 @app.middleware("http")
@@ -137,21 +161,34 @@ def health():
 
 
 @app.post("/api/auth/login")
-def login(request: LoginRequest):
+def login(login_request: LoginRequest, raw_request: Request):
     if not settings.auth_enabled:
         return {
             "access_token": create_access_token("auth-disabled", settings=settings),
             "token_type": "bearer",
-            "user": {"username": "auth-disabled", "tenant_id": settings.tenant_id, "role": "admin"},
+            "user": {
+                "username": "auth-disabled",
+                "tenant_id": settings.tenant_id,
+                "role": "admin",
+                "can_approve_actions": True,
+            },
         }
-    if not authenticate(request.username, request.password, settings=settings):
+    if not authenticate(login_request.username, login_request.password, settings=settings):
+        _record_audit_event(
+            "login_failed",
+            "auth",
+            login_request.username or "unknown",
+            {"username": login_request.username},
+            raw_request,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password.")
-    role = role_for_user(request.username, settings=settings)
+    role = role_for_user(login_request.username, settings=settings)
+    _record_audit_event("login_success", "auth", login_request.username, {}, raw_request)
     return {
-        "access_token": create_access_token(request.username, settings=settings),
+        "access_token": create_access_token(login_request.username, settings=settings),
         "token_type": "bearer",
         "user": {
-            "username": request.username,
+            "username": login_request.username,
             "tenant_id": settings.tenant_id,
             "role": role,
             "can_approve_actions": can_approve_actions({"role": role}),
@@ -183,6 +220,28 @@ def import_requirements():
             "bucket_configured": bool(settings.aws_s3_raw_import_bucket),
             "prefix": settings.aws_s3_import_prefix,
         },
+        "scheduled_imports": {
+            "enabled": False,
+            "mode": "local_fastapi_manual_upload",
+        },
+        "auth": {
+            "mode": "password",
+            "cognito_ready": False,
+        },
+        "audit": {
+            "immutable_archive_configured": bool(os.getenv("AWS_S3_AUDIT_ARCHIVE_BUCKET", "").strip()),
+            "alerts_configured": bool(os.getenv("ALERT_SNS_TOPIC_ARN", "").strip()),
+        },
+        "retention": {
+            "raw_upload_days": int(os.getenv("RAW_FILE_RETENTION_DAYS", "365")),
+            "audit_event_days": int(os.getenv("AUDIT_EVENT_RETENTION_DAYS", "180")),
+            "import_status_days": int(os.getenv("IMPORT_STATUS_RETENTION_DAYS", "90")),
+            "immutable_archive_days": int(os.getenv("AUDIT_ARCHIVE_RETENTION_DAYS", "2555")),
+        },
+        "siem": {
+            "mode": "s3_archive_or_customer_forwarder",
+            "configured": bool(os.getenv("SIEM_HTTP_ENDPOINT", "").strip()),
+        },
         "erp_adapters": {
             "sap": "placeholder only; see docs/erp_integration.md",
             "oracle": "placeholder only; see docs/erp_integration.md",
@@ -213,9 +272,10 @@ def download_template(entity: str, file_format: str):
 @app.post("/api/import/{entity}")
 def import_csv(
     entity: str,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: Dict[str, object] = Depends(require_user),
+    user: Dict[str, object] = Depends(require_user),
 ):
     adapter = CSVImportAdapter()
     content = file.file.read()
@@ -233,6 +293,13 @@ def import_csv(
 
     result = adapter.load_file(entity, file.filename or f"{entity}.csv", content)
     if result.errors:
+        _record_audit_event(
+            "import_validation_failed",
+            entity,
+            str(user.get("sub") or "unknown"),
+            {"filename": file.filename, "rows_seen": result.rows_seen, "error_count": len(result.errors)},
+            request,
+        )
         _record_monitoring_event(
             "import_failure",
             "warning",
@@ -252,6 +319,13 @@ def import_csv(
     dataframe = getattr(result, "dataframe")
     db_result = adapter.import_dataframe(db, entity, dataframe)
     if db_result.errors:
+        _record_audit_event(
+            "import_database_failed",
+            entity,
+            str(user.get("sub") or "unknown"),
+            {"filename": file.filename, "rows_seen": db_result.rows_seen, "error_count": len(db_result.errors)},
+            request,
+        )
         _record_monitoring_event(
             "import_failure",
             "warning",
@@ -271,6 +345,18 @@ def import_csv(
         db,
         as_of=date.today(),
         lead_time_days=settings.supplier_lead_time_days,
+    )
+    _record_audit_event(
+        "import_completed",
+        entity,
+        str(user.get("sub") or "unknown"),
+        {
+            "filename": file.filename,
+            "rows_seen": db_result.rows_seen,
+            "rows_imported": db_result.rows_imported,
+            "raw_file_stored": bool(stored),
+        },
+        request,
     )
     return {
         "entity": entity,
@@ -351,6 +437,22 @@ def forecasts(db: Session = Depends(get_db), sku: Optional[str] = None, _: Dict[
     return {"rows": engine.forecast_all(data["orders"], skus, as_of=date.today())}
 
 
+@app.get("/api/validation/forecast")
+def forecast_validation(
+    horizon_days: int = 30,
+    db: Session = Depends(get_db),
+    _: Dict[str, object] = Depends(require_user),
+):
+    bounded_horizon = max(7, min(horizon_days, 90))
+    data = load_core_dataframes(db)
+    return forecast_backtest(
+        data["orders"],
+        data["products"],
+        as_of=date.today(),
+        horizon_days=bounded_horizon,
+    )
+
+
 @app.get("/api/reorder-recommendations")
 def reorder_recommendations(db: Session = Depends(get_db), _: Dict[str, object] = Depends(require_user)):
     data = load_core_dataframes(db)
@@ -371,8 +473,9 @@ def reorder_recommendations(db: Session = Depends(get_db), _: Dict[str, object] 
 @app.post("/api/query")
 def query(
     request: QueryRequest,
+    raw_request: Request,
     db: Session = Depends(get_db),
-    _: Dict[str, object] = Depends(require_user),
+    user: Dict[str, object] = Depends(require_user),
 ):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question is required.")
@@ -384,6 +487,13 @@ def query(
             "AI query augmentation failed and fell back to safe materialized views.",
             {"template": answer.get("template"), "ai_error": answer.get("ai_error")},
         )
+    _record_audit_event(
+        "query_answered",
+        str(answer.get("template", "unsupported")),
+        str(user.get("sub") or "unknown"),
+        {"question_preview": request.question[:160], "row_count": len(answer.get("rows", []))},
+        raw_request,
+    )
     return answer
 
 
@@ -435,6 +545,13 @@ def monitoring_summary(_: Dict[str, object] = Depends(require_user)):
     }
 
 
+@app.get("/api/audit-events")
+def audit_events(limit: int = 100, _: Dict[str, object] = Depends(require_user)):
+    bounded_limit = max(1, min(limit, 250))
+    rows = list(reversed(AUDIT_EVENTS[-bounded_limit:]))
+    return {"rows": rows, "count": len(rows), "storage": "in_memory_local"}
+
+
 @app.get("/api/action-reviews")
 def list_action_reviews(
     db: Session = Depends(get_db),
@@ -463,6 +580,7 @@ def list_action_reviews(
 @app.post("/api/action-reviews")
 def upsert_action_review(
     request: ActionReviewRequest,
+    raw_request: Request,
     db: Session = Depends(get_db),
     user: Dict[str, object] = Depends(require_user),
 ):
@@ -492,6 +610,13 @@ def upsert_action_review(
         row.approved_at = None
     db.commit()
     db.refresh(row)
+    _record_audit_event(
+        "action_review_updated",
+        str(request.action_snapshot.get("sku") or request.action_snapshot.get("action_type") or "planner_action"),
+        str(user.get("sub") or "unknown"),
+        {"action_key": request.action_key, "status": request.status},
+        raw_request,
+    )
     return {
         "row": {
             "action_key": row.action_key,
@@ -509,6 +634,7 @@ def upsert_action_review(
 
 @app.post("/api/action-reviews/clear")
 def clear_action_reviews(
+    request: Request,
     db: Session = Depends(get_db),
     user: Dict[str, object] = Depends(require_user),
 ):
@@ -519,6 +645,13 @@ def clear_action_reviews(
         )
     deleted = db.query(ActionReview).delete()
     db.commit()
+    _record_audit_event(
+        "action_reviews_cleared",
+        "planner_actions",
+        str(user.get("sub") or "unknown"),
+        {"deleted": deleted},
+        request,
+    )
     return {"deleted": deleted, "storage": "server"}
 
 

@@ -51,6 +51,7 @@ Optional repository variables:
 | --- | --- |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws` |
+| `NEXT_PUBLIC_AUTH_MODE` | `password` |
 
 The workflow creates a Pages project named `otokistocksense` if it does not already exist, then deploys the static output to the `main` branch deployment.
 
@@ -79,6 +80,18 @@ For the hosted pilot, use the live backend:
 | --- | --- |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws` |
+| `NEXT_PUBLIC_AUTH_MODE` | `password` |
+
+For Cognito mode, point the frontend at the Terraform `api_gateway_url` output and add the Cognito outputs:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_AUTH_MODE` | `cognito` |
+| `NEXT_PUBLIC_API_BASE_URL` | `<api_gateway_url>` |
+| `NEXT_PUBLIC_COGNITO_DOMAIN` | `<cognito_domain>` |
+| `NEXT_PUBLIC_COGNITO_CLIENT_ID` | `<cognito_user_pool_client_id>` |
+| `NEXT_PUBLIC_COGNITO_REDIRECT_URI` | `https://otokistocksense.pages.dev/login` |
+| `NEXT_PUBLIC_COGNITO_LOGOUT_URI` | `https://otokistocksense.pages.dev/login` |
 
 Use demo mode only for offline/static fallback builds:
 

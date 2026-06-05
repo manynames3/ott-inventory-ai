@@ -114,6 +114,7 @@ def augment_query_answer(question: str, answer: Dict[str, Any]) -> Dict[str, Any
         "row_count": len(answer.get("rows", [])),
         "columns": answer.get("columns", []),
         "rows": _compact_rows(answer.get("rows", [])),
+        "sources": answer.get("sources", []),
     }
     payload = {
         "model": status["model"],
@@ -126,7 +127,8 @@ def augment_query_answer(question: str, answer: Dict[str, Any]) -> Dict[str, Any
                         "text": (
                             "You are StockSense AI for food and CPG inventory planners. Use only the provided JSON. "
                             "Do not invent SKUs, lots, dates, costs, customers, or SQL. Explain the matched safe view "
-                            "as planner-ready actions with confidence caveats."
+                            "as planner-ready actions with confidence caveats. Treat the sources array as the citations "
+                            "backing the answer."
                         ),
                     }
                 ],

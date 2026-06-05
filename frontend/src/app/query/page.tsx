@@ -139,6 +139,24 @@ export default function QueryPage() {
               ) : null}
             </div>
           ) : null}
+          {result.sources?.length ? (
+            <div className="source-citations">
+              <h3>Sources</h3>
+              {result.sources.map((source) => (
+                <div className="source-citation-card" key={source.source_id}>
+                  <span>{source.source_id.replaceAll("_", " ")}</span>
+                  <p>{source.description}</p>
+                  <small>
+                    {source.row_count.toLocaleString()} rows · {source.columns.slice(0, 6).join(", ")}
+                    {source.columns.length > 6 ? "..." : ""}
+                  </small>
+                  {source.sample_record_ids?.length ? (
+                    <small>Sample records: {source.sample_record_ids.join(" | ")}</small>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
           <DataTable columns={result.columns} rows={result.rows} emptyLabel="No matching rows" />
         </section>
       ) : null}

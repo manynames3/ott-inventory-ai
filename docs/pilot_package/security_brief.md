@@ -24,6 +24,7 @@ Avoid uploading personal contact details, payment data, tax IDs, HR data, or con
 - Operational records and materialized views: DynamoDB on-demand tables partitioned by tenant ID.
 - Secrets: SSM Parameter Store SecureString parameters, not source code.
 - Login: pilot JWT auth with configurable users and roles.
+- SSO-ready option: Cognito Hosted UI plus API Gateway JWT authorization.
 - Approval control: planner actions require approver/admin role to approve.
 
 ## AI Boundary
@@ -32,8 +33,20 @@ Natural-language questions use safe predefined operational views. The model neve
 
 ## Audit And Monitoring
 
-The hosted pilot records audit and monitoring events for logins, imports, action approvals, API errors, import failures, slow requests/jobs, and failed AI calls. The Status page exposes a 24-hour monitoring summary for pilot operators.
+The hosted pilot records audit and monitoring events for logins, imports, action approvals, API errors, import failures, slow requests/jobs, and failed AI calls. The Status page exposes a 24-hour monitoring summary for pilot operators. Optional SNS alerts can notify an owner when failures occur.
+
+## Retention And SIEM
+
+- Raw uploads default to 365-day S3 lifecycle retention.
+- Import status defaults to 90-day retention.
+- App audit events default to 180-day retention.
+- Immutable audit export is available through S3 Object Lock, defaulting to 2,555 days when enabled.
+- SIEM ingestion should use the immutable S3 archive or a buyer-approved HTTP forwarder after endpoint auth and schema are reviewed.
+
+## Edge Protection
+
+The static frontend includes security headers for MIME sniffing, clickjacking, referrer policy, permissions policy, HSTS, and CSP review. The hosted Cognito auth path can add AWS WAF with managed common rules and IP rate limiting. API-request WAF requires CloudFront or REST API Gateway.
 
 ## Current Limitations
 
-This MVP is appropriate for a controlled low-traffic pilot. Before enterprise rollout, add SSO/SAML or OAuth, formal tenant provisioning, retention policy configuration, alert delivery, audit export, customer-specific DPA/security questionnaire answers, and ERP writeback review if writeback is requested.
+This MVP is appropriate for a controlled low-traffic pilot. Before enterprise rollout, finalize buyer-specific DPA terms, production tenant provisioning, SIEM forwarding, custom-domain review, formal security questionnaire signoff, and ERP writeback review if writeback is requested.

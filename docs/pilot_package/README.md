@@ -8,6 +8,10 @@ This package is the handoff kit for a controlled Ottogi USA-style pilot. It is d
 - Demo runbook: [`demo_runbook.md`](demo_runbook.md)
 - Data request checklist: [`data_request_checklist.md`](data_request_checklist.md)
 - One-page security brief: [`security_brief.md`](security_brief.md)
+- Security questionnaire: [`security_questionnaire.md`](security_questionnaire.md)
+- DPA/procurement checklist: [`dpa_checklist.md`](dpa_checklist.md)
+- Retention and SIEM plan: [`retention_siem_plan.md`](retention_siem_plan.md)
+- Buyer data validation protocol: [`buyer_data_validation_protocol.md`](buyer_data_validation_protocol.md)
 - Weekly ROI report template: [`weekly_roi_report_template.md`](weekly_roi_report_template.md)
 
 ## Pilot Flow
@@ -16,9 +20,10 @@ This package is the handoff kit for a controlled Ottogi USA-style pilot. It is d
 2. Confirm Data Setup shows all five datasets as complete.
 3. Review Dashboard KPIs for expiry exposure, stockout exposure, reorder value, and recoverable waste.
 4. Open Actions and approve or dismiss planner recommendations.
-5. Export the reviewed CSV for weekly follow-up.
-6. Use Query for common planning questions over the refreshed views.
-7. Send the weekly ROI report to the pilot sponsor.
+5. Open Reports to generate the weekly ROI readout from approved/dismissed actions.
+6. Open Validation to backtest forecast accuracy against the latest order holdout window.
+7. Use Query for common planning questions over the refreshed views.
+8. Send the weekly ROI report and validation summary to the pilot sponsor.
 
 ## Sample Dataset
 

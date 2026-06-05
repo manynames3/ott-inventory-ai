@@ -20,11 +20,21 @@ import boto3
 
 s3 = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
+sns = boto3.client("sns")
 
 TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
 TENANT_PK = f"tenant#{TENANT_ID}"
 DATE_STYLE_IDS = set(range(14, 23)) | {27, 30, 36, 45, 46, 47, 50, 57}
 SLOW_JOB_SECONDS = 60
+ALERT_ACTIONS = {
+    "api_error",
+    "ai_failure",
+    "import_preview_failed",
+    "import_commit_failed",
+    "import_worker_failed",
+    "slow_job",
+    "slow_request",
+}
 
 REQUIRED_COLUMNS = {
     "products": ["sku", "name", "category", "case_size", "shelf_life_days"],
@@ -121,6 +131,42 @@ def _put_audit_event(action: str, resource: str, details: Dict[str, Any]) -> Non
             "ttl_epoch": {"N": str(int(now_ms / 1000) + 180 * 24 * 60 * 60)},
         },
     )
+    _archive_audit_event(payload, now_ms)
+    _publish_alert(payload)
+
+
+def _archive_audit_event(payload: Dict[str, Any], now_ms: int) -> None:
+    bucket = os.getenv("AWS_S3_AUDIT_ARCHIVE_BUCKET", "").strip()
+    if not bucket:
+        return
+    try:
+        created = datetime.utcfromtimestamp(int(payload.get("created_at_epoch", int(now_ms / 1000)))).date()
+        key = (
+            f"tenant={TENANT_ID}/year={created.year:04d}/month={created.month:02d}/day={created.day:02d}/"
+            f"{now_ms:013d}-{uuid.uuid4().hex}.json"
+        )
+        s3.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=(json.dumps(payload, separators=(",", ":"), default=str) + "\n").encode("utf-8"),
+            ContentType="application/json",
+        )
+    except Exception:
+        return
+
+
+def _publish_alert(payload: Dict[str, Any]) -> None:
+    topic_arn = os.getenv("ALERT_SNS_TOPIC_ARN", "").strip()
+    if not topic_arn or payload.get("action") not in ALERT_ACTIONS:
+        return
+    try:
+        sns.publish(
+            TopicArn=topic_arn,
+            Subject=f"StockSense {payload.get('action')} - {TENANT_ID}",
+            Message=json.dumps(payload, indent=2, default=str),
+        )
+    except Exception:
+        return
 
 
 def _col_index(cell_ref: str) -> int:
@@ -990,8 +1036,74 @@ def _process_file(bucket: str, key: str) -> Dict[str, Any]:
     return {"entity": entity, "status": "imported", "rows_imported": len(normalized), "view_counts": counts}
 
 
+def _scheduled_prefixes() -> List[str]:
+    prefixes = [part.strip() for part in os.getenv("SCHEDULED_IMPORT_PREFIXES", "").split(",") if part.strip()]
+    return prefixes or ["inventory-ai/raw-imports/scheduled/", "inventory-ai/raw-imports/sftp/"]
+
+
+def _supported_import_key(key: str) -> bool:
+    lower = key.lower()
+    if not (lower.endswith(".csv") or lower.endswith(".xlsx") or lower.endswith(".xlsm")):
+        return False
+    try:
+        _entity_from_key(key)
+    except ValueError:
+        return False
+    return True
+
+
+def _import_status(bucket: str, key: str) -> str:
+    response = dynamodb.get_item(
+        TableName=os.environ["AWS_DYNAMODB_IMPORTS_TABLE"],
+        Key={"pk": {"S": f"import#{bucket}#{key}"}, "sk": {"S": "status"}},
+        ProjectionExpression="#status",
+        ExpressionAttributeNames={"#status": "status"},
+    )
+    return response.get("Item", {}).get("status", {}).get("S", "")
+
+
+def _scan_scheduled_imports(bucket: str) -> List[Dict[str, Any]]:
+    processed = []
+    for prefix in _scheduled_prefixes():
+        continuation = None
+        while True:
+            kwargs: Dict[str, Any] = {"Bucket": bucket, "Prefix": prefix, "MaxKeys": 100}
+            if continuation:
+                kwargs["ContinuationToken"] = continuation
+            response = s3.list_objects_v2(**kwargs)
+            for item in response.get("Contents", []):
+                key = item.get("Key", "")
+                if not _supported_import_key(key):
+                    continue
+                current_status = _import_status(bucket, key)
+                if current_status in {"processing", "imported"}:
+                    processed.append({"bucket": bucket, "key": key, "status": f"skipped_{current_status}"})
+                    continue
+                started = time.perf_counter()
+                try:
+                    result = _process_file(bucket, key)
+                    duration_seconds = round(time.perf_counter() - started, 3)
+                    if duration_seconds >= SLOW_JOB_SECONDS:
+                        _put_audit_event("slow_job", result.get("entity", "import"), {"key": key, "duration_seconds": duration_seconds, "source": "scheduled_scan"})
+                    processed.append({"bucket": bucket, "key": key, "duration_seconds": duration_seconds, **result})
+                except Exception as exc:
+                    _put_import_status(bucket, key, "failed", str(exc))
+                    _put_audit_event("import_worker_failed", "import", {"key": key, "error": type(exc).__name__, "source": "scheduled_scan"})
+                    processed.append({"bucket": bucket, "key": key, "status": "failed", "error": str(exc)})
+            if not response.get("IsTruncated"):
+                break
+            continuation = response.get("NextContinuationToken")
+    _put_audit_event("scheduled_import_scan_completed", "s3_landing_prefixes", {"processed": len(processed), "prefixes": _scheduled_prefixes()})
+    return processed
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     processed = []
+    if event.get("source") == "stocksense.scheduled_import_scan" or (not event.get("Records") and event.get("detail-type") == "Scheduled Event"):
+        bucket = os.environ["AWS_S3_RAW_IMPORT_BUCKET"]
+        processed = _scan_scheduled_imports(bucket)
+        return {"statusCode": 200, "body": json.dumps({"processed": processed, "mode": "scheduled_scan"}, separators=(",", ":"))}
+
     for record in event.get("Records", []):
         bucket = record.get("s3", {}).get("bucket", {}).get("name", "")
         key = unquote_plus(record.get("s3", {}).get("object", {}).get("key", ""))

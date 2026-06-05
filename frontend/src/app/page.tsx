@@ -394,6 +394,12 @@ export default function DashboardPage() {
         <Link className="button secondary" href="/actions">
           Priority actions
         </Link>
+        <Link className="button secondary" href="/reports">
+          Weekly report
+        </Link>
+        <Link className="button secondary" href="/validation">
+          Validate forecasts
+        </Link>
       </div>
 
       <section className="grid-3 buyer-value-grid">

@@ -2,6 +2,8 @@
 
 Use this report after each weekly pilot review. The goal is to make the buyer's decision simple: how much waste was protected, how much stockout risk was reduced, and whether the planner workflow saved time.
 
+The in-app Reports page generates the reviewed action ledger from approved and dismissed planner actions. Use this template for the executive narrative around that export.
+
 ## Reporting Window
 
 - Week ending:
@@ -50,7 +52,7 @@ This week StockSense AI identified:
 | Actions approved |  |  |
 | Actions dismissed |  |  |
 | Planner notes captured |  |  |
-| Reviewed CSV exported | Yes/No |  |
+| Weekly ROI CSV downloaded | Yes/No |  |
 
 ## Top Decisions
 

@@ -26,6 +26,7 @@ type ReviewStatus = "open" | "accepted" | "dismissed";
 type ActionReviewState = {
   status: ReviewStatus;
   note?: string;
+  updated_by?: string;
   approved_by?: string;
   approved_at?: string;
   updated_at?: string;
@@ -57,6 +58,18 @@ function csvValue(value: unknown): string {
   return /[",\n]/.test(output) ? `"${output}"` : output;
 }
 
+function formatTimestamp(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
 export default function ActionsPage() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +94,7 @@ export default function ActionsPage() {
   useEffect(() => {
     if (IS_DEMO_MODE) {
       setReviewStorage("browser");
+      loadBrowserReviewState();
       return;
     }
     apiGet<ActionReviewsResponse>("/api/action-reviews")
@@ -91,6 +105,7 @@ export default function ActionsPage() {
           serverState[row.action_key] = {
             status: row.status,
             note: row.note || "",
+            updated_by: row.updated_by || "",
             approved_by: row.approved_by || "",
             approved_at: row.approved_at || (row.approved_at_epoch ? new Date(row.approved_at_epoch * 1000).toISOString() : undefined),
             updated_at: row.updated_at || (row.updated_at_epoch ? new Date(row.updated_at_epoch * 1000).toISOString() : undefined)
@@ -106,27 +121,9 @@ export default function ActionsPage() {
       })
       .catch(() => {
         setReviewStorage("browser");
+        loadBrowserReviewState();
         setReviewSyncMessage("Server review history is unavailable. Changes are saved in this browser until sync is restored.");
       });
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(ACTION_REVIEW_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, ActionReviewState>;
-        setReviewState(parsed);
-        setNoteDrafts(
-          Object.fromEntries(
-            Object.entries(parsed)
-              .filter(([, value]) => value.note)
-              .map(([key, value]) => [key, value.note || ""])
-          )
-        );
-      }
-    } catch {
-      setReviewState({});
-    }
   }, []);
 
   const actions = useMemo(() => (dashboard ? buildPriorityActions(dashboard) : []), [dashboard]);
@@ -152,6 +149,24 @@ export default function ActionsPage() {
   const canApproveActions = Boolean(currentUser?.can_approve_actions || IS_DEMO_MODE);
   const userRole = currentUser?.role || (IS_DEMO_MODE ? "approver" : "planner");
   const username = currentUser?.username || (IS_DEMO_MODE ? "demo-planner" : "unknown");
+
+  function loadBrowserReviewState() {
+    try {
+      const raw = window.localStorage.getItem(ACTION_REVIEW_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, ActionReviewState>;
+      setReviewState(parsed);
+      setNoteDrafts(
+        Object.fromEntries(
+          Object.entries(parsed)
+            .filter(([, value]) => value.note)
+            .map(([key, value]) => [key, value.note || ""])
+        )
+      );
+    } catch {
+      setReviewState({});
+    }
+  }
 
   function persistReview(next: Record<string, ActionReviewState>) {
     setReviewState(next);
@@ -192,6 +207,7 @@ export default function ActionsPage() {
         ...reviewState[key],
         status,
         note,
+        updated_by: username,
         approved_by: status === "accepted" ? username : status === "open" ? "" : reviewState[key]?.approved_by,
         approved_at: status === "accepted" ? new Date().toISOString() : status === "open" ? "" : reviewState[key]?.approved_at,
         updated_at: new Date().toISOString()
@@ -208,6 +224,7 @@ export default function ActionsPage() {
         ...reviewState[key],
         status,
         note,
+        updated_by: username,
         updated_at: new Date().toISOString()
       }
     });
@@ -231,6 +248,8 @@ export default function ActionsPage() {
       "reason",
       "confidence",
       "confidence_reason",
+      "updated_by",
+      "updated_at",
       "approved_by",
       "approved_at"
     ];
@@ -240,6 +259,8 @@ export default function ActionsPage() {
         ...row,
         review_status: state.status === "accepted" ? "approved" : state.status,
         planner_note: state.note || "",
+        updated_by: state.updated_by || "",
+        updated_at: state.updated_at || "",
         approved_by: state.approved_by || "",
         approved_at: state.approved_at || ""
       };
@@ -435,6 +456,18 @@ export default function ActionsPage() {
                       <span>Confidence</span>
                       <p>{text(row.confidence_reason)}</p>
                     </div>
+                  </div>
+
+                  <div className="planner-review-status">
+                    <span>Review evidence</span>
+                    <p>
+                      {state.updated_at
+                        ? `Last updated by ${state.updated_by || "unknown"} on ${formatTimestamp(state.updated_at)}.`
+                        : "Not reviewed yet."}
+                      {state.approved_by
+                        ? ` Approved by ${state.approved_by} on ${formatTimestamp(state.approved_at)}.`
+                        : " Approval is required before this becomes an execution handoff."}
+                    </p>
                   </div>
 
                   <label className="planner-note-label">

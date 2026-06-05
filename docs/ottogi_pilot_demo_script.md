@@ -77,7 +77,7 @@ Talk track:
 
 Talk track:
 
-> The audit trail records login, upload URL creation, preview, import commit, and query activity. For a pilot, this gives enough traceability to know who loaded which file and when insights changed.
+> The audit trail records login, upload URL creation, preview, import commit, query, export, and planner-review activity. For a pilot, this gives enough traceability to know who loaded which file, who approved actions, and when insights changed.
 
 7. Ask a natural-language question.
 

@@ -69,6 +69,46 @@ def _serialize(rows: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return output
 
 
+def _row_identifier(row: Dict[str, object]) -> str:
+    for fields in [
+        ("sku", "warehouse", "lot_id"),
+        ("sku", "warehouse"),
+        ("sku", "customer_id"),
+        ("customer_id",),
+        ("lot_id",),
+        ("sku",),
+    ]:
+        values = [str(row.get(field, "")).strip() for field in fields if row.get(field)]
+        if values:
+            return " / ".join(values)
+    return "row"
+
+
+def _source_citations(answer: Dict[str, object]) -> List[Dict[str, object]]:
+    template = str(answer.get("template") or "unsupported")
+    rows = answer.get("rows", [])
+    if not isinstance(rows, list):
+        rows = []
+    columns = answer.get("columns", [])
+    descriptions = {
+        "stockout_risk": "Materialized reorder recommendations joined with product, inventory, order, inbound, and warehouse context.",
+        "reorder_this_week": "Materialized reorder recommendations filtered to actions due within seven days.",
+        "expiring_inventory": "Materialized waste-risk alerts generated from inventory lots inside the 90-day expiration window.",
+        "customer_reorder_cadence": "Historical orders grouped by customer and compared with each customer's average reorder interval.",
+        "monthly_sku_buyers": "Historical orders for the requested SKU grouped by customer and monthly buying coverage.",
+    }
+    return [
+        {
+            "source_id": f"view:{template}",
+            "source_type": "materialized_view",
+            "description": descriptions.get(template, "Safe predefined query template over structured inventory data."),
+            "row_count": len(rows),
+            "columns": columns if isinstance(columns, list) else [],
+            "sample_record_ids": [_row_identifier(row) for row in rows[:5] if isinstance(row, dict)],
+        }
+    ]
+
+
 def _customers_due_for_order(data: Dict[str, pd.DataFrame]) -> Dict[str, object]:
     today = date.today()
     orders = data["orders"].copy()
@@ -327,4 +367,5 @@ def answer_question(session: Session, question: str, lead_time_days: int) -> Dic
     answer["question"] = question
     answer["safe_query_mode"] = "rule_based_templates_only"
     answer.setdefault("action_summary", _summary(str(answer.get("template", "")), answer.get("rows", [])))
+    answer["sources"] = _source_citations(answer)
     return augment_query_answer(question, answer)

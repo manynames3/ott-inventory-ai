@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Activity, BrainCircuit, Database, LockKeyhole, Server, UploadCloud } from "lucide-react";
+import { Activity, BrainCircuit, Database, LockKeyhole, Server, ShieldCheck, UploadCloud } from "lucide-react";
 
 import {
   API_BASE_URL,
@@ -109,6 +109,10 @@ export default function StatusPage() {
           <Link className="button secondary" href="/security">
             <LockKeyhole size={17} />
             Security
+          </Link>
+          <Link className="button secondary" href="/audit">
+            <ShieldCheck size={17} />
+            Audit
           </Link>
           <Link className="button" href="/imports">
             <UploadCloud size={17} />
@@ -225,6 +229,63 @@ export default function StatusPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
+            <h2>Retention And SIEM</h2>
+            <p>Runtime policy values reported by the backend for audit, import, and raw-upload handling.</p>
+          </div>
+        </div>
+        <div className="system-status-grid compact-status-grid">
+          <div className="system-status-card">
+            <span className="system-status-icon">
+              <Database size={18} />
+            </span>
+            <div>
+              <p>Raw uploads</p>
+              <h2>{requirements.data?.retention?.raw_upload_days?.toLocaleString() || "365"} days</h2>
+              <small>Private S3 lifecycle retention for uploaded CSV/XLSX files.</small>
+              <strong className="system-ok">configured</strong>
+            </div>
+          </div>
+          <div className="system-status-card">
+            <span className="system-status-icon">
+              <ShieldCheck size={18} />
+            </span>
+            <div>
+              <p>Audit events</p>
+              <h2>{requirements.data?.retention?.audit_event_days?.toLocaleString() || "180"} days</h2>
+              <small>Operational audit table retention before immutable archive export.</small>
+              <strong className="system-ok">configured</strong>
+            </div>
+          </div>
+          <div className="system-status-card">
+            <span className="system-status-icon">
+              <UploadCloud size={18} />
+            </span>
+            <div>
+              <p>Import history</p>
+              <h2>{requirements.data?.retention?.import_status_days?.toLocaleString() || "90"} days</h2>
+              <small>Import validation and status history retention.</small>
+              <strong className="system-ok">configured</strong>
+            </div>
+          </div>
+          <div className="system-status-card">
+            <span className="system-status-icon">
+              <Activity size={18} />
+            </span>
+            <div>
+              <p>SIEM</p>
+              <h2>{requirements.data?.siem?.configured ? "Forwarder configured" : "Archive-ready"}</h2>
+              <small>{requirements.data?.siem?.mode?.replaceAll("_", " ") || "S3 archive or customer forwarder"}</small>
+              <strong className={statusClass(requirements.data?.siem?.configured ? "online" : "needs setup")}>
+                {requirements.data?.siem?.configured ? "online" : "needs setup"}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
             <h2>Monitoring Summary</h2>
             <p>Last 24 hours: API errors, import failures, slow jobs, and failed AI calls.</p>
           </div>
@@ -285,11 +346,37 @@ export default function StatusPage() {
             <p>{requirements.data?.import_workflow?.replaceAll("_", " ") || "preview, map, approve import"}</p>
           </div>
           <div>
+            <span>Scheduled Imports</span>
+            <p>
+              {requirements.data?.scheduled_imports?.enabled
+                ? `${requirements.data.scheduled_imports.mode?.replaceAll("_", " ") || "scheduled S3 scan"}: ${
+                  requirements.data.scheduled_imports.prefixes?.join(", ") || "configured prefixes"
+                }`
+                : "Manual upload flow only in this runtime."}
+            </p>
+          </div>
+          <div>
+            <span>Authentication Mode</span>
+            <p>
+              {requirements.data?.auth?.cognito_ready
+                ? "Cognito/API Gateway mode is configured; Cognito groups map to planner, approver, and admin roles."
+                : "Password/JWT pilot auth is active."}
+            </p>
+          </div>
+          <div>
             <span>Planner Review Storage</span>
             <p>
               {IS_DEMO_MODE
                 ? "Browser-local for the public demo; server persistence is enabled in live API mode."
                 : "Server-backed action review API with browser fallback if sync is interrupted."}
+            </p>
+          </div>
+          <div>
+            <span>Audit Visibility</span>
+            <p>
+              Login, import, query, export, and planner-review events are available from the Audit page.
+              {requirements.data?.audit?.immutable_archive_configured ? " Immutable archive is configured." : ""}
+              {requirements.data?.audit?.alerts_configured ? " Operational alerts are configured." : ""}
             </p>
           </div>
           <div>

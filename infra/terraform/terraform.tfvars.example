@@ -22,6 +22,51 @@ monthly_budget_usd = 10
 # Keep disabled until the buyer demo needs scheduled refreshes.
 enable_refresh_schedule = false
 
+# Cheap scheduled S3/SFTP landing scans. Use this when a vendor, SFTP bridge,
+# or ERP export process drops files into one of these S3 prefixes.
+enable_scheduled_import_scan        = false
+scheduled_import_schedule_expression = "rate(1 hour)"
+scheduled_import_prefixes = [
+  "inventory-ai/raw-imports/scheduled/",
+  "inventory-ai/raw-imports/sftp/"
+]
+
+# Native AWS Transfer Family SFTP is available for enterprise pilots, but keep
+# disabled for the <$10/month profile because Transfer Family has fixed hourly
+# cost even when idle. The low-cost default is S3 landing plus scheduled scans.
+enable_managed_sftp = false
+sftp_user_name      = "stocksense-sftp"
+sftp_public_key     = ""
+
+# SSO-ready auth. When enabled, point Cloudflare Pages at api_gateway_url and
+# set NEXT_PUBLIC_AUTH_MODE=cognito plus the Cognito outputs.
+enable_cognito_auth = false
+cognito_callback_urls = [
+  "https://otokistocksense.pages.dev/login",
+  "http://localhost:3000/login"
+]
+cognito_logout_urls = [
+  "https://otokistocksense.pages.dev/login",
+  "http://localhost:3000/login"
+]
+
+# Optional Cognito auth WAF. Enable with Cognito for a buyer pilot that needs
+# auth-path rate limiting and AWS managed common web exploit rules.
+enable_api_waf          = false
+waf_rate_limit_per_5_min = 1000
+waf_blocked_country_codes = []
+
+# Pilot audit hardening. Object Lock archive and SNS alerts are optional so the
+# default stack remains low-idle and low-cost.
+enable_immutable_audit_archive = false
+audit_archive_bucket_name      = ""
+audit_archive_retention_days   = 2555
+alert_email                    = ""
+
+# SIEM forwarding is customer-specific. The default path is immutable S3 audit
+# archive that the buyer can ingest into Splunk, Datadog, Sentinel, or Chronicle.
+siem_http_endpoint = ""
+
 # Store real auth values in SSM Parameter Store or set them manually on Lambda.
 # Do not put secret values in terraform.tfvars; Terraform state can expose them.
 auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
