@@ -23,7 +23,7 @@ StockSense AI is a decision-support pilot for expiration-aware inventory, reorde
 - Frontend: static Next.js app on Cloudflare Pages.
 - Low-idle backend: AWS Lambda, DynamoDB on-demand, S3 private raw imports.
 - Optional SSO path: Cognito User Pool plus API Gateway JWT authorizer.
-- Optional WAF path: AWS WAF on Cognito Hosted UI/auth with managed common rules and IP rate limiting. API-request WAF requires CloudFront or REST API Gateway.
+- WAF: not created by the low-idle Terraform stack. API-request WAF would require CloudFront or REST API Gateway.
 - Optional immutable audit path: S3 Object Lock audit archive.
 - Optional managed SFTP: AWS Transfer Family, disabled by default because it has fixed idle cost.
 

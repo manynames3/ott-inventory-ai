@@ -139,19 +139,19 @@ variable "sftp_public_key" {
 }
 
 variable "enable_api_waf" {
-  description = "Create an AWS WAF web ACL for the Cognito Hosted UI/auth path. API Gateway v2 HTTP APIs do not support direct regional WAF association."
+  description = "Deprecated compatibility input. WAF resources are no longer created by this Terraform stack."
   type        = bool
   default     = false
 }
 
 variable "waf_rate_limit_per_5_min" {
-  description = "WAF rate limit per IP over 5 minutes."
+  description = "Deprecated compatibility input. WAF resources are no longer created by this Terraform stack."
   type        = number
   default     = 1000
 }
 
 variable "waf_blocked_country_codes" {
-  description = "Optional ISO country codes to block at WAF. Leave empty for no geo block."
+  description = "Deprecated compatibility input. WAF resources are no longer created by this Terraform stack."
   type        = list(string)
   default     = []
 }

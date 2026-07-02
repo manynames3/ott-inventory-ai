@@ -45,7 +45,7 @@ The hosted pilot records audit and monitoring events for logins, imports, action
 
 ## Edge Protection
 
-The static frontend includes security headers for MIME sniffing, clickjacking, referrer policy, permissions policy, HSTS, and CSP review. The hosted Cognito auth path can add AWS WAF with managed common rules and IP rate limiting. API-request WAF requires CloudFront or REST API Gateway.
+The static frontend includes security headers for MIME sniffing, clickjacking, referrer policy, permissions policy, HSTS, and CSP review. The low-idle Terraform stack does not create AWS WAF resources. API-request WAF requires CloudFront or REST API Gateway.
 
 ## Current Limitations
 

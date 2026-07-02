@@ -28,13 +28,12 @@ This is not legal advice or a signed DPA. It is the checklist StockSense AI shou
 ## Subprocessors And Services
 
 - Cloudflare Pages for frontend hosting.
-- AWS services for backend, storage, auth, monitoring, and optional WAF/SFTP.
+- AWS services for backend, storage, auth, monitoring, and optional SFTP.
 - OpenAI only when LLM augmentation is configured; deterministic fallback remains available.
 
 ## Security Review
 
 - Validate security headers and custom-domain plan.
-- Decide whether AWS WAF is required for the pilot.
 - Decide whether immutable audit archive is required.
 - Decide whether SIEM ingestion should use S3 archive pull, S3 event forwarding, or a customer HTTP endpoint.
 - Confirm incident contact and alert email.

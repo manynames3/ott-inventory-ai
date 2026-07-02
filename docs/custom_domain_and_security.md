@@ -10,7 +10,7 @@ This document describes the buyer-facing access story for the low-idle StockSens
 - Query and dashboard store: DynamoDB on-demand tables.
 - Secrets: AWS SSM Parameter Store.
 - Authentication: pilot username/password exchanged for a signed bearer token, or Cognito Hosted UI plus API Gateway JWT authorizer when `enable_cognito_auth=true`.
-- Optional WAF: AWS managed common rules and per-IP rate limiting on the Cognito Hosted UI/auth path. API-request WAF would require CloudFront in front of HTTP API or a REST API Gateway path.
+- WAF: not created by the low-idle Terraform stack. API-request WAF would require CloudFront in front of HTTP API or a REST API Gateway path.
 
 This is intentionally still a controlled low-traffic pilot design. It is enough for named users to test uploaded exports and recommendations before any ERP integration or buyer SSO rollout is approved.
 
@@ -128,7 +128,7 @@ Recommended path:
 
 1. Keep the current SSM-backed pilot login for the first controlled demo.
 2. Enable Cognito/API Gateway when planner versus approver users need to be live-tested.
-3. Add WAF and custom domain review before a paid buyer pilot with external users.
+3. Add custom domain review before a paid buyer pilot with external users.
 4. Move to buyer SSO/OIDC/SAML when procurement/security review starts.
 
 ## Buyer Explanation

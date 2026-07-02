@@ -173,7 +173,7 @@ export default function SecurityPage() {
             </div>
             <div>
               <ShieldCheck size={18} />
-              <p>Optional AWS WAF protects the Cognito Hosted UI/auth path with rate limiting and AWS managed common rules.</p>
+              <p>Cognito Hosted UI and API Gateway JWT authorization are available for stronger buyer pilot authentication.</p>
             </div>
             <div>
               <LockKeyhole size={18} />
@@ -194,7 +194,7 @@ export default function SecurityPage() {
             <p>
               This MVP is suitable for a low-traffic buyer pilot with named users, role-based approvals, private file
               storage, audit visibility, and no ERP writeback. A production enterprise rollout should finalize SSO,
-              tenant provisioning, buyer-specific retention/DPA terms, WAF/custom-domain review, SIEM forwarding, and a
+              tenant provisioning, buyer-specific retention/DPA terms, custom-domain review, SIEM forwarding, and a
               reviewed security questionnaire.
             </p>
           </div>

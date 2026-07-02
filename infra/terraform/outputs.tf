@@ -49,8 +49,8 @@ output "operational_alert_topic_arn" {
 }
 
 output "api_waf_web_acl_arn" {
-  description = "AWS WAF web ACL ARN attached to the Cognito auth path when enable_api_waf and enable_cognito_auth are true."
-  value       = try(aws_wafv2_web_acl.api[0].arn, null)
+  description = "Deprecated. This stack no longer creates an AWS WAF web ACL."
+  value       = null
 }
 
 output "managed_sftp_endpoint" {

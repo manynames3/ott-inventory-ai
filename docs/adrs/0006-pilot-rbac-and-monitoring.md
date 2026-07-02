@@ -30,6 +30,6 @@ Use low-cost monitoring from existing runtime records:
 
 ## Consequences
 
-This gives a controlled pilot credible approval controls and operational visibility without requiring SAML, CloudWatch alarms, or external observability tools on day one. The low-cost password mode remains useful for demos, while Cognito mode gives named-user groups and API Gateway JWT validation for buyer pilots. AWS WAF can protect the Cognito auth path; API-request WAF requires CloudFront or REST API Gateway.
+This gives a controlled pilot credible approval controls and operational visibility without requiring SAML, CloudWatch alarms, or external observability tools on day one. The low-cost password mode remains useful for demos, while Cognito mode gives named-user groups and API Gateway JWT validation for buyer pilots. This low-idle stack does not create AWS WAF resources; API-request WAF requires CloudFront or REST API Gateway.
 
 It is not a replacement for enterprise identity and observability. Before broader production rollout, add buyer SSO/SAML or OIDC, admin-managed user provisioning, alert delivery, SIEM forwarding, incident runbooks, and customer-specific retention/security controls.

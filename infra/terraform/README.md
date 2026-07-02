@@ -10,7 +10,6 @@ Target monthly profile: near-zero idle cost and ideally under $10/month for ligh
 - DynamoDB on-demand tables for canonical records, materialized query views, and import status.
 - Lambda Function URL API for low-idle HTTP access.
 - Optional Cognito User Pool + HTTP API Gateway JWT authorizer for SSO-ready pilot access.
-- Optional AWS WAF on the Cognito Hosted UI/auth path.
 - S3-triggered Lambda import worker.
 - Optional scheduled S3 landing-prefix import scanner for ERP exports or SFTP-bridged drops.
 - Optional AWS Transfer Family managed SFTP server, disabled by default because it has fixed idle cost.
@@ -143,11 +142,9 @@ When `enable_scheduled_import_scan=true`, EventBridge invokes the import worker 
 
 Set `enable_managed_sftp=true` only when a buyer explicitly needs native SFTP. Terraform then creates an AWS Transfer Family server and service-managed user scoped to the `inventory-ai/raw-imports/sftp/` S3 prefix.
 
-## WAF, Retention, And SIEM
+## Retention And SIEM
 
-Set `enable_api_waf=true` together with `enable_cognito_auth=true` to attach AWS WAF to the Cognito user pool that backs Hosted UI/auth. The WAF uses AWS managed common rules plus a per-IP rate limit from `waf_rate_limit_per_5_min`.
-
-AWS WAF direct association supports API Gateway REST API stages, but not API Gateway v2 HTTP API stages. If the buyer requires WAF directly in front of API requests, put CloudFront in front of the HTTP API or switch this path to REST API Gateway.
+This Terraform stack no longer creates AWS WAF resources. Legacy WAF input variables are retained only so older tfvars files continue to parse while existing managed WAF resources are destroyed by the next apply. If a buyer later requires WAF in front of API requests, add CloudFront in front of the HTTP API or switch this path to REST API Gateway.
 
 Runtime retention metadata is exposed through `/api/import/requirements`:
 

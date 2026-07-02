@@ -135,7 +135,7 @@ flowchart LR
 ## Important Tradeoffs
 
 - DynamoDB materialized views are less flexible than relational SQL, but better aligned with a near-zero-idle hosted MVP.
-- Lambda Function URLs are simpler and cheaper for the MVP than an always-on API container. Cognito + HTTP API Gateway is now available for stronger pilots. AWS WAF is attached to the Cognito auth path; API-request WAF would require CloudFront or REST API Gateway.
+- Lambda Function URLs are simpler and cheaper for the MVP than an always-on API container. Cognito + HTTP API Gateway is now available for stronger pilots. This low-idle stack does not create AWS WAF resources; API-request WAF would require CloudFront or REST API Gateway.
 - Pilot RBAC, Cognito option, Audit-page CSV export, immutable audit archive option, SNS alert option, and Status-page monitoring are enough for controlled evaluation, but enterprise rollouts should still add admin lifecycle workflows, SIEM forwarding, formal retention policy review, and incident runbooks.
 - CSV/XLSX imports and scheduled S3/SFTP-landed files are batch-oriented, but they avoid long enterprise integration cycles during early validation.
 - The AI layer improves explanation quality, but deterministic rule-based fallback remains the source of operational safety.

@@ -26,7 +26,7 @@ The MVP is framed around a realistic Ottogi-style food distribution pilot, using
 - Data/forecasting: Pandas, NumPy, moving average, exponential smoothing
 - Imports: CSV/XLSX validation, column mapping preview, raw-file retention path
 - AI/query layer: safe rule-based query routing with optional OpenAI explanation augmentation
-- Identity and controls: Cognito Hosted UI, planner/approver/admin roles, audit trail, optional WAF, optional immutable S3 audit archive, optional SNS alerts
+- Identity and controls: Cognito Hosted UI, planner/approver/admin roles, audit trail, optional immutable S3 audit archive, optional SNS alerts
 - Infrastructure: Terraform, Docker Compose for local development, Cloudflare Pages deployment workflow
 - Tests: Python unit tests for FEFO, forecasting, reorder logic, auth/templates, and AI fallback
 
@@ -57,7 +57,7 @@ Architecture documentation:
 - [docs/cognito_live_smoke_test.md](docs/cognito_live_smoke_test.md): Cognito users/groups and API Gateway smoke-test steps
 - [docs/pilot_package/README.md](docs/pilot_package/README.md): guided pilot kit with sample data, security brief, and weekly ROI report template
 
-At a high level, the public demo uses a static Next.js frontend on Cloudflare Pages. The hardened hosted pilot path uses Cognito Hosted UI, API Gateway JWT authorization, AWS Lambda for API/import/refresh work, S3 for raw Excel/CSV files, DynamoDB for canonical records and materialized recommendation/query views, SSM Parameter Store for secrets, and optional WAF/SNS/Object Lock controls. The local/reference development path uses FastAPI and PostgreSQL.
+At a high level, the public demo uses a static Next.js frontend on Cloudflare Pages. The hardened hosted pilot path uses Cognito Hosted UI, API Gateway JWT authorization, AWS Lambda for API/import/refresh work, S3 for raw Excel/CSV files, DynamoDB for canonical records and materialized recommendation/query views, SSM Parameter Store for secrets, and optional SNS/Object Lock controls. The local/reference development path uses FastAPI and PostgreSQL.
 
 ## Core Features
 
@@ -77,7 +77,6 @@ At a high level, the public demo uses a static Next.js frontend on Cloudflare Pa
 - Optional Cognito Hosted UI + API Gateway JWT authorizer for SSO-ready buyer pilots.
 - Scheduled S3 landing-prefix imports for ERP exports or SFTP-bridged file drops.
 - Optional native AWS Transfer Family SFTP for buyers who require managed SFTP, disabled by default for cost control.
-- Optional AWS WAF on the Cognito Hosted UI/auth path.
 - Optional immutable S3 Object Lock audit archive and SNS operational alerts.
 - Source-backed citations on natural-language query answers.
 - Status-page monitoring summary for API errors, import failures, slow jobs, and failed AI calls.
@@ -164,7 +163,7 @@ The hosted MVP target avoids services with meaningful idle cost. Terraform in [i
 - DynamoDB on-demand records, views, and import-status tables
 - S3-triggered import worker Lambda
 - Optional Cognito/API Gateway auth path
-- Optional AWS WAF, immutable audit archive, SNS alerts, scheduled S3 scans, and managed SFTP
+- Optional immutable audit archive, SNS alerts, scheduled S3 scans, and managed SFTP
 - Optional EventBridge Scheduler refresh worker
 - Optional AWS Budget alerts
 - SSM-backed secrets for login and optional OpenAI access

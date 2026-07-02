@@ -314,6 +314,18 @@ export function clearAuthToken(): void {
   window.dispatchEvent(new Event("stocksense-auth"));
 }
 
+function redirectToLogin(): void {
+  if (IS_DEMO_MODE || typeof window === "undefined" || window.location.pathname.startsWith("/login")) return;
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.href = `/login?next=${next}`;
+}
+
+function requireCognitoToken(): void {
+  if (!IS_COGNITO_AUTH || getAuthToken()) return;
+  redirectToLogin();
+  throw new Error("Login required.");
+}
+
 function authRedirectUri(): string {
   if (COGNITO_REDIRECT_URI) return COGNITO_REDIRECT_URI;
   if (typeof window === "undefined") return "";
@@ -423,8 +435,7 @@ export function authHeaders(): HeadersInit {
 function handleUnauthorized(status: number): void {
   if (status !== 401 || IS_DEMO_MODE || typeof window === "undefined") return;
   clearAuthToken();
-  const next = encodeURIComponent(window.location.pathname + window.location.search);
-  window.location.href = `/login?next=${next}`;
+  redirectToLogin();
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -432,6 +443,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     const demo = getDemoGet(path);
     if (demo) return demo as T;
   }
+  requireCognitoToken();
 
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -457,6 +469,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     const demo = getDemoPost(path, body);
     if (demo) return demo as T;
   }
+  requireCognitoToken();
 
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -490,6 +503,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  requireCognitoToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: authHeaders(),

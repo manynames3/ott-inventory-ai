@@ -50,8 +50,8 @@ cognito_logout_urls = [
   "http://localhost:3000/login"
 ]
 
-# Optional Cognito auth WAF. Enable with Cognito for a buyer pilot that needs
-# auth-path rate limiting and AWS managed common web exploit rules.
+# Deprecated WAF inputs are retained only so older tfvars files still parse.
+# This stack no longer creates AWS WAF resources.
 enable_api_waf          = false
 waf_rate_limit_per_5_min = 1000
 waf_blocked_country_codes = []

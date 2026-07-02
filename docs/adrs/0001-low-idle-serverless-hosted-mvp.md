@@ -17,4 +17,4 @@ Use Cloudflare Pages for the static frontend and AWS Lambda Function URL, S3, Dy
 - Idle cost stays low because compute runs primarily on requests, uploads, or schedules.
 - DynamoDB access patterns and materialized views must be designed up front.
 - The local FastAPI/PostgreSQL path remains useful for relational development and future paid-pilot deployments.
-- A production pilot may later add API Gateway, WAF, stronger identity, observability, and a relational database if usage justifies the cost.
+- A production pilot may later add API Gateway, edge protection, stronger identity, observability, and a relational database if usage justifies the cost.

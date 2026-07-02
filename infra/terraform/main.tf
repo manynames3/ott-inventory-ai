@@ -599,6 +599,15 @@ resource "aws_apigatewayv2_route" "proxy" {
   authorizer_id      = aws_apigatewayv2_authorizer.cognito[0].id
 }
 
+resource "aws_apigatewayv2_route" "proxy_options" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id             = aws_apigatewayv2_api.http[0].id
+  route_key          = "OPTIONS /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
+  authorization_type = "NONE"
+}
+
 resource "aws_apigatewayv2_route" "root" {
   count = var.enable_cognito_auth ? 1 : 0
 
@@ -607,6 +616,15 @@ resource "aws_apigatewayv2_route" "root" {
   target             = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito[0].id
+}
+
+resource "aws_apigatewayv2_route" "root_options" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  api_id             = aws_apigatewayv2_api.http[0].id
+  route_key          = "OPTIONS /"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda[0].id}"
+  authorization_type = "NONE"
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -626,102 +644,6 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   function_name = aws_lambda_function.api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http[0].execution_arn}/*/*"
-}
-
-resource "aws_wafv2_web_acl" "api" {
-  count = var.enable_api_waf && var.enable_cognito_auth ? 1 : 0
-
-  name        = "${local.name_prefix}-api-waf"
-  description = "StockSense AI Cognito auth WAF for buyer pilot hardening."
-  scope       = "REGIONAL"
-
-  default_action {
-    allow {}
-  }
-
-  rule {
-    name     = "AWSManagedCommonRules"
-    priority = 1
-
-    override_action {
-      none {}
-    }
-
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesCommonRuleSet"
-        vendor_name = "AWS"
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.name_prefix}-common-rules"
-      sampled_requests_enabled   = true
-    }
-  }
-
-  rule {
-    name     = "RateLimit"
-    priority = 2
-
-    action {
-      block {}
-    }
-
-    statement {
-      rate_based_statement {
-        limit              = var.waf_rate_limit_per_5_min
-        aggregate_key_type = "IP"
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.name_prefix}-rate-limit"
-      sampled_requests_enabled   = true
-    }
-  }
-
-  dynamic "rule" {
-    for_each = length(var.waf_blocked_country_codes) > 0 ? [1] : []
-
-    content {
-      name     = "GeoBlock"
-      priority = 3
-
-      action {
-        block {}
-      }
-
-      statement {
-        geo_match_statement {
-          country_codes = var.waf_blocked_country_codes
-        }
-      }
-
-      visibility_config {
-        cloudwatch_metrics_enabled = true
-        metric_name                = "${local.name_prefix}-geo-block"
-        sampled_requests_enabled   = true
-      }
-    }
-  }
-
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "${local.name_prefix}-api-waf"
-    sampled_requests_enabled   = true
-  }
-
-  tags = local.common_tags
-}
-
-resource "aws_wafv2_web_acl_association" "cognito" {
-  count = var.enable_api_waf && var.enable_cognito_auth ? 1 : 0
-
-  resource_arn = aws_cognito_user_pool.main[0].arn
-  web_acl_arn  = aws_wafv2_web_acl.api[0].arn
 }
 
 resource "aws_sns_topic" "operational_alerts" {
