@@ -19,6 +19,7 @@ from urllib.error import HTTPError, URLError
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 
 AWS_REGION = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-west-2"
@@ -31,6 +32,7 @@ s3 = boto3.client(
 dynamodb = boto3.client("dynamodb")
 ssm = boto3.client("ssm")
 sns = boto3.client("sns")
+cognito = boto3.client("cognito-idp")
 
 TENANT_ID = os.getenv("TENANT_ID", "default").strip() or "default"
 TENANT_PK = f"tenant#{TENANT_ID}"
@@ -40,6 +42,7 @@ AUTH_CACHE: Dict[str, Any] = {"loaded_at": 0, "config": None}
 OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
 APPROVAL_ROLES = {"approver", "admin"}
 VALID_ROLES = {"viewer", "planner", "approver", "admin"}
+COGNITO_ROLE_GROUPS = {"viewer", "planner", "approver", "admin"}
 ALERT_ACTIONS = {
     "api_error",
     "ai_failure",
@@ -178,7 +181,17 @@ def _text(event: Dict[str, Any], status_code: int, body: bytes | str, content_ty
 
 
 def _path(event: Dict[str, Any]) -> str:
-    return event.get("rawPath") or event.get("path") or "/"
+    path = event.get("rawPath") or event.get("path") or "/"
+    stage = str(event.get("requestContext", {}).get("stage") or "").strip("/")
+    if stage and path == f"/{stage}":
+        return "/"
+    if stage and path.startswith(f"/{stage}/"):
+        return path[len(stage) + 1 :]
+    for marker in ("/api/", "/health"):
+        marker_index = path.find(marker)
+        if marker_index > 0:
+            return path[marker_index:]
+    return path
 
 
 def _method(event: Dict[str, Any]) -> str:
@@ -314,6 +327,182 @@ def _role_for_user(subject: str, config: Dict[str, str]) -> str:
 
 def _can_approve_actions(user: Dict[str, Any]) -> bool:
     return str(user.get("role", "")).lower() in APPROVAL_ROLES
+
+
+def _can_admin_users(user: Dict[str, Any]) -> bool:
+    return str(user.get("role", "")).lower() == "admin"
+
+
+def _require_admin_user(event: Dict[str, Any]) -> tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    user = _require_user(event)
+    if not user:
+        return None, _json(event, 401, {"detail": "Login required."})
+    if not _can_admin_users(user):
+        return None, _json(event, 403, {"detail": "Only admin users can manage pilot access."})
+    if not os.getenv("COGNITO_USER_POOL_ID", "").strip():
+        return None, _json(event, 503, {"detail": "Cognito user management is not configured."})
+    return user, None
+
+
+def _cognito_error(exc: ClientError) -> str:
+    error = exc.response.get("Error", {}) if hasattr(exc, "response") else {}
+    return str(error.get("Message") or error.get("Code") or "Cognito request failed.")
+
+
+def _cognito_attr(attributes: List[Dict[str, str]], name: str) -> str:
+    return next((str(attr.get("Value", "")) for attr in attributes if attr.get("Name") == name), "")
+
+
+def _cognito_datetime(value: Any) -> str:
+    return value.isoformat() if hasattr(value, "isoformat") else str(value or "")
+
+
+def _temporary_password() -> str:
+    return f"Aa1{uuid.uuid4().hex[:17]}"
+
+
+def _cognito_user_payload(user: Dict[str, Any], groups: List[str]) -> Dict[str, Any]:
+    attrs = user.get("Attributes") or user.get("UserAttributes") or []
+    email = _cognito_attr(attrs, "email")
+    role = _role_from_cognito_groups(groups)
+    return {
+        "username": str(user.get("Username", "")),
+        "email": email,
+        "enabled": bool(user.get("Enabled", True)),
+        "status": str(user.get("UserStatus", "")),
+        "role": role,
+        "groups": groups,
+        "created_at": _cognito_datetime(user.get("UserCreateDate")),
+        "last_modified_at": _cognito_datetime(user.get("UserLastModifiedDate")),
+    }
+
+
+def _list_cognito_users(event: Dict[str, Any]) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    pool_id = os.environ["COGNITO_USER_POOL_ID"]
+    rows: List[Dict[str, Any]] = []
+    kwargs: Dict[str, Any] = {"UserPoolId": pool_id, "Limit": 60}
+    try:
+        while True:
+            response = cognito.list_users(**kwargs)
+            for user in response.get("Users", []):
+                groups_response = cognito.admin_list_groups_for_user(
+                    UserPoolId=pool_id,
+                    Username=str(user.get("Username", "")),
+                )
+                groups = [str(group.get("GroupName", "")) for group in groups_response.get("Groups", [])]
+                rows.append(_cognito_user_payload(user, groups))
+            token = response.get("PaginationToken")
+            if not token:
+                break
+            kwargs["PaginationToken"] = token
+    except ClientError as exc:
+        return _json(event, 502, {"detail": _cognito_error(exc)})
+    rows.sort(key=lambda row: (str(row.get("email", "")), str(row.get("username", ""))))
+    _audit_event(event, "admin_users_listed", "cognito_users", {"count": len(rows)}, admin.get("sub"))
+    return _json(event, 200, {"rows": rows, "count": len(rows), "user_pool_id": pool_id})
+
+
+def _set_cognito_role(pool_id: str, username: str, role: str) -> None:
+    for group in sorted(COGNITO_ROLE_GROUPS):
+        try:
+            cognito.admin_remove_user_from_group(UserPoolId=pool_id, Username=username, GroupName=group)
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code not in {"ResourceNotFoundException", "UserNotFoundException"}:
+                raise
+    cognito.admin_add_user_to_group(UserPoolId=pool_id, Username=username, GroupName=role)
+
+
+def _create_cognito_user(event: Dict[str, Any]) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    body = _body(event)
+    email = str(body.get("email", "")).strip().lower()
+    role = _normalize_role(str(body.get("role", "planner")))
+    send_invite = bool(body.get("send_invite", True))
+    if not email or "@" not in email:
+        return _json(event, 400, {"detail": "A valid email is required."})
+    if role not in COGNITO_ROLE_GROUPS:
+        return _json(event, 400, {"detail": "role must be viewer, planner, approver, or admin."})
+    pool_id = os.environ["COGNITO_USER_POOL_ID"]
+    password = str(body.get("temporary_password") or _temporary_password())
+    create_args: Dict[str, Any] = {
+        "UserPoolId": pool_id,
+        "Username": email,
+        "TemporaryPassword": password,
+        "UserAttributes": [
+            {"Name": "email", "Value": email},
+            {"Name": "email_verified", "Value": "true"},
+        ],
+    }
+    if send_invite:
+        create_args["DesiredDeliveryMediums"] = ["EMAIL"]
+    else:
+        create_args["MessageAction"] = "SUPPRESS"
+    try:
+        response = cognito.admin_create_user(**create_args)
+        username = str(response.get("User", {}).get("Username") or email)
+        _set_cognito_role(pool_id, username, role)
+        user = cognito.admin_get_user(UserPoolId=pool_id, Username=username)
+        groups_response = cognito.admin_list_groups_for_user(UserPoolId=pool_id, Username=username)
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        status = 409 if code == "UsernameExistsException" else 502
+        return _json(event, status, {"detail": _cognito_error(exc)})
+    groups = [str(group.get("GroupName", "")) for group in groups_response.get("Groups", [])]
+    payload: Dict[str, Any] = {"row": _cognito_user_payload(user, groups), "invite_sent": send_invite}
+    if not send_invite:
+        payload["temporary_password"] = password
+    _audit_event(event, "admin_user_created", "cognito_users", {"email": email, "role": role}, admin.get("sub"))
+    return _json(event, 201, payload)
+
+
+def _update_cognito_user_role(event: Dict[str, Any], username: str) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    role = _normalize_role(str(_body(event).get("role", "planner")))
+    if role not in COGNITO_ROLE_GROUPS:
+        return _json(event, 400, {"detail": "role must be viewer, planner, approver, or admin."})
+    pool_id = os.environ["COGNITO_USER_POOL_ID"]
+    try:
+        _set_cognito_role(pool_id, username, role)
+        user = cognito.admin_get_user(UserPoolId=pool_id, Username=username)
+        groups_response = cognito.admin_list_groups_for_user(UserPoolId=pool_id, Username=username)
+    except ClientError as exc:
+        return _json(event, 502, {"detail": _cognito_error(exc)})
+    groups = [str(group.get("GroupName", "")) for group in groups_response.get("Groups", [])]
+    _audit_event(event, "admin_user_role_updated", "cognito_users", {"username": username, "role": role}, admin.get("sub"))
+    return _json(event, 200, {"row": _cognito_user_payload(user, groups)})
+
+
+def _set_cognito_user_enabled(event: Dict[str, Any], username: str, enabled: bool) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    pool_id = os.environ["COGNITO_USER_POOL_ID"]
+    try:
+        if enabled:
+            cognito.admin_enable_user(UserPoolId=pool_id, Username=username)
+        else:
+            cognito.admin_disable_user(UserPoolId=pool_id, Username=username)
+        user = cognito.admin_get_user(UserPoolId=pool_id, Username=username)
+        groups_response = cognito.admin_list_groups_for_user(UserPoolId=pool_id, Username=username)
+    except ClientError as exc:
+        return _json(event, 502, {"detail": _cognito_error(exc)})
+    groups = [str(group.get("GroupName", "")) for group in groups_response.get("Groups", [])]
+    _audit_event(
+        event,
+        "admin_user_enabled" if enabled else "admin_user_disabled",
+        "cognito_users",
+        {"username": username},
+        admin.get("sub"),
+    )
+    return _json(event, 200, {"row": _cognito_user_payload(user, groups)})
 
 
 def _create_token(subject: str, secret: str, role: str) -> str:
@@ -1769,6 +1958,18 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if user
             else _json(event, 401, {"detail": "Login required."})
         )
+    if method == "GET" and path == "/api/admin/users":
+        return _list_cognito_users(event)
+    if method == "POST" and path == "/api/admin/users":
+        return _create_cognito_user(event)
+    if path.startswith("/api/admin/users/"):
+        admin_path = path.removeprefix("/api/admin/users/")
+        if method == "POST" and admin_path.endswith("/role"):
+            return _update_cognito_user_role(event, unquote(admin_path.removesuffix("/role").rstrip("/")))
+        if method == "POST" and admin_path.endswith("/enable"):
+            return _set_cognito_user_enabled(event, unquote(admin_path.removesuffix("/enable").rstrip("/")), True)
+        if method == "POST" and admin_path.endswith("/disable"):
+            return _set_cognito_user_enabled(event, unquote(admin_path.removesuffix("/disable").rstrip("/")), False)
     if method == "GET" and path == "/api/ai/status":
         return _protected_json(event, _ai_status_payload())
     if path == "/api/import/requirements":

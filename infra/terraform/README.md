@@ -96,21 +96,16 @@ The API Lambda automatically falls back to safe rule-based query responses when 
 ## Plan And Apply
 
 ```bash
-terraform init
+terraform init -backend-config=backend.hcl
 terraform fmt -recursive
 terraform validate
 terraform plan
 terraform apply
 ```
 
-After apply, copy the output `api_function_url` into Cloudflare Pages:
+Use [backend.hcl.example](backend.hcl.example) as the remote-state template. See [../../docs/terraform_state_and_apply.md](../../docs/terraform_state_and_apply.md) before applying to an existing live stack.
 
-```text
-NEXT_PUBLIC_DEMO_MODE=false
-NEXT_PUBLIC_API_BASE_URL=<api_function_url>
-```
-
-For Cognito mode, copy these outputs instead:
+After apply, copy these outputs into Cloudflare Pages:
 
 ```text
 NEXT_PUBLIC_DEMO_MODE=false
@@ -122,7 +117,9 @@ NEXT_PUBLIC_COGNITO_REDIRECT_URI=https://otokistocksense.pages.dev/login
 NEXT_PUBLIC_COGNITO_LOGOUT_URI=https://otokistocksense.pages.dev/login
 ```
 
-Add users in Cognito and assign them to one of the groups Terraform creates: `planner`, `approver`, or `admin`.
+Do not append `/prod` to `api_gateway_url`; the HTTP API uses the `$default` stage.
+
+Add users in Cognito and assign them to one of the groups Terraform creates: `viewer`, `planner`, `approver`, or `admin`.
 
 For API smoke tests without going through the browser Hosted UI, the Cognito app client also permits `USER_PASSWORD_AUTH`. Use this only for controlled pilot testing and rotate test passwords after the demo.
 

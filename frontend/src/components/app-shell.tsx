@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   TrendingUp,
   UploadCloud,
+  Users,
 } from "lucide-react";
 
 import { clearAuthToken, cognitoLogoutUrl, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/imports", label: "Imports", icon: UploadCloud },
   { href: "/query", label: "Query", icon: Search },
   { href: "/audit", label: "Audit", icon: ShieldCheck },
+  { href: "/users", label: "Users", icon: Users },
   { href: "/status", label: "Status", icon: Activity }
 ];
 

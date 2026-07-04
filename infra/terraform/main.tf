@@ -339,6 +339,25 @@ data "aws_iam_policy_document" "lambda_data_access" {
   }
 
   dynamic "statement" {
+    for_each = var.enable_cognito_auth ? [1] : []
+
+    content {
+      sid = "ManagePilotCognitoUsers"
+      actions = [
+        "cognito-idp:AdminAddUserToGroup",
+        "cognito-idp:AdminCreateUser",
+        "cognito-idp:AdminDisableUser",
+        "cognito-idp:AdminEnableUser",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:AdminListGroupsForUser",
+        "cognito-idp:AdminRemoveUserFromGroup",
+        "cognito-idp:ListUsers"
+      ]
+      resources = [aws_cognito_user_pool.main[0].arn]
+    }
+  }
+
+  dynamic "statement" {
     for_each = length(local.ssm_parameter_names) > 0 ? [1] : []
 
     content {
@@ -529,6 +548,15 @@ resource "aws_cognito_user_group" "planner" {
   user_pool_id = aws_cognito_user_pool.main[0].id
   description  = "Can review, note, and dismiss planner actions."
   precedence   = 30
+}
+
+resource "aws_cognito_user_group" "viewer" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  name         = "viewer"
+  user_pool_id = aws_cognito_user_pool.main[0].id
+  description  = "Can view pilot dashboards and reports without approval controls."
+  precedence   = 40
 }
 
 resource "aws_cognito_user_group" "approver" {

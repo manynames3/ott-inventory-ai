@@ -1,18 +1,20 @@
 import { getDemoGet, getDemoPost } from "@/lib/demo-data";
 
-const HOSTED_API_BASE_URL = "https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws";
+const HOSTED_API_BASE_URL = "https://3eorxcthij.execute-api.us-west-2.amazonaws.com";
 const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || HOSTED_API_BASE_URL;
 
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE || "password";
+export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE || "cognito";
 export const IS_COGNITO_AUTH = AUTH_MODE === "cognito";
 
-const COGNITO_DOMAIN = (process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "").replace(/\/+$/, "");
-const COGNITO_CLIENT_ID = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-const COGNITO_REDIRECT_URI = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI || "";
-const COGNITO_LOGOUT_URI = process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI || "";
+const COGNITO_DOMAIN = (
+  process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com"
+).replace(/\/+$/, "");
+const COGNITO_CLIENT_ID = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "hfnqc87er9c4suqd4qgf0ppuq";
+const COGNITO_REDIRECT_URI = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI || "https://otokistocksense.pages.dev/login";
+const COGNITO_LOGOUT_URI = process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI || "https://otokistocksense.pages.dev/login";
 
 const TOKEN_KEY = "stocksense_access_token";
 const COGNITO_CODE_VERIFIER_KEY = "stocksense_cognito_code_verifier";
@@ -32,6 +34,29 @@ export type AuthMeResponse = {
     role?: string;
     can_approve_actions?: boolean;
   };
+};
+
+export type AdminUser = {
+  username: string;
+  email: string;
+  enabled: boolean;
+  status: string;
+  role: "viewer" | "planner" | "approver" | "admin";
+  groups: string[];
+  created_at?: string;
+  last_modified_at?: string;
+};
+
+export type AdminUsersResponse = {
+  rows: AdminUser[];
+  count: number;
+  user_pool_id: string;
+};
+
+export type AdminUserResponse = {
+  row: AdminUser;
+  invite_sent?: boolean;
+  temporary_password?: string;
 };
 
 export type HealthResponse = {

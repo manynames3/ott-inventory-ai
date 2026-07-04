@@ -2,6 +2,17 @@ name: Deploy Frontend to Cloudflare Pages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - "scripts/verify_live_frontend.mjs"
+      - ".github/workflows/cloudflare-pages-deploy.yml"
+
+concurrency:
+  group: cloudflare-pages-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -15,23 +26,51 @@ jobs:
         with:
           node-version-file: frontend/.node-version
       - run: npm ci
+      - run: npm audit --audit-level=high
+      - name: Check Cloudflare deployment credentials
+        id: cloudflare-config
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare deployment credentials are configured."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare deployment skipped because CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is missing."
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - run: npm run build
         env:
           NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || 'false' }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://cw3u33tb4lalb52cxjemmmb6xu0uptww.lambda-url.us-west-2.on.aws' }}
-          NEXT_PUBLIC_AUTH_MODE: ${{ vars.NEXT_PUBLIC_AUTH_MODE || 'password' }}
-          NEXT_PUBLIC_COGNITO_DOMAIN: ${{ vars.NEXT_PUBLIC_COGNITO_DOMAIN || '' }}
-          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID || '' }}
-          NEXT_PUBLIC_COGNITO_REDIRECT_URI: ${{ vars.NEXT_PUBLIC_COGNITO_REDIRECT_URI || '' }}
-          NEXT_PUBLIC_COGNITO_LOGOUT_URI: ${{ vars.NEXT_PUBLIC_COGNITO_LOGOUT_URI || '' }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://3eorxcthij.execute-api.us-west-2.amazonaws.com' }}
+          NEXT_PUBLIC_AUTH_MODE: ${{ vars.NEXT_PUBLIC_AUTH_MODE || 'cognito' }}
+          NEXT_PUBLIC_COGNITO_DOMAIN: ${{ vars.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com' }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID || 'hfnqc87er9c4suqd4qgf0ppuq' }}
+          NEXT_PUBLIC_COGNITO_REDIRECT_URI: ${{ vars.NEXT_PUBLIC_COGNITO_REDIRECT_URI || 'https://otokistocksense.pages.dev/login' }}
+          NEXT_PUBLIC_COGNITO_LOGOUT_URI: ${{ vars.NEXT_PUBLIC_COGNITO_LOGOUT_URI || 'https://otokistocksense.pages.dev/login' }}
       - run: npm run typecheck
       - name: Ensure Cloudflare Pages project exists
+        if: steps.cloudflare-config.outputs.configured == 'true'
         run: npx wrangler pages project create otokistocksense --production-branch=main || true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Deploy static frontend
-        run: npx wrangler pages deploy out --project-name=otokistocksense --branch=main
+        if: steps.cloudflare-config.outputs.configured == 'true'
+        run: npm run deploy:cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify deployed frontend bundle
+        if: steps.cloudflare-config.outputs.configured == 'true'
+        run: node ../scripts/verify_live_frontend.mjs
+        env:
+          FRONTEND_URL: https://otokistocksense.pages.dev
+          EXPECTED_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://3eorxcthij.execute-api.us-west-2.amazonaws.com' }}
+          EXPECTED_AUTH_MODE: ${{ vars.NEXT_PUBLIC_AUTH_MODE || 'cognito' }}
+      - name: Require Cloudflare credentials for manual deploy
+        if: github.event_name == 'workflow_dispatch' && steps.cloudflare-config.outputs.configured != 'true'
+        run: |
+          echo "::error::Manual deployment requires CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets."
+          exit 1

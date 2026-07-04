@@ -1,0 +1,4 @@
+bucket  = "ott-inventory-ai-terraform-state-636305658578-us-west-2"
+key     = "mvp/terraform.tfstate"
+region  = "us-west-2"
+encrypt = true

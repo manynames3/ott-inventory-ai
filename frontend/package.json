@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
+    "deploy:cloudflare": "wrangler pages deploy out --project-name=otokistocksense --branch=main",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
@@ -23,7 +24,7 @@
     "eslint": "9.27.0",
     "eslint-config-next": "16.2.6",
     "typescript": "5.8.3",
-    "wrangler": "4.95.0"
+    "wrangler": "^4.107.0"
   },
   "overrides": {
     "postcss": "8.5.15"

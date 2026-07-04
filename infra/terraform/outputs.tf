@@ -1,10 +1,10 @@
 output "api_function_url" {
-  description = "Lambda Function URL for NEXT_PUBLIC_API_BASE_URL."
+  description = "Legacy Lambda Function URL for NEXT_PUBLIC_API_BASE_URL when Cognito API Gateway auth is disabled."
   value       = aws_lambda_function_url.api.function_url
 }
 
 output "api_gateway_url" {
-  description = "Cognito-protected API Gateway URL for NEXT_PUBLIC_API_BASE_URL when enable_cognito_auth is true."
+  description = "Cognito-protected API Gateway URL for NEXT_PUBLIC_API_BASE_URL."
   value       = try(aws_apigatewayv2_api.http[0].api_endpoint, null)
 }
 

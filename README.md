@@ -54,6 +54,8 @@ Architecture documentation:
 - [docs/low_idle_mvp_architecture.md](docs/low_idle_mvp_architecture.md): low-idle AWS MVP rationale
 - [docs/architecture_decisions.md](docs/architecture_decisions.md): earlier implementation rationale and tradeoffs
 - [docs/pilot_readiness.md](docs/pilot_readiness.md): Phase 1-5 sellable-pilot hardening summary
+- [docs/self_serve_pilot_runbook.md](docs/self_serve_pilot_runbook.md): self-serve launch checklist for infrastructure, users, data, and verification
+- [docs/user_acceptance_test.md](docs/user_acceptance_test.md): external-user acceptance checklist
 - [docs/cognito_live_smoke_test.md](docs/cognito_live_smoke_test.md): Cognito users/groups and API Gateway smoke-test steps
 - [docs/pilot_package/README.md](docs/pilot_package/README.md): guided pilot kit with sample data, security brief, and weekly ROI report template
 
@@ -148,7 +150,7 @@ The frontend is configured for static export and deploys from GitHub to Cloudfla
 - Build output directory: `out`
 - Hosted pilot environment variable: `NEXT_PUBLIC_DEMO_MODE=false`
 - Hosted pilot auth mode: `NEXT_PUBLIC_AUTH_MODE=cognito`
-- Live API environment variable: `NEXT_PUBLIC_API_BASE_URL=https://<api-gateway-or-function-url-host>`
+- Live API environment variable: `NEXT_PUBLIC_API_BASE_URL=<api_gateway_url>`
 - Offline/static fallback only: `NEXT_PUBLIC_DEMO_MODE=true`
 
 Detailed deployment steps are in [docs/cloudflare_pages_deploy.md](docs/cloudflare_pages_deploy.md). Custom domain and pilot security hardening steps are documented in [docs/custom_domain_and_security.md](docs/custom_domain_and_security.md).
@@ -235,8 +237,15 @@ Run frontend checks:
 
 ```bash
 cd frontend
+npm audit --audit-level=high
 npm run typecheck
 npm run build
+```
+
+Run the full local verification suite:
+
+```bash
+make verify
 ```
 
 Docker test fallback:
