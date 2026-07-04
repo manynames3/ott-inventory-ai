@@ -13,6 +13,7 @@ import {
   LogIn,
   LogOut,
   Search,
+  Settings,
   ShieldCheck,
   TrendingUp,
   UploadCloud,
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/imports", label: "Imports", icon: UploadCloud },
   { href: "/query", label: "Query", icon: Search },
   { href: "/audit", label: "Audit", icon: ShieldCheck },
+  { href: "/admin", label: "Admin", icon: Settings },
   { href: "/users", label: "Users", icon: Users },
   { href: "/status", label: "Status", icon: Activity }
 ];

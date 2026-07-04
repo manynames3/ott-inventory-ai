@@ -59,6 +59,28 @@ export type AdminUserResponse = {
   temporary_password?: string;
 };
 
+export type AdminTenantConfig = {
+  tenant_id: string;
+  organization_name: string;
+  lifecycle_stage: "setup" | "pilot" | "active" | "paused" | "churned";
+  billing_status: "not_started" | "trial" | "invoice_pending" | "active" | "past_due" | "canceled";
+  billing_plan: "pilot" | "growth" | "enterprise" | "custom";
+  billing_contact_email: string;
+  billing_provider: string;
+  auth_mode: string;
+  sso_status: "cognito" | "saml_ready" | "saml_configured" | "oidc_ready" | "not_configured";
+  sso_provider: string;
+  sso_notes: string;
+  cognito_user_pool_id?: string;
+  cognito_user_pool_client_id?: string;
+  updated_at_epoch?: number;
+  updated_by?: string;
+};
+
+export type AdminTenantResponse = {
+  row: AdminTenantConfig;
+};
+
 export type HealthResponse = {
   ok: boolean;
   service: string;

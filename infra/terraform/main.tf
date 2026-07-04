@@ -32,6 +32,11 @@ locals {
     var.auth_users_json_parameter_name,
     var.openai_api_key_parameter_name
   ])
+
+  lambda_archive_excludes = [
+    "**/__pycache__/**",
+    "**/*.pyc"
+  ]
 }
 
 resource "aws_s3_bucket" "raw_imports" {
@@ -255,18 +260,21 @@ data "archive_file" "api_lambda" {
   type        = "zip"
   source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/api.zip"
+  excludes    = local.lambda_archive_excludes
 }
 
 data "archive_file" "import_worker_lambda" {
   type        = "zip"
   source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/import_worker.zip"
+  excludes    = local.lambda_archive_excludes
 }
 
 data "archive_file" "refresh_worker_lambda" {
   type        = "zip"
   source_dir  = "${path.module}/lambda_src"
   output_path = "${path.module}/build/refresh_worker.zip"
+  excludes    = local.lambda_archive_excludes
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {
@@ -520,18 +528,39 @@ resource "aws_cognito_user_pool_client" "frontend" {
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
   callback_urls                        = var.cognito_callback_urls
   logout_urls                          = var.cognito_logout_urls
-  supported_identity_providers         = ["COGNITO"]
-  prevent_user_existence_errors        = "ENABLED"
-  explicit_auth_flows                  = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
-  access_token_validity                = 60
-  id_token_validity                    = 60
-  refresh_token_validity               = 1
+  supported_identity_providers = concat(
+    ["COGNITO"],
+    var.cognito_saml_metadata_url != "" ? [aws_cognito_identity_provider.saml[0].provider_name] : []
+  )
+  prevent_user_existence_errors = "ENABLED"
+  explicit_auth_flows           = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  access_token_validity         = 60
+  id_token_validity             = 60
+  refresh_token_validity        = 1
 
   token_validity_units {
     access_token  = "minutes"
     id_token      = "minutes"
     refresh_token = "days"
   }
+
+  lifecycle {
+    ignore_changes = [generate_secret]
+  }
+}
+
+resource "aws_cognito_identity_provider" "saml" {
+  count = var.enable_cognito_auth && var.cognito_saml_metadata_url != "" ? 1 : 0
+
+  user_pool_id  = aws_cognito_user_pool.main[0].id
+  provider_name = var.cognito_saml_provider_name != "" ? var.cognito_saml_provider_name : "EnterpriseSAML"
+  provider_type = "SAML"
+
+  provider_details = {
+    MetadataURL = var.cognito_saml_metadata_url
+  }
+
+  attribute_mapping = var.cognito_saml_attribute_mapping
 }
 
 resource "aws_cognito_user_pool_domain" "main" {

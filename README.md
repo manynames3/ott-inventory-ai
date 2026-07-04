@@ -55,7 +55,9 @@ Architecture documentation:
 - [docs/architecture_decisions.md](docs/architecture_decisions.md): earlier implementation rationale and tradeoffs
 - [docs/pilot_readiness.md](docs/pilot_readiness.md): Phase 1-5 sellable-pilot hardening summary
 - [docs/self_serve_pilot_runbook.md](docs/self_serve_pilot_runbook.md): self-serve launch checklist for infrastructure, users, data, and verification
+- [docs/terraform_state_and_apply.md](docs/terraform_state_and_apply.md): remote Terraform state and live-stack apply runbook
 - [docs/user_acceptance_test.md](docs/user_acceptance_test.md): external-user acceptance checklist
+- [docs/user_acceptance_test_results_2026-07-04.md](docs/user_acceptance_test_results_2026-07-04.md): completed live UAT results
 - [docs/cognito_live_smoke_test.md](docs/cognito_live_smoke_test.md): Cognito users/groups and API Gateway smoke-test steps
 - [docs/pilot_package/README.md](docs/pilot_package/README.md): guided pilot kit with sample data, security brief, and weekly ROI report template
 
@@ -75,6 +77,7 @@ At a high level, the public demo uses a static Next.js frontend on Cloudflare Pa
 - Forecast Validation page that compares recent actual order demand against forecasted demand by SKU.
 - Weekly ROI Report page generated from actual approved/dismissed planner actions.
 - Pilot RBAC for planner notes/dismissals and approver/admin action approvals.
+- Admin tenant settings for lifecycle stage, billing posture, user onboarding, and enterprise SSO readiness.
 - Audit trail for login, import, query, export, and planner-review activity with CSV export.
 - Optional Cognito Hosted UI + API Gateway JWT authorizer for SSO-ready buyer pilots.
 - Scheduled S3 landing-prefix imports for ERP exports or SFTP-bridged file drops.
@@ -330,5 +333,5 @@ docker-compose.yml  Local Postgres + backend + frontend development stack
 - The local/reference backend uses PostgreSQL, while the low-idle hosted MVP uses DynamoDB materialized views.
 - Forecasting is intentionally simple and explainable; promotion, holiday, and customer-level ML features are future work.
 - Native AWS Transfer Family SFTP is available but disabled by default because scheduled S3 landing-prefix scans are the low-idle path.
-- Cognito, RBAC, audit export, alerting hooks, and retention/SIEM documentation are pilot-ready, but enterprise rollout should still finalize buyer IdP federation, formal user lifecycle runbooks, tenant provisioning automation, DPA/security questionnaire signoff, and customer-specific SIEM forwarding.
+- Cognito, RBAC, tenant admin, user lifecycle, audit export, alerting hooks, and retention/SIEM documentation are pilot-ready, but enterprise rollout should still finalize buyer-specific IdP federation, DPA/security questionnaire signoff, customer-specific SIEM forwarding, and production billing/payment integration.
 - Forecast and reorder accuracy still need validation against real buyer data before production decisions or ERP writeback.

@@ -43,6 +43,10 @@ OPENAI_CACHE: Dict[str, Any] = {"loaded_at": 0, "api_key": None}
 APPROVAL_ROLES = {"approver", "admin"}
 VALID_ROLES = {"viewer", "planner", "approver", "admin"}
 COGNITO_ROLE_GROUPS = {"viewer", "planner", "approver", "admin"}
+TENANT_LIFECYCLE_STAGES = {"setup", "pilot", "active", "paused", "churned"}
+BILLING_STATUSES = {"not_started", "trial", "invoice_pending", "active", "past_due", "canceled"}
+BILLING_PLANS = {"pilot", "growth", "enterprise", "custom"}
+SSO_STATUSES = {"cognito", "saml_ready", "saml_configured", "oidc_ready", "not_configured"}
 ALERT_ACTIONS = {
     "api_error",
     "ai_failure",
@@ -51,6 +55,18 @@ ALERT_ACTIONS = {
     "import_worker_failed",
     "slow_job",
     "slow_request",
+}
+
+TENANT_CONFIG_DEFAULTS = {
+    "organization_name": "Ottogi Operations Pilot",
+    "lifecycle_stage": "pilot",
+    "billing_status": "trial",
+    "billing_plan": "pilot",
+    "billing_contact_email": "",
+    "billing_provider": "external_invoice",
+    "sso_status": "cognito",
+    "sso_provider": "Cognito Hosted UI",
+    "sso_notes": "Named users and Cognito groups are active. SAML/OIDC can be enabled per buyer identity provider.",
 }
 
 REQUIRED_COLUMNS = {
@@ -503,6 +519,98 @@ def _set_cognito_user_enabled(event: Dict[str, Any], username: str, enabled: boo
         admin.get("sub"),
     )
     return _json(event, 200, {"row": _cognito_user_payload(user, groups)})
+
+
+def _tenant_config_key() -> Dict[str, Dict[str, str]]:
+    return {"pk": {"S": TENANT_PK}, "sk": {"S": "tenant_config"}}
+
+
+def _load_tenant_config() -> Dict[str, Any]:
+    response = dynamodb.get_item(
+        TableName=os.environ["AWS_DYNAMODB_RECORDS_TABLE"],
+        Key=_tenant_config_key(),
+    )
+    item = response.get("Item")
+    saved = json.loads(item.get("data", {}).get("S", "{}")) if item else {}
+    config = {**TENANT_CONFIG_DEFAULTS, **saved}
+    config["tenant_id"] = TENANT_ID
+    config["auth_mode"] = "cognito" if os.getenv("COGNITO_USER_POOL_ID", "").strip() else "password"
+    config["cognito_user_pool_id"] = os.getenv("COGNITO_USER_POOL_ID", "")
+    config["cognito_user_pool_client_id"] = os.getenv("COGNITO_USER_POOL_CLIENT_ID", "")
+    return config
+
+
+def _tenant_config_response(event: Dict[str, Any]) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    config = _load_tenant_config()
+    _audit_event(event, "admin_tenant_config_viewed", "tenant_config", {}, admin.get("sub"))
+    return _json(event, 200, {"row": config})
+
+
+def _validate_choice(value: str, allowed: set[str], field: str) -> Optional[Dict[str, Any]]:
+    if value not in allowed:
+        return {"detail": f"{field} must be one of: {', '.join(sorted(allowed))}."}
+    return None
+
+
+def _update_tenant_config(event: Dict[str, Any]) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    body = _body(event)
+    current = _load_tenant_config()
+    allowed_fields = {
+        "organization_name",
+        "lifecycle_stage",
+        "billing_status",
+        "billing_plan",
+        "billing_contact_email",
+        "billing_provider",
+        "sso_status",
+        "sso_provider",
+        "sso_notes",
+    }
+    next_config = {key: current.get(key, "") for key in TENANT_CONFIG_DEFAULTS}
+    for field in allowed_fields:
+        if field in body:
+            next_config[field] = str(body.get(field, "")).strip()
+    validations = [
+        _validate_choice(next_config["lifecycle_stage"], TENANT_LIFECYCLE_STAGES, "lifecycle_stage"),
+        _validate_choice(next_config["billing_status"], BILLING_STATUSES, "billing_status"),
+        _validate_choice(next_config["billing_plan"], BILLING_PLANS, "billing_plan"),
+        _validate_choice(next_config["sso_status"], SSO_STATUSES, "sso_status"),
+    ]
+    for validation in validations:
+        if validation:
+            return _json(event, 400, validation)
+    billing_contact = str(next_config.get("billing_contact_email", ""))
+    if billing_contact and "@" not in billing_contact:
+        return _json(event, 400, {"detail": "billing_contact_email must be a valid email address."})
+    now = int(time.time())
+    next_config["updated_at_epoch"] = now
+    next_config["updated_by"] = str(admin.get("sub", ""))
+    dynamodb.put_item(
+        TableName=os.environ["AWS_DYNAMODB_RECORDS_TABLE"],
+        Item={
+            **_tenant_config_key(),
+            "data": {"S": json.dumps(next_config, separators=(",", ":"))},
+            "updated_at_epoch": {"N": str(now)},
+        },
+    )
+    _audit_event(
+        event,
+        "admin_tenant_config_updated",
+        "tenant_config",
+        {
+            "lifecycle_stage": next_config["lifecycle_stage"],
+            "billing_status": next_config["billing_status"],
+            "sso_status": next_config["sso_status"],
+        },
+        admin.get("sub"),
+    )
+    return _json(event, 200, {"row": _load_tenant_config()})
 
 
 def _create_token(subject: str, secret: str, role: str) -> str:
@@ -1962,6 +2070,10 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _list_cognito_users(event)
     if method == "POST" and path == "/api/admin/users":
         return _create_cognito_user(event)
+    if method == "GET" and path == "/api/admin/tenant":
+        return _tenant_config_response(event)
+    if method == "POST" and path == "/api/admin/tenant":
+        return _update_tenant_config(event)
     if path.startswith("/api/admin/users/"):
         admin_path = path.removeprefix("/api/admin/users/")
         if method == "POST" and admin_path.endswith("/role"):

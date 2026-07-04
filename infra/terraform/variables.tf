@@ -192,6 +192,28 @@ variable "cognito_logout_urls" {
   ]
 }
 
+variable "cognito_saml_provider_name" {
+  description = "Optional Cognito SAML identity provider name for enterprise SSO."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_saml_metadata_url" {
+  description = "Optional SAML metadata URL. Leave empty to use Cognito-native users only."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_saml_attribute_mapping" {
+  description = "SAML attribute mapping for Cognito enterprise SSO."
+  type        = map(string)
+  default = {
+    email       = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+    given_name  = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+    family_name = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+  }
+}
+
 variable "alert_email" {
   description = "Optional email for operational alerts. Leave empty to skip SNS alert subscription."
   type        = string

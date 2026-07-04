@@ -1,0 +1,67 @@
+aws_region   = "us-west-2"
+project_name = "ott-inventory-ai"
+environment  = "mvp"
+tenant_id    = "default"
+
+allowed_origins = [
+  "https://otokistocksense.pages.dev",
+  "https://ott-inventory-ai.pages.dev",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+]
+
+raw_import_bucket_name          = ""
+raw_file_retention_days         = 365
+enable_point_in_time_recovery = false
+reserved_concurrency           = -1
+
+enable_budget      = true
+budget_email       = ""
+monthly_budget_usd = 10
+
+enable_refresh_schedule            = false
+enable_scheduled_import_scan         = true
+scheduled_import_schedule_expression = "rate(1 hour)"
+scheduled_import_prefixes = [
+  "inventory-ai/raw-imports/scheduled/",
+  "inventory-ai/raw-imports/sftp/"
+]
+
+enable_managed_sftp = false
+sftp_user_name      = "stocksense-sftp"
+sftp_public_key     = ""
+
+enable_cognito_auth = true
+cognito_callback_urls = [
+  "https://otokistocksense.pages.dev/login",
+  "http://localhost:3000/login"
+]
+cognito_logout_urls = [
+  "https://otokistocksense.pages.dev/login",
+  "http://localhost:3000/login"
+]
+cognito_domain_prefix = "ott-inventory-ai-mvp-636305658578"
+cognito_saml_provider_name = ""
+cognito_saml_metadata_url  = ""
+
+enable_api_waf           = false
+waf_rate_limit_per_5_min = 1000
+waf_blocked_country_codes = []
+
+enable_immutable_audit_archive = true
+audit_archive_bucket_name      = ""
+audit_archive_retention_days   = 2555
+alert_email                    = ""
+siem_http_endpoint             = ""
+
+auth_username_parameter_name   = "/inventory-ai/mvp/auth/username"
+auth_password_parameter_name   = "/inventory-ai/mvp/auth/password"
+auth_role                      = "approver"
+auth_users_json_parameter_name = "/inventory-ai/mvp/auth/users-json"
+auth_secret_key_parameter_name = "/inventory-ai/mvp/auth/secret-key"
+
+openai_api_key_parameter_name = "/inventory-ai/mvp/openai/api-key"
+openai_model                  = "gpt-5-mini"
+ai_query_enabled              = true
+
+tags = {}

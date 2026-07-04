@@ -21,6 +21,8 @@ Recommended backend:
 
 The bucket above exists in AWS account `636305658578` with versioning, encryption, and public access blocking enabled.
 
+The current live `mvp` stack has been imported into this backend. Use `infra/terraform/live.auto.tfvars.example` as the non-secret live configuration template.
+
 Create the backend bucket once before `terraform init`:
 
 ```bash
@@ -47,7 +49,7 @@ aws s3api put-public-access-block \
 ```bash
 cd infra/terraform
 terraform init -backend-config=backend.hcl
-terraform plan -out=tfplan
+terraform plan -var-file=live.auto.tfvars.example -out=tfplan
 terraform apply tfplan
 ```
 
@@ -70,6 +72,12 @@ terraform import <terraform_address> <aws_resource_id>
 ```
 
 Run `terraform plan` after imports and only apply when the plan is limited to intended changes.
+
+As of July 4, 2026, the imported live stack returns:
+
+```text
+No changes. Your infrastructure matches the configuration.
+```
 
 ## CI Validation
 

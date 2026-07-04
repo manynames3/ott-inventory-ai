@@ -66,17 +66,68 @@ aws cognito-idp admin-add-user-to-group \
 
 After that, admins can manage pilot users from `/users` in the app.
 
+For the hosted demo environment, the active admin login is:
+
+- Username: `admin@otokistocksense.demo`
+- Password source: SSM SecureString `/inventory-ai/mvp/auth/password`
+
+Retrieve or rotate the password through AWS/SSM or a password manager only. Do not paste it into source control, tickets, or chat.
+
+To rotate the managed demo admin password:
+
+```bash
+NEW_PASSWORD="$(python3 - <<'PY'
+import secrets
+import string
+
+alphabet = string.ascii_letters + string.digits
+while True:
+    value = "".join(secrets.choice(alphabet) for _ in range(24))
+    if any(c.islower() for c in value) and any(c.isupper() for c in value) and any(c.isdigit() for c in value):
+        print(value)
+        break
+PY
+)"
+
+aws ssm put-parameter \
+  --name /inventory-ai/mvp/auth/password \
+  --type SecureString \
+  --value "$NEW_PASSWORD" \
+  --overwrite \
+  --region us-west-2
+
+aws cognito-idp admin-set-user-password \
+  --user-pool-id <cognito_user_pool_id> \
+  --region us-west-2 \
+  --username admin@otokistocksense.demo \
+  --password "$NEW_PASSWORD" \
+  --permanent
+```
+
 ## 4. Invite Pilot Users
 
 1. Sign in as an admin.
-2. Open `/users`.
-3. Invite buyer users with the lowest needed role:
+2. Open `/admin`.
+3. Set tenant profile, lifecycle stage, billing status, and enterprise SSO status.
+4. Open `/users`.
+5. Invite buyer users with the lowest needed role:
    - `viewer`: read-only dashboards and reports
    - `planner`: notes and dismiss/reopen
    - `approver`: approve actions
    - `admin`: user management and all approval controls
 
-## 5. Load Buyer Data
+## 5. Enterprise SSO
+
+The live pilot uses Cognito Hosted UI. For buyer SAML, set these Terraform variables and apply:
+
+```hcl
+cognito_saml_provider_name = "BuyerSAML"
+cognito_saml_metadata_url  = "https://idp.example.com/metadata"
+```
+
+Then set `/admin` SSO status to `saml_configured`.
+
+## 6. Load Buyer Data
 
 1. Open `/onboarding` to confirm required files.
 2. Open `/imports`.
@@ -84,7 +135,7 @@ After that, admins can manage pilot users from `/users` in the app.
 4. Use preview mapping before committing each file.
 5. Confirm `/status` shows import storage, query store, auth, and monitoring online.
 
-## 6. Verify The Deployment
+## 7. Verify The Deployment
 
 Run local checks:
 
@@ -110,3 +161,5 @@ EXPECTED_API_BASE_URL=<api_gateway_url> \
 EXPECTED_AUTH_MODE=cognito \
 node scripts/verify_live_frontend.mjs
 ```
+
+The current live UAT record is [user_acceptance_test_results_2026-07-04.md](user_acceptance_test_results_2026-07-04.md).

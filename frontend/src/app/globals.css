@@ -28,6 +28,8 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
@@ -53,7 +55,9 @@ select {
 .app-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -71,6 +75,7 @@ select {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   min-height: 48px;
 }
 
@@ -88,6 +93,7 @@ select {
 .brand strong,
 .brand small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .brand strong {
@@ -101,8 +107,10 @@ select {
 }
 
 .app-brand-lockup {
+  max-width: 100%;
   min-height: 56px;
   padding: 8px 10px;
+  overflow: hidden;
   border: 1px solid #ffe255;
   border-radius: 12px;
   background: #fffdeb;
@@ -156,6 +164,7 @@ select {
 .content {
   min-width: 0;
   padding: 28px;
+  overflow-x: hidden;
 }
 
 .page-header {
@@ -164,6 +173,12 @@ select {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
+}
+
+.page-header > div,
+.panel-header > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .page-header h1 {
@@ -176,6 +191,7 @@ select {
 .panel p,
 .empty-state {
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .page-header-tagline {
@@ -2152,6 +2168,9 @@ select {
   .nav-list {
     grid-auto-flow: column;
     grid-auto-columns: max-content;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
     margin-top: 14px;
   }
@@ -2215,6 +2234,20 @@ select {
 @media (max-width: 720px) {
   .content {
     padding: 18px;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .app-brand-lockup {
+    width: 100%;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
   }
 
   .page-header {
