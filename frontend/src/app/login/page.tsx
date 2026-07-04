@@ -3,13 +3,24 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
 
-import { completeCognitoLoginFromUrl, IS_COGNITO_AUTH, IS_DEMO_MODE, login, startCognitoLogin } from "@/lib/api";
+import {
+  completeCognitoLoginFromUrl,
+  IS_COGNITO_AUTH,
+  IS_DEMO_MODE,
+  login,
+  loginWithCognitoPassword,
+  startCognitoLogin
+} from "@/lib/api";
+
+const DEMO_USERNAME = process.env.NEXT_PUBLIC_DEMO_LOGIN_USERNAME || "demo@otokistocksense.demo";
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || "StockSenseDemo2026";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(DEMO_USERNAME);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [companyLoading, setCompanyLoading] = useState(false);
   const [cognitoCallbackLoading, setCognitoCallbackLoading] = useState(false);
 
   const nextPath = useMemo(() => {
@@ -37,10 +48,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(username, password);
+      if (IS_COGNITO_AUTH) {
+        await loginWithCognitoPassword(username, password);
+      } else {
+        await login(username, password);
+      }
       window.location.href = nextPath;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -48,13 +63,19 @@ export default function LoginPage() {
 
   async function signInWithCognito() {
     setError(null);
-    setLoading(true);
+    setCompanyLoading(true);
     try {
       await startCognitoLogin(nextPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Secure sign-in is not configured.");
-      setLoading(false);
+      setCompanyLoading(false);
     }
+  }
+
+  function resetDemoCredentials() {
+    setUsername(DEMO_USERNAME);
+    setPassword(DEMO_PASSWORD);
+    setError(null);
   }
 
   return (
@@ -81,33 +102,74 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {IS_COGNITO_AUTH ? (
-          <div className="auth-card">
-            <div className="auth-card-header">
-              <p>Secure sign-in</p>
-              <h2>Continue with your work email</h2>
-              <span>Your workspace admin manages access and roles.</span>
-            </div>
-            {error ? <div className="message error">{error}</div> : null}
-            <button
-              className="button auth-primary-button"
-              type="button"
-              onClick={signInWithCognito}
-              disabled={loading || cognitoCallbackLoading}
-            >
-              {loading || cognitoCallbackLoading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
-              {cognitoCallbackLoading ? "Completing sign in" : "Continue securely"}
-              {!loading && !cognitoCallbackLoading ? <ArrowRight className="auth-button-arrow" size={17} /> : null}
-            </button>
-            <p className="auth-fine-print">Use the email and password provided for your StockSense workspace.</p>
-          </div>
-        ) : (
-          <form className="auth-card auth-form" onSubmit={submit}>
+        <form className="auth-card auth-form" onSubmit={submit}>
+          {IS_COGNITO_AUTH ? (
+            <>
+              <div className="auth-card-header">
+                <p>Pilot access</p>
+                <h2>Try the live workspace</h2>
+                <span>Demo credentials are prefilled. Replace them with your own workspace login anytime.</span>
+              </div>
+              <div className="form-grid auth-field-grid">
+                <label htmlFor="username">Email</label>
+                <input
+                  id="username"
+                  className="input"
+                  type="email"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                />
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  className="input"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </div>
+              {error ? <div className="message error">{error}</div> : null}
+              <button
+                className="button auth-primary-button"
+                type="submit"
+                disabled={loading || companyLoading || cognitoCallbackLoading}
+              >
+                {loading || cognitoCallbackLoading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
+                {loading || cognitoCallbackLoading ? "Signing in" : "Enter workspace"}
+                {!loading && !cognitoCallbackLoading ? <ArrowRight className="auth-button-arrow" size={17} /> : null}
+              </button>
+              <div className="auth-secondary-actions">
+                <button
+                  className="button secondary auth-secondary-button"
+                  type="button"
+                  onClick={resetDemoCredentials}
+                  disabled={loading || companyLoading}
+                >
+                  Use demo login
+                </button>
+                <button
+                  className="button secondary auth-secondary-button"
+                  type="button"
+                  onClick={signInWithCognito}
+                  disabled={loading || companyLoading || cognitoCallbackLoading}
+                >
+                  {companyLoading ? <LockKeyhole size={16} /> : null}
+                  Company sign-in
+                </button>
+              </div>
+              <p className="auth-fine-print">
+                The demo account has planner access. Admins and invited users can enter their own credentials.
+              </p>
+            </>
+          ) : (
+            <>
             <div className="auth-card-header">
               <p>Secure sign-in</p>
               <h2>Continue with your workspace account</h2>
             </div>
-            <div className="form-grid">
+            <div className="form-grid auth-field-grid">
               <label htmlFor="username">Username</label>
               <input
                 id="username"
@@ -131,8 +193,9 @@ export default function LoginPage() {
               {loading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
               Sign in
             </button>
-          </form>
-        )}
+            </>
+          )}
+        </form>
       </section>
 
     </>

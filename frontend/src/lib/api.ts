@@ -15,6 +15,8 @@ const COGNITO_DOMAIN = (
 const COGNITO_CLIENT_ID = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "hfnqc87er9c4suqd4qgf0ppuq";
 const COGNITO_REDIRECT_URI = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI || "https://otokistocksense.pages.dev/login";
 const COGNITO_LOGOUT_URI = process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI || "https://otokistocksense.pages.dev/login";
+const COGNITO_REGION =
+  process.env.NEXT_PUBLIC_COGNITO_REGION || COGNITO_DOMAIN.match(/auth\.([a-z0-9-]+)\.amazoncognito\.com/)?.[1] || "us-west-2";
 
 const TOKEN_KEY = "stocksense_access_token";
 const COGNITO_CODE_VERIFIER_KEY = "stocksense_cognito_code_verifier";
@@ -581,6 +583,45 @@ export async function login(username: string, password: string): Promise<LoginRe
   const body = (await response.json()) as LoginResponse;
   setAuthToken(body.access_token);
   return body;
+}
+
+export async function loginWithCognitoPassword(username: string, password: string): Promise<LoginResponse> {
+  if (!COGNITO_CLIENT_ID) {
+    throw new Error("Secure sign-in is not configured.");
+  }
+  const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-amz-json-1.1",
+      "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth"
+    },
+    body: JSON.stringify({
+      AuthFlow: "USER_PASSWORD_AUTH",
+      ClientId: COGNITO_CLIENT_ID,
+      AuthParameters: {
+        USERNAME: username,
+        PASSWORD: password
+      }
+    })
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = body?.message || body?.Message || body?.__type || "Sign-in failed.";
+    throw new Error(String(message).replace(/^.*?#/, ""));
+  }
+  if (body?.ChallengeName) {
+    throw new Error("This account needs an additional sign-in step. Use company sign-in instead.");
+  }
+  const authToken = body?.AuthenticationResult?.IdToken || body?.AuthenticationResult?.AccessToken;
+  if (!authToken) {
+    throw new Error("The sign-in service did not return a valid session.");
+  }
+  setAuthToken(String(authToken));
+  return {
+    access_token: String(authToken),
+    token_type: "bearer",
+    user: { username }
+  };
 }
 
 export function formatCurrency(value: unknown): string {

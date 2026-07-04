@@ -4,7 +4,7 @@ StockSense AI is an expiration-aware inventory optimization MVP for food and CPG
 
 Live demo: [https://otokistocksense.pages.dev](https://otokistocksense.pages.dev)
 
-Hosted pilot status: the public frontend is deployed on Cloudflare Pages and can run against the Cognito-protected AWS API Gateway/Lambda backend. Demo credentials are managed outside source control through Cognito/SSM.
+Hosted pilot status: the public frontend is deployed on Cloudflare Pages and can run against the Cognito-protected AWS API Gateway/Lambda backend. The sign-in screen pre-fills a planner-only public demo account for quick evaluation; admin and buyer-specific credentials are managed outside source control through Cognito/SSM.
 
 ## About
 

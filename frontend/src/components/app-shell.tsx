@@ -40,6 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [hasToken, setHasToken] = useState(false);
   const pathname = usePathname();
   const isMarketingPage = pathname === "/sales" || pathname === "/sales/" || pathname === "/landing" || pathname === "/landing/";
+  const isAuthPage = pathname === "/login" || pathname === "/login/";
 
   useEffect(() => {
     function syncToken() {
@@ -62,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
-  if (isMarketingPage) {
+  if (isMarketingPage || isAuthPage) {
     return <>{children}</>;
   }
 

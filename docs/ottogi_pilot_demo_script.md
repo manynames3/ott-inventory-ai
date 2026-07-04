@@ -24,7 +24,7 @@ The answer:
 Use the hosted pilot:
 
 - Frontend: `https://otokistocksense.pages.dev`
-- Login: use the current pilot credential stored outside the repo.
+- Login: the public planner demo credentials are prefilled. Replace them with buyer-specific credentials when running a controlled pilot.
 - Demo files: `sample_data/ottogi_demo/`
 - Product catalog: 110 Ottogi-inspired SKUs based on public Ottogi product categories. 37 public distributor or UPC/EAN-backed identifiers are used where verified; `OTK-DEMO-*` IDs, lots, demand, costs, and customers are demo-specific.
 - Edge cases: slow movers, promotional spikes, delayed inbound shipments, expired lots, and low-confidence forecasts.

@@ -996,8 +996,13 @@ select {
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 420px);
   gap: 42px;
   align-items: center;
+  align-content: center;
+  width: min(calc(100% - 48px), 980px);
   max-width: 980px;
-  min-height: calc(100vh - 56px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding-block: 48px;
+  box-sizing: border-box;
 }
 
 .auth-copy {
@@ -1093,6 +1098,16 @@ select {
   line-height: 1.5;
 }
 
+.auth-field-grid {
+  gap: 8px;
+}
+
+.auth-field-grid label {
+  color: #304039;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .auth-primary-button {
   position: relative;
   justify-content: center;
@@ -1111,6 +1126,17 @@ select {
 
 .auth-form {
   align-self: start;
+}
+
+.auth-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auth-secondary-button {
+  min-height: 42px;
+  width: 100%;
 }
 
 .message {
@@ -2385,8 +2411,10 @@ select {
   }
 
   .auth-hero {
+    width: min(calc(100% - 36px), 980px);
     min-height: auto;
     gap: 24px;
+    padding-block: 32px;
   }
 
   .auth-copy {
@@ -2408,6 +2436,10 @@ select {
 
   .auth-card {
     padding: 22px;
+  }
+
+  .auth-secondary-actions {
+    grid-template-columns: 1fr;
   }
 
   .auth-card-header h2 {

@@ -73,6 +73,14 @@ For the hosted demo environment, the active admin login is:
 
 Retrieve or rotate the password through AWS/SSM or a password manager only. Do not paste it into source control, tickets, or chat.
 
+The public demo login is intentionally different from the admin account. The `/login` screen pre-fills a planner-only user:
+
+- Username: `demo@otokistocksense.demo`
+- Password source: public frontend fallback or `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD`
+- Cognito group: `planner`
+
+Keep this user non-admin. Rotate or disable it before any buyer-specific environment that should not allow anonymous evaluation.
+
 To rotate the managed demo admin password:
 
 ```bash

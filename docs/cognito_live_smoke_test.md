@@ -24,6 +24,12 @@ Use buyer-safe pilot identities such as:
 
 Share passwords only through a password manager or one-time secure handoff. Do not commit pilot credentials.
 
+The public Cloudflare Pages demo also pre-fills a planner-only account for low-friction evaluation:
+
+- `demo@otokistocksense.demo` in group `planner`
+
+This demo account is intentionally public and must not be granted `approver` or `admin`.
+
 ## CLI Smoke Test
 
 Get Terraform outputs:
@@ -63,8 +69,8 @@ Confirm approver authorization by repeating the token step with `ops-manager@oto
 ## Browser Smoke Test
 
 1. Open `https://otokistocksense.pages.dev/login`.
-2. Choose Cognito sign-in.
-3. Sign in as planner.
+2. Use the prefilled demo credentials and choose Enter workspace, or replace them with a planner user's credentials.
+3. Use Company sign-in only when testing the hosted identity-provider flow.
 4. Confirm Dashboard, Query, Imports, Actions, Validation, Reports, Audit, Status, and Security load without `Backend API is not reachable`.
 5. Attempt to approve an action as planner; it should be blocked.
 6. Sign out and sign in as approver.
