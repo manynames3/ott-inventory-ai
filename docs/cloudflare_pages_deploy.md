@@ -124,6 +124,8 @@ Use demo mode only for offline/static fallback builds:
 
 Also update the backend `CORS_ORIGINS` value to include the Cloudflare Pages domain, such as `https://otokistocksense.pages.dev`.
 
+The Cloudflare `_headers` CSP must allow the configured API Gateway URL, the Cognito Hosted UI domain, and the regional Cognito IDP endpoint used by the prefilled demo sign-in form.
+
 For the low-idle AWS pilot backend with Cognito enabled, use the Terraform output `api_gateway_url`. The frontend strips a trailing slash automatically, so the raw output value can be pasted as-is. Do not append `/prod`; the current HTTP API uses the `$default` stage.
 
 ## Deployment Verification
