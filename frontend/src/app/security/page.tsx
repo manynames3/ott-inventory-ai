@@ -173,7 +173,7 @@ export default function SecurityPage() {
             </div>
             <div>
               <ShieldCheck size={18} />
-              <p>Cognito Hosted UI and API Gateway JWT authorization are available for stronger buyer pilot authentication.</p>
+              <p>Secure hosted login and API Gateway JWT authorization are available for stronger buyer pilot authentication.</p>
             </div>
             <div>
               <LockKeyhole size={18} />
@@ -193,7 +193,7 @@ export default function SecurityPage() {
             <h2>Pilot Boundaries Before Production Rollout</h2>
             <p>
               This MVP is suitable for a low-traffic buyer pilot with named users, role-based approvals, private file
-              storage, audit visibility, and no ERP writeback. A production enterprise rollout should finalize SSO,
+              storage, audit visibility, and no ERP writeback. A production enterprise rollout should finalize enterprise sign-in,
               tenant provisioning, buyer-specific retention/DPA terms, custom-domain review, SIEM forwarding, and a
               reviewed security questionnaire.
             </p>

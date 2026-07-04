@@ -65,8 +65,8 @@ TENANT_CONFIG_DEFAULTS = {
     "billing_contact_email": "",
     "billing_provider": "external_invoice",
     "sso_status": "cognito",
-    "sso_provider": "Cognito Hosted UI",
-    "sso_notes": "Named users and Cognito groups are active. SAML/OIDC can be enabled per buyer identity provider.",
+    "sso_provider": "Secure hosted sign-in",
+    "sso_notes": "Named workspace users and roles are active. Enterprise sign-in can be enabled per buyer identity provider.",
 }
 
 REQUIRED_COLUMNS = {
@@ -356,13 +356,13 @@ def _require_admin_user(event: Dict[str, Any]) -> tuple[Optional[Dict[str, Any]]
     if not _can_admin_users(user):
         return None, _json(event, 403, {"detail": "Only admin users can manage pilot access."})
     if not os.getenv("COGNITO_USER_POOL_ID", "").strip():
-        return None, _json(event, 503, {"detail": "Cognito user management is not configured."})
+        return None, _json(event, 503, {"detail": "Workspace user management is not configured."})
     return user, None
 
 
 def _cognito_error(exc: ClientError) -> str:
     error = exc.response.get("Error", {}) if hasattr(exc, "response") else {}
-    return str(error.get("Message") or error.get("Code") or "Cognito request failed.")
+    return str(error.get("Message") or error.get("Code") or "Identity service request failed.")
 
 
 def _cognito_attr(attributes: List[Dict[str, str]], name: str) -> str:

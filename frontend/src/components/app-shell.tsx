@@ -89,12 +89,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           {IS_DEMO_MODE || !hasToken ? (
             <Link href="/login" className="nav-item">
               <LogIn size={18} />
-              <span>Login</span>
+              <span>Sign In</span>
             </Link>
           ) : (
             <button className="nav-item nav-button" type="button" onClick={signOut}>
               <LogOut size={18} />
-              <span>Logout</span>
+              <span>Sign Out</span>
             </button>
           )}
         </nav>

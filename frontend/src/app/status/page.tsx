@@ -359,7 +359,7 @@ export default function StatusPage() {
             <span>Authentication Mode</span>
             <p>
               {requirements.data?.auth?.cognito_ready
-                ? "Cognito/API Gateway mode is configured; Cognito groups map to planner, approver, and admin roles."
+                ? "Secure hosted login is configured; workspace roles map to planner, approver, and admin access."
                 : "Password/JWT pilot auth is active."}
             </p>
           </div>

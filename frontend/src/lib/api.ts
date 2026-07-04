@@ -404,7 +404,7 @@ function randomString(byteLength = 48): string {
 
 export async function startCognitoLogin(nextPath = "/"): Promise<void> {
   if (!COGNITO_DOMAIN || !COGNITO_CLIENT_ID) {
-    throw new Error("Cognito auth is not configured. Set NEXT_PUBLIC_COGNITO_DOMAIN and NEXT_PUBLIC_COGNITO_CLIENT_ID.");
+    throw new Error("Secure sign-in is not configured.");
   }
   const verifier = randomString();
   const challenge = base64Url(await sha256(verifier));
@@ -434,7 +434,7 @@ export async function completeCognitoLoginFromUrl(): Promise<string | null> {
   const expectedState = window.localStorage.getItem(COGNITO_STATE_KEY) || "";
   const verifier = window.localStorage.getItem(COGNITO_CODE_VERIFIER_KEY) || "";
   if (!expectedState || state !== expectedState || !verifier) {
-    throw new Error("Cognito login state could not be verified. Please try signing in again.");
+    throw new Error("Sign-in could not be verified. Please try again.");
   }
   const body = new URLSearchParams({
     grant_type: "authorization_code",
@@ -449,12 +449,12 @@ export async function completeCognitoLoginFromUrl(): Promise<string | null> {
     body: body.toString()
   });
   if (!response.ok) {
-    throw new Error(`Cognito token exchange failed: ${response.status}`);
+    throw new Error(`Sign-in failed: ${response.status}`);
   }
   const tokenBody = await response.json();
   const authToken = tokenBody.id_token || tokenBody.access_token;
   if (!authToken) {
-    throw new Error("Cognito did not return an ID or access token.");
+    throw new Error("The sign-in service did not return a valid session.");
   }
   setAuthToken(String(authToken));
   window.localStorage.removeItem(COGNITO_CODE_VERIFIER_KEY);

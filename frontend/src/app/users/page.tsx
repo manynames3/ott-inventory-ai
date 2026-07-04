@@ -161,21 +161,21 @@ export default function UsersPage() {
                 <Users size={18} />
               </span>
               <h2>{users.length.toLocaleString()} Users</h2>
-              <p>{activeCount.toLocaleString()} active accounts in the Cognito pilot user pool.</p>
+              <p>{activeCount.toLocaleString()} active accounts in this pilot workspace.</p>
             </div>
             <div className="insight-card compact">
               <span className="insight-icon stockout">
                 <ShieldCheck size={18} />
               </span>
               <h2>Roles</h2>
-              <p>Viewer, planner, approver, and admin access maps to Cognito groups.</p>
+              <p>Viewer, planner, approver, and admin access maps to workspace permissions.</p>
             </div>
             <div className="insight-card compact">
               <span className="insight-icon waste">
                 <UserPlus size={18} />
               </span>
               <h2>Invites</h2>
-              <p>Cognito sends a temporary-password email when invitation delivery is enabled.</p>
+              <p>The sign-in service sends a temporary-password email when invitation delivery is enabled.</p>
             </div>
           </section>
 
@@ -184,7 +184,7 @@ export default function UsersPage() {
               <div className="panel-header">
                 <div>
                   <h2>Invite User</h2>
-                  <p>Create a Cognito account and assign initial pilot access.</p>
+                  <p>Create a workspace account and assign initial pilot access.</p>
                 </div>
               </div>
               <form className="form-grid" onSubmit={createUser}>
@@ -217,7 +217,7 @@ export default function UsersPage() {
                     checked={sendInvite}
                     onChange={(event) => setSendInvite(event.target.checked)}
                   />
-                  Send Cognito invitation email
+                  Send invitation email
                 </label>
                 <button className="button" type="submit" disabled={saving}>
                   <UserPlus size={17} />
@@ -258,7 +258,7 @@ export default function UsersPage() {
             <div className="panel-header">
               <div>
                 <h2>Pilot Users</h2>
-                <p>{loading ? "Loading Cognito users." : `${users.length.toLocaleString()} accounts loaded.`}</p>
+                <p>{loading ? "Loading workspace users." : `${users.length.toLocaleString()} accounts loaded.`}</p>
               </div>
             </div>
             {loading ? (

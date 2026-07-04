@@ -24,6 +24,15 @@ const ssoStatuses: AdminTenantConfig["sso_status"][] = [
 ];
 
 function label(value: string) {
+  const friendly: Record<string, string> = {
+    cognito: "secure sign-in",
+    password: "password sign-in",
+    saml_ready: "enterprise sign-in ready",
+    saml_configured: "enterprise sign-in connected",
+    oidc_ready: "identity provider ready",
+    not_configured: "not configured"
+  };
+  if (friendly[value]) return friendly[value];
   return value.replaceAll("_", " ");
 }
 
@@ -98,7 +107,7 @@ export default function AdminPage() {
       <header className="page-header">
         <div>
           <h1>Admin</h1>
-          <p>Manage tenant setup, customer lifecycle, billing posture, and enterprise SSO readiness.</p>
+          <p>Manage tenant setup, customer lifecycle, billing posture, and enterprise sign-in readiness.</p>
         </div>
         <div className="toolbar">
           <button className="button secondary" type="button" onClick={load} disabled={loading || saving}>
@@ -231,14 +240,14 @@ export default function AdminPage() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2>Enterprise SSO</h2>
-                  <p>Cognito Hosted UI is active; SAML/OIDC status is tracked here.</p>
+                  <h2>Enterprise Sign-In</h2>
+                  <p>Secure hosted login is active; company login status is tracked here.</p>
                 </div>
               </div>
               <div className="form-grid">
-                <label htmlFor="auth-mode">Auth mode</label>
-                <input id="auth-mode" className="input" value={draft.auth_mode} readOnly />
-                <label htmlFor="sso-status">SSO status</label>
+                <label htmlFor="auth-mode">Sign-in method</label>
+                <input id="auth-mode" className="input" value={label(draft.auth_mode)} readOnly />
+                <label htmlFor="sso-status">Sign-in status</label>
                 <select
                   id="sso-status"
                   className="input"
@@ -251,7 +260,7 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="sso-provider">Provider</label>
+                <label htmlFor="sso-provider">Login service</label>
                 <input
                   id="sso-provider"
                   className="input"
@@ -278,7 +287,7 @@ export default function AdminPage() {
               <div className="security-list">
                 <div>
                   <ShieldCheck size={18} />
-                  <p>User access is managed from Cognito groups through the Users page.</p>
+                  <p>User access is managed through workspace roles on the Users page.</p>
                 </div>
                 <div>
                   <ShieldCheck size={18} />
@@ -286,7 +295,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <ShieldCheck size={18} />
-                  <p>Enterprise SSO can be connected through Cognito SAML/OIDC provider configuration.</p>
+                  <p>Enterprise sign-in can connect to a customer&apos;s company login when required.</p>
                 </div>
               </div>
               <div className="toolbar form-actions">

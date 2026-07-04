@@ -570,6 +570,67 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id = aws_cognito_user_pool.main[0].id
 }
 
+resource "aws_cognito_user_pool_ui_customization" "frontend" {
+  count = var.enable_cognito_auth ? 1 : 0
+
+  user_pool_id = aws_cognito_user_pool.main[0].id
+  client_id    = aws_cognito_user_pool_client.frontend[0].id
+  image_file   = filebase64("${path.module}/assets/stocksense-login-logo.png")
+
+  css = <<-CSS
+    .background-customizable {
+      background-color: #f7f9f6;
+    }
+    .banner-customizable {
+      background-color: #ffffff;
+      padding: 30px 0 16px;
+    }
+    .logo-customizable {
+      max-width: 72px;
+      max-height: 72px;
+    }
+    .textDescription-customizable {
+      color: #1f2a24;
+      font-size: 18px;
+      padding-top: 10px;
+      padding-bottom: 14px;
+    }
+    .label-customizable {
+      color: #24332c;
+      font-weight: 600;
+    }
+    .inputField-customizable {
+      width: 100%;
+      height: 44px;
+      color: #1f2a24;
+      background-color: #ffffff;
+      border: 1px solid #d5ded6;
+    }
+    .inputField-customizable:focus {
+      border: 1px solid #147d6f;
+    }
+    .submitButton-customizable {
+      width: 100%;
+      height: 46px;
+      color: #ffffff;
+      background-color: #147d6f;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .submitButton-customizable:hover {
+      background-color: #0f665d;
+    }
+    .redirect-customizable {
+      color: #147d6f;
+    }
+    .errorMessage-customizable {
+      color: #7f1028;
+    }
+  CSS
+
+  depends_on = [aws_cognito_user_pool_domain.main]
+}
+
 resource "aws_cognito_user_group" "planner" {
   count = var.enable_cognito_auth ? 1 : 0
 

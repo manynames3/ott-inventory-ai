@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { LockKeyhole, LogIn } from "lucide-react";
+import { ArrowRight, CheckCircle2, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
 
 import { completeCognitoLoginFromUrl, IS_COGNITO_AUTH, IS_DEMO_MODE, login, startCognitoLogin } from "@/lib/api";
 
@@ -27,7 +27,7 @@ export default function LoginPage() {
         window.location.href = next || "/";
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Cognito login failed");
+        setError(err instanceof Error ? err.message : "Sign-in could not be completed.");
       })
       .finally(() => setCognitoCallbackLoading(false));
   }, []);
@@ -52,56 +52,82 @@ export default function LoginPage() {
     try {
       await startCognitoLogin(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cognito login is not configured");
+      setError(err instanceof Error ? err.message : "Secure sign-in is not configured.");
       setLoading(false);
     }
   }
 
   return (
     <>
-      <header className="page-header">
-        <div>
-          <h1>Login</h1>
-          <p>Sign in to StockSense AI.</p>
-        </div>
-      </header>
-
-      <section className="panel auth-panel">
+      <section className="auth-hero" aria-labelledby="login-heading">
         {IS_DEMO_MODE ? (
           <div className="message ok">Demo mode is active.</div>
         ) : null}
+        <div className="auth-copy">
+          <img className="auth-logo" src="/assets/stocksense-ottogi-logo.svg" alt="" aria-hidden="true" />
+          <div>
+            <h1 id="login-heading">Welcome back</h1>
+            <p>Sign in to your StockSense workspace to review inventory risk, planner actions, and pilot reports.</p>
+          </div>
+          <div className="auth-assurance">
+            <span>
+              <ShieldCheck size={17} />
+              Workspace-managed access
+            </span>
+            <span>
+              <CheckCircle2 size={17} />
+              Role-based approvals
+            </span>
+          </div>
+        </div>
+
         {IS_COGNITO_AUTH ? (
-          <div className="form-grid">
-            <div className="message info">
-              Cognito SSO mode is active. Access is controlled by Cognito users and planner/approver/admin groups.
+          <div className="auth-card">
+            <div className="auth-card-header">
+              <p>Secure sign-in</p>
+              <h2>Continue with your work email</h2>
+              <span>Your workspace admin manages access and roles.</span>
             </div>
             {error ? <div className="message error">{error}</div> : null}
-            <button className="button" type="button" onClick={signInWithCognito} disabled={loading || cognitoCallbackLoading}>
+            <button
+              className="button auth-primary-button"
+              type="button"
+              onClick={signInWithCognito}
+              disabled={loading || cognitoCallbackLoading}
+            >
               {loading || cognitoCallbackLoading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
-              {cognitoCallbackLoading ? "Completing sign in" : "Sign in with Cognito"}
+              {cognitoCallbackLoading ? "Completing sign in" : "Continue securely"}
+              {!loading && !cognitoCallbackLoading ? <ArrowRight size={17} /> : null}
             </button>
+            <p className="auth-fine-print">Use the email and password provided for your StockSense workspace.</p>
           </div>
         ) : (
-          <form className="form-grid" onSubmit={submit}>
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              className="input"
-              autoComplete="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-            />
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+          <form className="auth-card auth-form" onSubmit={submit}>
+            <div className="auth-card-header">
+              <p>Secure sign-in</p>
+              <h2>Continue with your workspace account</h2>
+            </div>
+            <div className="form-grid">
+              <label htmlFor="username">Username</label>
+              <input
+                id="username"
+                className="input"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
             {error ? <div className="message error">{error}</div> : null}
-            <button className="button" type="submit" disabled={loading || IS_DEMO_MODE}>
+            <button className="button auth-primary-button" type="submit" disabled={loading || IS_DEMO_MODE}>
               {loading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
               Sign in
             </button>
