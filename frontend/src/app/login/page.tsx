@@ -97,7 +97,7 @@ export default function LoginPage() {
             >
               {loading || cognitoCallbackLoading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
               {cognitoCallbackLoading ? "Completing sign in" : "Continue securely"}
-              {!loading && !cognitoCallbackLoading ? <ArrowRight size={17} /> : null}
+              {!loading && !cognitoCallbackLoading ? <ArrowRight className="auth-button-arrow" size={17} /> : null}
             </button>
             <p className="auth-fine-print">Use the email and password provided for your StockSense workspace.</p>
           </div>

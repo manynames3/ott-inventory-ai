@@ -1094,14 +1094,19 @@ select {
 }
 
 .auth-primary-button {
+  position: relative;
   justify-content: center;
   min-height: 48px;
   width: 100%;
+  padding-inline: 44px;
   box-shadow: 0 14px 30px rgba(20, 125, 111, 0.22);
 }
 
-.auth-primary-button svg:last-child {
-  margin-left: auto;
+.auth-button-arrow {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
 }
 
 .auth-form {
