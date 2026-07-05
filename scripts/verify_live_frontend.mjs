@@ -26,7 +26,18 @@ if (scriptUrls.length === 0) {
   throw new Error(`No JavaScript bundles found at ${frontendUrl}`);
 }
 
-const bundleText = (await Promise.all(scriptUrls.map((url) => fetchText(url).catch(() => "")))).join("\n");
+const bundleText = (
+  await Promise.all(
+    scriptUrls.map(async (url) => {
+      try {
+        return await fetchText(url);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to fetch JavaScript bundle ${url}: ${message}`);
+      }
+    }),
+  )
+).join("\n");
 
 const checks = [
   {
