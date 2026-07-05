@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeDollarSign, Clock3, Download, PackageCheck, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BadgeDollarSign,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Download,
+  MoreVertical,
+  PackageCheck,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  ShoppingCart,
+  UploadCloud,
+  X
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
-import { MetricCard } from "@/components/metric-card";
 import { StatusPill } from "@/components/status-pill";
 import {
   apiGet,
@@ -32,6 +47,10 @@ type ReadableActionField = {
   key: string;
   label: string;
 };
+
+type ActionFilter = "All" | "P1" | "P2" | "P3";
+
+const actionFilters: ActionFilter[] = ["All", "P1", "P2", "P3"];
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
@@ -77,6 +96,50 @@ function formatFreshness(epoch?: number) {
     hour: "numeric",
     minute: "2-digit"
   }).format(epoch * 1000);
+}
+
+function actionKey(row: Record<string, unknown>, index: number) {
+  return [row.priority, row.action_type, row.sku, row.warehouse, row.lot_id || "sku", row.due_date, index]
+    .map((value) => String(value || ""))
+    .join("::");
+}
+
+function text(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "number") {
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
+  }
+  return String(value);
+}
+
+function confidenceLabel(value: unknown) {
+  if (typeof value === "number") {
+    return value >= 0.86 ? "High" : value >= 0.72 ? "Medium" : "Review";
+  }
+  const raw = String(value || "");
+  if (raw.toLowerCase().includes("high")) return "High";
+  if (raw.toLowerCase().includes("medium")) return "Medium";
+  return "Review";
+}
+
+function actionTypeIcon(actionType: unknown) {
+  const label = String(actionType || "").toLowerCase();
+  if (label.includes("ship")) return <Clock3 size={16} />;
+  if (label.includes("waste")) return <AlertTriangle size={16} />;
+  if (label.includes("reorder")) return <ShoppingCart size={16} />;
+  return <PackageCheck size={16} />;
+}
+
+function actionTypeTone(actionType: unknown) {
+  const label = String(actionType || "").toLowerCase();
+  if (label.includes("waste")) return "risk";
+  if (label.includes("ship")) return "fefo";
+  if (label.includes("reorder")) return "reorder";
+  return "stockout";
+}
+
+function checklistLabel(entity: string) {
+  return entity.replaceAll("_", " ");
 }
 
 function ReadableActionList({
@@ -275,6 +338,9 @@ export default function DashboardPage() {
     loading: true
   });
   const [showDemoBanner, setShowDemoBanner] = useState(false);
+  const [activeActionFilter, setActiveActionFilter] = useState<ActionFilter>("All");
+  const [selectedActionKey, setSelectedActionKey] = useState("");
+  const [plannerNote, setPlannerNote] = useState("Plan customer outreach and confirm inventory movement before end of week.");
 
   useEffect(() => {
     let active = true;
@@ -309,6 +375,15 @@ export default function DashboardPage() {
   useEffect(() => {
     setShowDemoBanner(SHOW_DEMO_BANNER && window.localStorage.getItem("stocksense_demo_banner_dismissed") !== "true");
   }, []);
+
+  useEffect(() => {
+    if (!state.dashboard) return;
+    const actions = buildPriorityActions(state.dashboard);
+    if (!actions.length) return;
+    setSelectedActionKey((current) =>
+      actions.some((row, index) => actionKey(row, index) === current) ? current : actionKey(actions[0], 0)
+    );
+  }, [state.dashboard]);
 
   function dismissDemoBanner() {
     window.localStorage.setItem("stocksense_demo_banner_dismissed", "true");
@@ -353,25 +428,49 @@ export default function DashboardPage() {
   const completeDatasets = checklist.filter((item) => item.status === "complete").length;
   const latestImportEpoch = Math.max(0, ...checklist.map((item) => item.updated_at_epoch || 0));
   const failedImports = (state.importHistory?.rows || []).filter((row) => row.status === "failed").length;
+  const priorityCounts = {
+    All: priorityActions.length,
+    P1: priorityActions.filter((row) => row.priority === "P1").length,
+    P2: priorityActions.filter((row) => row.priority === "P2").length,
+    P3: priorityActions.filter((row) => row.priority === "P3").length
+  };
+  const filteredPriorityActions =
+    activeActionFilter === "All"
+      ? priorityActions
+      : priorityActions.filter((row) => String(row.priority) === activeActionFilter);
+  const selectedActionIndex = priorityActions.findIndex((row, index) => actionKey(row, index) === selectedActionKey);
+  const selectedAction = priorityActions[selectedActionIndex >= 0 ? selectedActionIndex : 0] || null;
+  const selectedActionTone = selectedAction ? actionTypeTone(selectedAction.action_type) : "stockout";
+  const selectedActionLot = selectedAction?.lot_id || selectedAction?.ship_first_lot || "Lot pending";
+  const selectedActionReason = selectedAction?.reason || selectedAction?.confidence_reason || "No action reason available.";
+  const riskBuckets = dashboard.charts.inventory_by_expiration_bucket.slice(0, 5);
+  const maxRiskValue = Math.max(1, ...riskBuckets.map((row) => Number(row.value || row.quantity || 0)));
+  const readinessItems = checklist.length
+    ? checklist
+    : [
+        { entity: "products", label: "Products", status: "missing" as const, required_columns: [], message: "Waiting for upload", rows_imported: 0, error_count: 0 },
+        { entity: "inventory_lots", label: "Inventory lots", status: "missing" as const, required_columns: [], message: "Waiting for upload", rows_imported: 0, error_count: 0 },
+        { entity: "orders", label: "Orders", status: "missing" as const, required_columns: [], message: "Waiting for upload", rows_imported: 0, error_count: 0 },
+        { entity: "customers", label: "Customers", status: "missing" as const, required_columns: [], message: "Waiting for upload", rows_imported: 0, error_count: 0 },
+        { entity: "inbound_shipments", label: "Inbound shipments", status: "missing" as const, required_columns: [], message: "Waiting for upload", rows_imported: 0, error_count: 0 }
+      ];
+  const recentActivity = (state.importHistory?.rows || []).slice(0, 4);
+  const topStockoutRows = priorityActions
+    .filter((row) => String(row.action_type || "").toLowerCase().includes("fill") || row.priority === "P1")
+    .slice(0, 3);
+
+  function selectActionFilter(filter: ActionFilter) {
+    setActiveActionFilter(filter);
+    const nextRows = filter === "All" ? priorityActions : priorityActions.filter((row) => String(row.priority) === filter);
+    if (nextRows[0]) {
+      setSelectedActionKey(actionKey(nextRows[0], priorityActions.indexOf(nextRows[0])));
+    }
+  }
 
   return (
     <>
-      <header className="page-header">
-        <div>
-          <h1>StockSense AI</h1>
-          <p className="page-header-tagline">Turn expiring stock into revenue, not waste.</p>
-          <p className="page-header-subline">Built for inventory planners and operations teams at food, CPG, and grocery businesses.</p>
-        </div>
-        <div className="toolbar">
-          <Link className="button" href="/query">
-            <RefreshCw size={17} />
-            Ask StockSense AI
-          </Link>
-        </div>
-      </header>
-
       {showDemoBanner ? (
-        <div className="dashboard-demo-banner" role="status">
+        <div className="dashboard-demo-banner modern-demo-banner" role="status">
           <p>You&apos;re viewing a live demo using sample Ottogi inventory data. Import your own CSV to see your numbers.</p>
           <button className="dashboard-demo-banner-close" type="button" onClick={dismissDemoBanner} aria-label="Dismiss demo banner">
             ×
@@ -379,158 +478,314 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="metrics-grid">
-        <MetricCard
-          label="Total inventory value"
-          value={formatCurrency(dashboard.kpis.total_inventory_value)}
-          tone="value"
-        />
-        <MetricCard
-          label="At risk of expiring in the next 90 days"
-          value={formatCurrency(dashboard.kpis.inventory_at_risk_value)}
-          tone="risk"
-        />
-        <MetricCard
-          label="Projected stockouts"
-          value={formatNumber(dashboard.kpis.projected_stockouts)}
-          tone="stockout"
-        />
-        <MetricCard
-          label="Recommended reorder value"
-          value={formatCurrency(dashboard.kpis.recommended_reorder_value)}
-          tone="reorder"
-        />
-        <MetricCard
-          label="Recoverable before expiry via reallocation"
-          value={formatCurrency(dashboard.kpis.waste_reduction_opportunity)}
-          tone="waste"
-        />
-      </section>
-      <p className="metrics-helper">Figures calculated from your live inventory data.</p>
-
-      <section className="data-freshness-bar" aria-label="Data freshness">
-        <div>
-          <span>Last data refresh</span>
-          <strong>{formatFreshness(latestImportEpoch)}</strong>
-        </div>
-        <div>
-          <span>Datasets ready</span>
+      <section className="ops-status-ribbon" aria-label="Workspace status">
+        <div className="status-ribbon-primary">
+          <span>Data freshness</span>
           <strong>
-            {checklist.length ? `${completeDatasets}/${checklist.length}` : "Not checked"}
+            <i aria-hidden="true" />
+            {latestImportEpoch ? `Last refresh: ${formatFreshness(latestImportEpoch)}` : "No import refresh recorded"}
           </strong>
+          <Link href="/imports">View details</Link>
         </div>
-        <div>
-          <span>Import issues</span>
-          <strong>{failedImports ? `${failedImports} need review` : "None reported"}</strong>
+        <div className="status-ribbon-item">
+          <CheckCircle2 size={17} />
+          <span>Imports ready</span>
+          <strong>{checklist.length ? `${completeDatasets}/${checklist.length}` : "0/5"}</strong>
+        </div>
+        <div className="status-ribbon-item">
+          <ShieldCheck size={17} />
+          <span>Audit trail synced</span>
+        </div>
+        <div className="status-ribbon-item">
+          <CheckCircle2 size={17} />
+          <span>{failedImports ? `${failedImports} import issues` : "System healthy"}</span>
         </div>
       </section>
 
-      <div className="toolbar dashboard-secondary-toolbar" aria-label="Secondary dashboard actions">
-        <button className="button secondary" type="button" onClick={() => downloadExecutiveReport(dashboard)}>
-          <Download size={17} />
-          Executive report
-        </button>
-        <Link className="button secondary" href="/imports">
-          Import CSV
-        </Link>
-        <Link className="button secondary" href="/actions">
-          Priority actions
-        </Link>
-        <Link className="button secondary" href="/reports">
-          Weekly report
-        </Link>
-        <Link className="button secondary" href="/validation">
-          Validate forecasts
-        </Link>
-      </div>
-
-      <section className="grid-3 buyer-value-grid">
-        <div className="insight-card">
-          <span className="insight-icon waste">
-            <BadgeDollarSign size={18} />
-          </span>
-          <h2>Waste Dollars Protected</h2>
+      <section className="command-metric-grid" aria-label="Operations metrics">
+        <article className="command-metric command-metric-value">
+          <span><BadgeDollarSign size={21} /></span>
+          <p>Inventory value</p>
+          <strong>{formatCurrency(dashboard.kpis.total_inventory_value)}</strong>
+          <small>Live inventory basis</small>
+        </article>
+        <article className="command-metric command-metric-risk">
+          <span><AlertTriangle size={21} /></span>
+          <p>Expiring risk</p>
+          <strong>{formatCurrency(dashboard.kpis.inventory_at_risk_value)}</strong>
+          <small>Next 90 days</small>
+        </article>
+        <article className="command-metric command-metric-stockout">
+          <span><PackageCheck size={21} /></span>
+          <p>Stockout exposure</p>
+          <strong>{formatNumber(dashboard.kpis.projected_stockouts)}</strong>
+          <small>{stockoutActions.toLocaleString()} urgent actions</small>
+        </article>
+        <article className="command-metric command-metric-reorder">
+          <span><ShoppingCart size={21} /></span>
+          <p>Reorder value</p>
+          <strong>{formatCurrency(dashboard.kpis.recommended_reorder_value)}</strong>
+          <small>Recommended this week</small>
+        </article>
+        <article className="command-metric command-metric-waste">
+          <span><ShieldCheck size={21} /></span>
+          <p>Waste protected</p>
           <strong>{formatCurrency(dashboard.kpis.waste_reduction_opportunity)}</strong>
-          <p>FEFO (First Expired, First Out) allocation, transfer, promotion, and discount opportunity.</p>
-        </div>
-        <div className="insight-card">
-          <span className="insight-icon stockout">
-            <PackageCheck size={18} />
-          </span>
-          <h2>Fill-Rate Exposure</h2>
-          <strong>{stockoutActions.toLocaleString()} urgent actions</strong>
-          <p>Reorder and allocation exceptions requiring review.</p>
-        </div>
-        <div className="insight-card">
-          <span className="insight-icon planner">
-            <Clock3 size={18} />
-          </span>
-          <h2>Planner Time Focused</h2>
-          <strong>{plannerHours.toLocaleString()} hours</strong>
-          <p>Estimated exception review time concentrated into ranked actions.</p>
-        </div>
+          <small>Potential recovery</small>
+        </article>
       </section>
 
-      <section className="grid-3 buyer-value-grid">
-        <div className="scenario-card">
-          <h2>Top Waste Action</h2>
-          <p>
-            {topWasteAction
-              ? `${String(topWasteAction.sku ?? "")} ${String(topWasteAction.product_name ?? "")} lot ${String(topWasteAction.lot_id ?? "")} has ${String(
-                  topWasteAction.quantity_at_risk ?? ""
-                )} units at risk before ${String(topWasteAction.expiration_date ?? "")}.`
-              : "No current waste-risk scenario is available."}
-          </p>
-        </div>
-        <div className="scenario-card">
-          <h2>Next FEFO Pick</h2>
-          <p>
-            {topFefoAction
-              ? `${String(topFefoAction.sku ?? "")} ${String(topFefoAction.product_name ?? "")} should ship lot ${String(topFefoAction.ship_first_lot ?? "")} first from ${String(
-                  topFefoAction.warehouse ?? ""
-                )}.`
-              : "No current FEFO scenario is available."}
-          </p>
-        </div>
-        <div className="scenario-card">
-          <h2>Top Fill-Rate Risk</h2>
-          <p>
-            {topRecommendation
-              ? `${String(topRecommendation.sku ?? "")} ${String(topRecommendation.product_name ?? "")} is flagged for ${String(topRecommendation.status ?? "")} because ${String(
-                  topRecommendation.reason ?? ""
-                )}`
-              : "No current fill-rate scenario is available."}
-          </p>
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2>Today&apos;s Priority Actions</h2>
-            <p>Ranked by fill-rate risk, expiration exposure, due date, and confidence.</p>
+      <section className="command-center-grid">
+        <section className="priority-command-panel" aria-labelledby="priority-heading">
+          <div className="command-panel-header">
+            <div>
+              <h1 id="priority-heading">Today&apos;s Priority Actions</h1>
+              <p>Ranked by fill-rate risk, expiration exposure, due date, and confidence.</p>
+            </div>
+            <div className="panel-inline-actions">
+              <button className="text-icon-button" type="button" onClick={() => downloadExecutiveReport(dashboard)}>
+                <Download size={16} />
+                Export report
+              </button>
+              <Link className="text-icon-button" href="/actions">
+                View all actions
+                <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
-          <Link className="button secondary" href="/actions">
-            View all actions
-          </Link>
-        </div>
-        <DataTable
-          columns={[
-            "priority",
-            "action_type",
-            "sku",
-            "product_name",
-            "warehouse",
-            "due_date",
-            "financial_impact",
-            "recommended_action",
-            "confidence_reason"
-          ]}
-          rows={priorityActions.slice(0, 10)}
-        />
+
+          <div className="priority-filter-row" aria-label="Priority filters">
+            {actionFilters.map((filter) => (
+              <button
+                className={filter === activeActionFilter ? "priority-filter active" : "priority-filter"}
+                type="button"
+                key={filter}
+                onClick={() => selectActionFilter(filter)}
+              >
+                {filter}
+                <strong>{priorityCounts[filter]}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div className="priority-table-wrap">
+            <table className="priority-table">
+              <thead>
+                <tr>
+                  <th>Priority</th>
+                  <th>Type</th>
+                  <th>SKU / product</th>
+                  <th>Lot / due</th>
+                  <th>Action / impact</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPriorityActions.slice(0, 6).map((row) => {
+                  const originalIndex = priorityActions.indexOf(row);
+                  const key = actionKey(row, originalIndex);
+                  const isSelected = selectedActionKey === key;
+                  return (
+                    <tr
+                      className={isSelected ? "priority-table-row selected" : "priority-table-row"}
+                      key={key}
+                      onClick={() => setSelectedActionKey(key)}
+                    >
+                      <td><StatusPill value={row.priority} /></td>
+                      <td>
+                        <span className={`action-kind action-kind-${actionTypeTone(row.action_type)}`}>
+                          {actionTypeIcon(row.action_type)}
+                          {text(row.action_type)}
+                        </span>
+                      </td>
+                      <td className="sku-product-cell">
+                        <Link className="table-link" href={`/sku?sku=${encodeURIComponent(String(row.sku || ""))}`}>{text(row.sku)}</Link>
+                        <small>{text(row.product_name)}</small>
+                      </td>
+                      <td className="lot-due-cell">
+                        <span>{text(row.lot_id || row.warehouse)}</span>
+                        <small>{text(row.due_date)}</small>
+                      </td>
+                      <td className="recommended-action-cell">
+                        <span>{text(row.recommended_action)}</span>
+                        <strong>{text(row.financial_impact)}</strong>
+                        <span className="confidence-chip">{confidenceLabel(row.confidence)}</span>
+                      </td>
+                      <td>
+                        <div className="row-decision-actions">
+                          <button
+                            type="button"
+                            aria-label={`Approve action for ${text(row.sku)}`}
+                            title="Approve"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Check size={14} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Dismiss action for ${text(row.sku)}`}
+                            title="Dismiss"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <X size={14} aria-hidden="true" />
+                          </button>
+                          <button type="button" aria-label="More actions" title="More actions" onClick={(event) => event.stopPropagation()}>
+                            <MoreVertical size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside className={`action-detail-panel action-detail-${selectedActionTone}`} aria-label="Selected action details">
+          {selectedAction ? (
+            <>
+              <div className="action-detail-header">
+                <div className="product-thumb" aria-hidden="true">
+                  <PackageCheck size={30} />
+                </div>
+                <div>
+                  <span className="detail-tag">{text(selectedAction.action_type)}</span>
+                  <h2>{text(selectedAction.sku)} - {text(selectedAction.product_name)}</h2>
+                  <p>{text(selectedActionLot)} · {text(selectedAction.warehouse)}</p>
+                </div>
+                <button className="detail-more-button" type="button" aria-label="More selected action options">
+                  <MoreVertical size={18} />
+                </button>
+              </div>
+
+              <div className="detail-alert-line">
+                <AlertTriangle size={16} />
+                <span>Due {text(selectedAction.due_date)}</span>
+              </div>
+
+              <section className="detail-section">
+                <h3>Why this matters</h3>
+                <p>{text(selectedActionReason)}</p>
+                <strong>{text(selectedAction.financial_impact)} protected or exposed value.</strong>
+              </section>
+
+              <section className="source-field-list">
+                <h3>Source fields</h3>
+                <dl>
+                  <div><dt>SKU</dt><dd>{text(selectedAction.sku)}</dd></div>
+                  <div><dt>Category</dt><dd>{text(selectedAction.category)}</dd></div>
+                  <div><dt>Warehouse</dt><dd>{text(selectedAction.warehouse)}</dd></div>
+                  <div><dt>Confidence</dt><dd>{confidenceLabel(selectedAction.confidence)}</dd></div>
+                </dl>
+              </section>
+
+              <label className="planner-note-field">
+                <span>Planner note</span>
+                <textarea value={plannerNote} onChange={(event) => setPlannerNote(event.target.value)} />
+                <small>{plannerNote.length}/300</small>
+              </label>
+
+              <div className="approval-card">
+                <span>Approval</span>
+                <strong>Pending</strong>
+                <p>Assigned to Jane Planner</p>
+                <button className="button" type="button">Approve</button>
+                <button className="button secondary" type="button">Dismiss</button>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">No priority action selected.</div>
+          )}
+        </aside>
       </section>
 
-      <section className="grid-2">
+      <section className="support-command-grid">
+        <article className="support-panel risk-timeline-panel">
+          <div className="panel-header compact-panel-header">
+            <div>
+              <h2>Expiration risk timeline</h2>
+              <p>Inventory value by expiration bucket.</p>
+            </div>
+          </div>
+          <div className="risk-timeline">
+            {riskBuckets.map((row, index) => {
+              const value = Number(row.value || row.quantity || 0);
+              const percent = Math.max(8, Math.round((value / maxRiskValue) * 100));
+              return (
+                <div className={`risk-timeline-cell risk-level-${index}`} key={String(row.bucket)}>
+                  <span>{String(row.bucket)}</span>
+                  <strong>{formatCurrency(value)}</strong>
+                  <i style={{ width: `${percent}%` }} />
+                </div>
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="support-panel import-readiness-panel">
+          <div className="panel-header compact-panel-header">
+            <div>
+              <h2>Data setup & imports</h2>
+              <p>Required datasets for trusted recommendations.</p>
+            </div>
+            <strong className="ready-count">{completeDatasets}/{readinessItems.length}</strong>
+          </div>
+          <div className="readiness-list">
+            {readinessItems.slice(0, 5).map((item) => (
+              <div className="readiness-row" key={item.entity}>
+                <CheckCircle2 size={17} />
+                <span>{item.label || checklistLabel(item.entity)}</span>
+                <strong>{item.rows_imported ? `${item.rows_imported.toLocaleString()} rows` : item.status}</strong>
+                <Link href="/imports">View</Link>
+              </div>
+            ))}
+          </div>
+          <Link className="support-link" href="/imports">Go to imports <ArrowRight size={15} /></Link>
+        </article>
+
+        <article className="support-panel ask-panel">
+          <div className="panel-header compact-panel-header">
+          <div>
+              <h2>Ask StockSense</h2>
+              <p>Safe answers from approved operational views.</p>
+            </div>
+            <span className="beta-chip">Cited</span>
+          </div>
+          <div className="ask-question">
+            <Search size={16} />
+            <span>Which SKUs are likely to stock out in the next 30 days?</span>
+          </div>
+          <p className="ask-answer">
+            {topStockoutRows.length
+              ? `${topStockoutRows.length} priority SKUs need planner review. Top risk: ${text(topStockoutRows[0].sku)} - ${text(topStockoutRows[0].product_name)}.`
+              : "No stockout-risk priority rows are currently listed."}
+          </p>
+          <ul className="ask-source-list">
+            {topStockoutRows.map((row) => (
+              <li key={`${String(row.sku)}-${String(row.due_date)}`}>{text(row.sku)} - {text(row.financial_impact)}</li>
+            ))}
+          </ul>
+          <Link className="support-link" href="/query">Go to query <ArrowRight size={15} /></Link>
+        </article>
+      </section>
+
+      <section className="recent-activity-strip" aria-label="Recent activity">
+        <strong>Recent activity</strong>
+        {recentActivity.length ? (
+          recentActivity.map((row) => (
+            <span key={`${row.entity || row.filename}-${row.updated_at_epoch || row.message}`}>
+              <Check size={15} />
+              {checklistLabel(String(row.entity || row.filename || "Import"))} {row.status || "updated"}
+            </span>
+          ))
+        ) : (
+          <span><Check size={15} /> No recent import activity</span>
+        )}
+        <Link href="/audit">View all activity <ArrowRight size={15} /></Link>
+      </section>
+
+      <section className="dashboard-deep-dive grid-2">
         <div className="panel">
           <div className="panel-header">
             <h2>Demand Trend By SKU</h2>

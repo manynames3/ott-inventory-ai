@@ -7,7 +7,10 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   BarChart3,
+  Bell,
+  ChevronDown,
   ClipboardCheck,
+  CircleHelp,
   FileText,
   ListChecks,
   LogIn,
@@ -23,13 +26,13 @@ import {
 import { clearAuthToken, cognitoLogoutUrl, getAuthToken, IS_DEMO_MODE, WORKSPACE_NAME } from "@/lib/api";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: BarChart3 },
-  { href: "/onboarding", label: "Data Setup", icon: ClipboardCheck },
-  { href: "/actions", label: "Actions", icon: ListChecks },
-  { href: "/reports", label: "Reports", icon: FileText },
-  { href: "/validation", label: "Validation", icon: TrendingUp },
+  { href: "/", label: "Overview", icon: BarChart3 },
+  { href: "/actions", label: "Actions", icon: ListChecks, badge: "12" },
+  { href: "/validation", label: "Forecast & Reorder", icon: TrendingUp },
   { href: "/imports", label: "Imports", icon: UploadCloud },
+  { href: "/onboarding", label: "Data Setup", icon: ClipboardCheck },
   { href: "/query", label: "Query", icon: Search },
+  { href: "/reports", label: "Reports", icon: FileText },
   { href: "/audit", label: "Audit", icon: ShieldCheck },
   { href: "/admin", label: "Admin", icon: Settings },
   { href: "/users", label: "Users", icon: Users },
@@ -80,10 +83,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="nav-list" aria-label="Primary">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = item.href === "/" ? pathname === "/" || pathname === "" : pathname.startsWith(item.href);
             return (
-              <Link key={item.href} href={item.href} className="nav-item">
+              <Link key={item.href} href={item.href} className={`nav-item${isActive ? " nav-item-active" : ""}`}>
                 <Icon size={18} />
                 <span>{item.label}</span>
+                {item.badge ? <strong className="nav-badge">{item.badge}</strong> : null}
               </Link>
             );
           })}
@@ -99,9 +104,41 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           )}
         </nav>
-        <footer className="app-shell-footer">©2026 SUPREME AI VENTURES LLC</footer>
+        <footer className="app-shell-footer">
+          <strong>StockSense AI</strong>
+          <span>©2026 SUPREME AI VENTURES LLC</span>
+        </footer>
       </aside>
-      <main className="content">{children}</main>
+      <div className="app-main">
+        <header className="topbar">
+          <button className="workspace-switcher" type="button" aria-label="Current workspace">
+            <span>{WORKSPACE_NAME}</span>
+            <ChevronDown size={16} />
+          </button>
+          <label className="global-search">
+            <Search size={17} />
+            <input aria-label="Search SKUs, lots, customers" placeholder="Search SKUs, lots, customers..." />
+            <span>⌘K</span>
+          </label>
+          <div className="topbar-actions" aria-label="Workspace actions">
+            <button className="topbar-icon-button" type="button" aria-label="Notifications">
+              <Bell size={18} />
+              <span className="topbar-alert-dot">3</span>
+            </button>
+            <button className="topbar-icon-button" type="button" aria-label="Help">
+              <CircleHelp size={18} />
+            </button>
+            <div className="topbar-user" aria-label="Signed in user">
+              <span>
+                <strong>Jane Planner</strong>
+                <small>Planner</small>
+              </span>
+              <i aria-hidden="true">JP</i>
+            </div>
+          </div>
+        </header>
+        <main className="content">{children}</main>
+      </div>
     </div>
   );
 }
