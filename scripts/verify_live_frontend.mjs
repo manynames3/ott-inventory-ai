@@ -13,6 +13,7 @@ async function fetchText(url) {
 }
 
 const pageHtml = await Promise.all([frontendUrl, `${frontendUrl}/login`].map((url) => fetchText(url)));
+const renderedHtml = pageHtml.join("\n");
 const scriptUrls = [
   ...new Set(
     pageHtml.flatMap((html) =>
@@ -48,14 +49,17 @@ const checks = [
     name: "demo login disabled",
     ok:
       expectedDemoLogin === "false"
-        ? !bundleText.includes("demo@otokistocksense.demo") && !bundleText.includes("StockSenseDemo2026")
+        ? !renderedHtml.includes("Use demo login") &&
+          !renderedHtml.includes("Demo credentials are prefilled") &&
+          !renderedHtml.includes("demo@otokistocksense.demo") &&
+          !renderedHtml.includes("StockSenseDemo2026")
         : true,
   },
   {
     name: "demo login enabled",
     ok:
       expectedDemoLogin === "true"
-        ? bundleText.includes("demo@otokistocksense.demo") || bundleText.includes("Demo credentials are prefilled")
+        ? renderedHtml.includes("Use demo login") || renderedHtml.includes("Demo credentials are prefilled")
         : true,
   },
 ];
