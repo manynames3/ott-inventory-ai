@@ -165,7 +165,7 @@ function ReadableActionList({
         const risk = row.risk_bucket || row.risk_level;
 
         return (
-          <article className="readable-action-card" key={`${sku}-${String(row.lot_id || row.ship_first_lot || index)}`}>
+          <article className="readable-action-card" key={`${sku}-${String(row.lot_id || row.ship_first_lot || "row")}-${index}`}>
             <div className="readable-action-heading">
               <div>
                 <Link href={`/sku?sku=${encodeURIComponent(sku)}`} className="readable-action-title">
@@ -762,8 +762,8 @@ export default function DashboardPage() {
               : "No stockout-risk priority rows are currently listed."}
           </p>
           <ul className="ask-source-list">
-            {topStockoutRows.map((row) => (
-              <li key={`${String(row.sku)}-${String(row.due_date)}`}>{text(row.sku)} - {text(row.financial_impact)}</li>
+            {topStockoutRows.map((row, index) => (
+              <li key={`${String(row.sku)}-${String(row.due_date)}-${index}`}>{text(row.sku)} - {text(row.financial_impact)}</li>
             ))}
           </ul>
           <Link className="support-link" href="/query">Go to query <ArrowRight size={15} /></Link>
