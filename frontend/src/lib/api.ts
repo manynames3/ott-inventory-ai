@@ -8,6 +8,14 @@ export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE || "cognito";
 export const IS_COGNITO_AUTH = AUTH_MODE === "cognito";
+export const APP_ENV = (process.env.NEXT_PUBLIC_APP_ENV || "demo").toLowerCase();
+export const IS_INTERNAL_ENV = APP_ENV === "internal" || APP_ENV === "production";
+export const ENABLE_DEMO_LOGIN =
+  (process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || (IS_INTERNAL_ENV ? "false" : "true")) === "true";
+export const SHOW_DEMO_BANNER =
+  (process.env.NEXT_PUBLIC_SHOW_DEMO_BANNER || (ENABLE_DEMO_LOGIN ? "true" : "false")) === "true";
+export const WORKSPACE_NAME =
+  process.env.NEXT_PUBLIC_WORKSPACE_NAME || (IS_INTERNAL_ENV ? "Internal operations workspace" : "Ottogi operations demo");
 
 const COGNITO_DOMAIN = (
   process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com"
@@ -59,6 +67,7 @@ export type AdminUserResponse = {
   row: AdminUser;
   invite_sent?: boolean;
   temporary_password?: string;
+  reset_sent?: boolean;
 };
 
 export type AdminTenantConfig = {

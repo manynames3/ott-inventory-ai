@@ -58,15 +58,15 @@ ALERT_ACTIONS = {
 }
 
 TENANT_CONFIG_DEFAULTS = {
-    "organization_name": "Ottogi Operations Pilot",
-    "lifecycle_stage": "pilot",
-    "billing_status": "trial",
+    "organization_name": "Ottogi Operations Workspace",
+    "lifecycle_stage": "setup",
+    "billing_status": "not_started",
     "billing_plan": "pilot",
     "billing_contact_email": "",
-    "billing_provider": "external_invoice",
+    "billing_provider": "workspace_owner",
     "sso_status": "cognito",
     "sso_provider": "Secure hosted sign-in",
-    "sso_notes": "Named workspace users and roles are active. Enterprise sign-in can be enabled per buyer identity provider.",
+    "sso_notes": "Named workspace users and roles are active. Enterprise sign-in can be connected to the company identity provider.",
 }
 
 REQUIRED_COLUMNS = {
@@ -519,6 +519,28 @@ def _set_cognito_user_enabled(event: Dict[str, Any], username: str, enabled: boo
         admin.get("sub"),
     )
     return _json(event, 200, {"row": _cognito_user_payload(user, groups)})
+
+
+def _reset_cognito_user_password(event: Dict[str, Any], username: str) -> Dict[str, Any]:
+    admin, error = _require_admin_user(event)
+    if error:
+        return error
+    pool_id = os.environ["COGNITO_USER_POOL_ID"]
+    try:
+        cognito.admin_reset_user_password(UserPoolId=pool_id, Username=username)
+        user = cognito.admin_get_user(UserPoolId=pool_id, Username=username)
+        groups_response = cognito.admin_list_groups_for_user(UserPoolId=pool_id, Username=username)
+    except ClientError as exc:
+        return _json(event, 502, {"detail": _cognito_error(exc)})
+    groups = [str(group.get("GroupName", "")) for group in groups_response.get("Groups", [])]
+    _audit_event(
+        event,
+        "admin_user_password_reset",
+        "cognito_users",
+        {"username": username},
+        admin.get("sub"),
+    )
+    return _json(event, 200, {"row": _cognito_user_payload(user, groups), "reset_sent": True})
 
 
 def _tenant_config_key() -> Dict[str, Dict[str, str]]:
@@ -2082,6 +2104,8 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _set_cognito_user_enabled(event, unquote(admin_path.removesuffix("/enable").rstrip("/")), True)
         if method == "POST" and admin_path.endswith("/disable"):
             return _set_cognito_user_enabled(event, unquote(admin_path.removesuffix("/disable").rstrip("/")), False)
+        if method == "POST" and admin_path.endswith("/reset-password"):
+            return _reset_cognito_user_password(event, unquote(admin_path.removesuffix("/reset-password").rstrip("/")))
     if method == "GET" and path == "/api/ai/status":
         return _protected_json(event, _ai_status_payload())
     if path == "/api/import/requirements":

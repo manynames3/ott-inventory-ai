@@ -58,6 +58,11 @@ type ImportStatus = {
   view_counts?: Record<string, number>;
 };
 
+type ImportProgress = {
+  step: "selected" | "uploading" | "mapping" | "queued" | "refreshing" | "complete" | "failed";
+  message: string;
+};
+
 const fallbackEntities: Record<string, string[]> = {
   products: ["sku", "name", "category", "case_size", "shelf_life_days"],
   inventory_lots: [
@@ -87,6 +92,7 @@ export default function ImportsPage() {
   const [audit, setAudit] = useState<AuditEventsResponse | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, ImportProgress | null>>({});
 
   useEffect(() => {
     apiGet<ImportRequirementsResponse>("/api/import/requirements")
@@ -135,6 +141,11 @@ export default function ImportsPage() {
     }));
     setPreviews((current) => ({ ...current, [entity]: null }));
     setMappings((current) => ({ ...current, [entity]: {} }));
+    const file = event.target.files?.[0] || null;
+    setProgress((current) => ({
+      ...current,
+      [entity]: file ? { step: "selected", message: `${file.name} selected. Preview the file before import.` } : null
+    }));
   }
 
   function sleep(ms: number) {
@@ -361,6 +372,10 @@ export default function ImportsPage() {
 
     setLoading((current) => ({ ...current, [entity]: true }));
     setMessages((current) => ({ ...current, [entity]: { type: "ok", text: "Uploading file for mapping preview..." } }));
+    setProgress((current) => ({
+      ...current,
+      [entity]: { step: "uploading", message: "Uploading file for mapping preview." }
+    }));
 
     try {
       if (requirements?.upload_mode === "presigned_s3") {
@@ -375,6 +390,10 @@ export default function ImportsPage() {
           ...current,
           [entity]: { type: "ok", text: `Uploading preview file to S3 at ${presign.bucket}/${presign.key}...` }
         }));
+        setProgress((current) => ({
+          ...current,
+          [entity]: { step: "uploading", message: "Uploading preview file to private storage." }
+        }));
         const uploadResponse = await fetch(presign.upload_url, {
           method: "PUT",
           headers: { "Content-Type": contentType },
@@ -386,6 +405,10 @@ export default function ImportsPage() {
         setMessages((current) => ({
           ...current,
           [entity]: { type: "ok", text: "File uploaded. Detecting columns and validating sample rows..." }
+        }));
+        setProgress((current) => ({
+          ...current,
+          [entity]: { step: "mapping", message: "Detecting columns and validating sample rows." }
         }));
         const preview = await apiPost<ImportPreviewResponse>("/api/import-preview", {
           entity,
@@ -408,6 +431,15 @@ export default function ImportsPage() {
             text: `Previewed ${preview.row_count_estimate.toLocaleString()} rows and ${preview.detected_columns.length} detected columns.${mappingText}${errorText}`
           }
         }));
+        setProgress((current) => ({
+          ...current,
+          [entity]: {
+            step: preview.validation.missing_mappings.length ? "mapping" : "complete",
+            message: preview.validation.missing_mappings.length
+              ? "Map the missing fields before import."
+              : "Mapping preview is ready for approval."
+          }
+        }));
         void loadAudit();
         return;
       }
@@ -419,11 +451,19 @@ export default function ImportsPage() {
         ...current,
         [entity]: { type: "ok", text: body.message || "Import complete." }
       }));
+      setProgress((current) => ({
+        ...current,
+        [entity]: { step: "complete", message: body.message || "Import complete." }
+      }));
       void loadHistory();
     } catch (error) {
       setMessages((current) => ({
         ...current,
         [entity]: { type: "error", text: error instanceof Error ? error.message : "Import failed." }
+      }));
+      setProgress((current) => ({
+        ...current,
+        [entity]: { step: "failed", message: error instanceof Error ? error.message : "Import failed." }
       }));
       void loadHistory();
     } finally {
@@ -453,6 +493,10 @@ export default function ImportsPage() {
       ...current,
       [entity]: { type: "ok", text: "Approving mapping and queueing the import worker..." }
     }));
+    setProgress((current) => ({
+      ...current,
+      [entity]: { step: "queued", message: "Mapping approved. Import worker queued." }
+    }));
     try {
       const body = await apiPost<ImportCommitResponse>("/api/imports/commit", {
         entity,
@@ -461,6 +505,10 @@ export default function ImportsPage() {
         mapping: mappings[entity]
       });
       const status = await pollImportStatus(body.bucket, body.key);
+      setProgress((current) => ({
+        ...current,
+        [entity]: { step: "refreshing", message: "Import worker reported back. Refreshing views and history." }
+      }));
       if (status.status === "failed") {
         throw new Error([status.message, ...(status.errors || [])].join(" "));
       }
@@ -474,6 +522,10 @@ export default function ImportsPage() {
         ...current,
         [entity]: { type: "ok", text: `${status.message}${rowsText}${countsText}` }
       }));
+      setProgress((current) => ({
+        ...current,
+        [entity]: { step: "complete", message: `${status.message}${rowsText}` }
+      }));
       setPreviews((current) => ({ ...current, [entity]: null }));
       setMappings((current) => ({ ...current, [entity]: {} }));
       void loadHistory();
@@ -482,6 +534,10 @@ export default function ImportsPage() {
       setMessages((current) => ({
         ...current,
         [entity]: { type: "error", text: error instanceof Error ? error.message : "Import failed." }
+      }));
+      setProgress((current) => ({
+        ...current,
+        [entity]: { step: "failed", message: error instanceof Error ? error.message : "Import failed." }
       }));
       void loadHistory();
       void loadAudit();
@@ -565,6 +621,12 @@ export default function ImportsPage() {
               <Eye size={17} />
               Preview
             </button>
+            {progress[entity] ? (
+              <div className={`import-progress import-progress-${progress[entity]?.step}`}>
+                <strong>{progress[entity]?.step.replaceAll("_", " ")}</strong>
+                <span>{progress[entity]?.message}</span>
+              </div>
+            ) : null}
             {preview ? (
               <div className="mapping-panel">
                 <div className="panel-header">

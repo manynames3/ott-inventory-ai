@@ -134,7 +134,7 @@ export default function AuditPage() {
       <header className="page-header">
         <div>
           <h1>Audit Trail</h1>
-          <p>Trace login, import, query, export, and planner-review activity for the pilot workspace.</p>
+          <p>Trace login, import, query, export, and planner-review activity for this workspace.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/imports">
@@ -165,7 +165,7 @@ export default function AuditPage() {
           <div>
             <h2>Control Evidence</h2>
             <p>
-              This is pilot-level auditability: it shows who touched data and recommendations, while StockSense AI
+              This audit view shows who touched data and recommendations, while StockSense AI
               remains read-only against ERP/WMS.
             </p>
           </div>

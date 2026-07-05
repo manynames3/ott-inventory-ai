@@ -8,13 +8,22 @@ import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
 import { MetricCard } from "@/components/metric-card";
 import { StatusPill } from "@/components/status-pill";
-import { apiGet, DashboardResponse, formatCurrency, formatNumber, TableResponse } from "@/lib/api";
+import {
+  apiGet,
+  DashboardResponse,
+  formatCurrency,
+  formatNumber,
+  ImportHistoryResponse,
+  SHOW_DEMO_BANNER,
+  TableResponse
+} from "@/lib/api";
 import { buildPriorityActions } from "@/lib/priority-actions";
 
 type DashboardState = {
   dashboard: DashboardResponse | null;
   products: TableResponse;
   customers: TableResponse;
+  importHistory: ImportHistoryResponse | null;
   error: string | null;
   loading: boolean;
 };
@@ -58,6 +67,16 @@ function formatReadableValue(key: string, value: unknown) {
     return formatNumber(value);
   }
   return String(value);
+}
+
+function formatFreshness(epoch?: number) {
+  if (!epoch) return "No import refresh recorded";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(epoch * 1000);
 }
 
 function ReadableActionList({
@@ -176,7 +195,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
       String(plannerHours)
     )} planner triage hours are being concentrated into a prioritized exception queue.
   </div>
-  <h2>Pilot ROI Scorecard</h2>
+  <h2>Operations ROI Scorecard</h2>
   <div class="scorecard">
     <div><span>Low recovery case</span><strong>${escapeHtml(formatCurrency(recoveryLow))}</strong><p class="muted">20% of expiration-risk value protected.</p></div>
     <div><span>Base recovery case</span><strong>${escapeHtml(formatCurrency(recoveryBase))}</strong><p class="muted">Current model assumption from FEFO, transfer, promotion, and discount action.</p></div>
@@ -251,6 +270,7 @@ export default function DashboardPage() {
     dashboard: null,
     products: { rows: [] },
     customers: { rows: [] },
+    importHistory: null,
     error: null,
     loading: true
   });
@@ -260,13 +280,14 @@ export default function DashboardPage() {
     let active = true;
     async function loadData() {
       try {
-        const [dashboard, products, customers] = await Promise.all([
+        const [dashboard, products, customers, importHistory] = await Promise.all([
           apiGet<DashboardResponse>("/api/dashboard"),
           apiGet<TableResponse>("/api/products?limit=8"),
-          apiGet<TableResponse>("/api/customers?limit=8")
+          apiGet<TableResponse>("/api/customers?limit=8"),
+          apiGet<ImportHistoryResponse>("/api/import-history?limit=25")
         ]);
         if (active) {
-          setState({ dashboard, products, customers, error: null, loading: false });
+          setState({ dashboard, products, customers, importHistory, error: null, loading: false });
         }
       } catch (error) {
         if (active) {
@@ -286,7 +307,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    setShowDemoBanner(window.localStorage.getItem("stocksense_demo_banner_dismissed") !== "true");
+    setShowDemoBanner(SHOW_DEMO_BANNER && window.localStorage.getItem("stocksense_demo_banner_dismissed") !== "true");
   }, []);
 
   function dismissDemoBanner() {
@@ -328,6 +349,10 @@ export default function DashboardPage() {
   const topFefoAction = dashboard.fefo[0];
   const topWasteAction = dashboard.waste_risk_alerts[0];
   const priorityActions = buildPriorityActions(dashboard);
+  const checklist = state.importHistory?.checklist || [];
+  const completeDatasets = checklist.filter((item) => item.status === "complete").length;
+  const latestImportEpoch = Math.max(0, ...checklist.map((item) => item.updated_at_epoch || 0));
+  const failedImports = (state.importHistory?.rows || []).filter((row) => row.status === "failed").length;
 
   return (
     <>
@@ -382,6 +407,23 @@ export default function DashboardPage() {
         />
       </section>
       <p className="metrics-helper">Figures calculated from your live inventory data.</p>
+
+      <section className="data-freshness-bar" aria-label="Data freshness">
+        <div>
+          <span>Last data refresh</span>
+          <strong>{formatFreshness(latestImportEpoch)}</strong>
+        </div>
+        <div>
+          <span>Datasets ready</span>
+          <strong>
+            {checklist.length ? `${completeDatasets}/${checklist.length}` : "Not checked"}
+          </strong>
+        </div>
+        <div>
+          <span>Import issues</span>
+          <strong>{failedImports ? `${failedImports} need review` : "None reported"}</strong>
+        </div>
+      </section>
 
       <div className="toolbar dashboard-secondary-toolbar" aria-label="Secondary dashboard actions">
         <button className="button secondary" type="button" onClick={() => downloadExecutiveReport(dashboard)}>

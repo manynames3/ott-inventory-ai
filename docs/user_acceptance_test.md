@@ -1,6 +1,6 @@
 # User Acceptance Test
 
-Use this checklist before sending a pilot link to an external buyer.
+Use this checklist before sending a pilot link to an external buyer or releasing an internal operations workspace.
 
 ## Roles
 
@@ -8,6 +8,7 @@ Use this checklist before sending a pilot link to an external buyer.
 - Planner can add notes and dismiss/reopen recommendations.
 - Approver can approve recommendations and export reviewed actions.
 - Admin can invite users, change roles, disable access, and clear review history.
+- Admin can reset a named user's password from `/users`.
 
 ## Data Setup
 
@@ -35,6 +36,7 @@ Use this checklist before sending a pilot link to an external buyer.
 - Status page shows frontend, backend, auth, import storage, query store, and monitoring state.
 - Invalid or expired login redirects to `/login`.
 - API Gateway preflight returns HTTP 204 for protected routes.
+- Internal production builds set `EXPECTED_DEMO_LOGIN=false` and do not expose demo credentials.
 - `scripts/live_smoke_test.sh` passes with a real Cognito user.
 - `node scripts/verify_live_frontend.mjs` passes against the production frontend.
 

@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, LockKeyhole, LogIn, ShieldCheck } from "lucid
 
 import {
   completeCognitoLoginFromUrl,
+  ENABLE_DEMO_LOGIN,
   IS_COGNITO_AUTH,
   IS_DEMO_MODE,
   login,
@@ -12,8 +13,8 @@ import {
   startCognitoLogin
 } from "@/lib/api";
 
-const DEMO_USERNAME = process.env.NEXT_PUBLIC_DEMO_LOGIN_USERNAME || "demo@otokistocksense.demo";
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || "StockSenseDemo2026";
+const DEMO_USERNAME = ENABLE_DEMO_LOGIN ? process.env.NEXT_PUBLIC_DEMO_LOGIN_USERNAME || "" : "";
+const DEMO_PASSWORD = ENABLE_DEMO_LOGIN ? process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || "" : "";
 
 export default function LoginPage() {
   const [username, setUsername] = useState(DEMO_USERNAME);
@@ -88,7 +89,7 @@ export default function LoginPage() {
           <img className="auth-logo" src="/assets/stocksense-ottogi-logo.svg" alt="" aria-hidden="true" />
           <div>
             <h1 id="login-heading">Welcome back</h1>
-            <p>Sign in to your StockSense workspace to review inventory risk, planner actions, and pilot reports.</p>
+            <p>Sign in to your StockSense workspace to review inventory risk, planner actions, and operational reports.</p>
           </div>
           <div className="auth-assurance">
             <span>
@@ -106,9 +107,13 @@ export default function LoginPage() {
           {IS_COGNITO_AUTH ? (
             <>
               <div className="auth-card-header">
-                <p>Pilot access</p>
-                <h2>Try the live workspace</h2>
-                <span>Demo credentials are prefilled. Replace them with your own workspace login anytime.</span>
+                <p>{ENABLE_DEMO_LOGIN ? "Demo access" : "Workspace sign-in"}</p>
+                <h2>{ENABLE_DEMO_LOGIN ? "Try the live workspace" : "Continue with your work email"}</h2>
+                <span>
+                  {ENABLE_DEMO_LOGIN
+                    ? "Demo credentials are prefilled. Replace them with your own workspace login anytime."
+                    : "Use the email and password assigned by your workspace admin."}
+                </span>
               </div>
               <div className="form-grid auth-field-grid">
                 <label htmlFor="username">Email</label>
@@ -140,15 +145,17 @@ export default function LoginPage() {
                 {loading || cognitoCallbackLoading ? "Signing in" : "Enter workspace"}
                 {!loading && !cognitoCallbackLoading ? <ArrowRight className="auth-button-arrow" size={17} /> : null}
               </button>
-              <div className="auth-secondary-actions">
-                <button
-                  className="button secondary auth-secondary-button"
-                  type="button"
-                  onClick={resetDemoCredentials}
-                  disabled={loading || companyLoading}
-                >
-                  Use demo login
-                </button>
+              <div className={ENABLE_DEMO_LOGIN ? "auth-secondary-actions" : "auth-secondary-actions single"}>
+                {ENABLE_DEMO_LOGIN ? (
+                  <button
+                    className="button secondary auth-secondary-button"
+                    type="button"
+                    onClick={resetDemoCredentials}
+                    disabled={loading || companyLoading}
+                  >
+                    Use demo login
+                  </button>
+                ) : null}
                 <button
                   className="button secondary auth-secondary-button"
                   type="button"
@@ -159,9 +166,15 @@ export default function LoginPage() {
                   Company sign-in
                 </button>
               </div>
-              <p className="auth-fine-print">
-                The demo account has planner access. Admins and invited users can enter their own credentials.
-              </p>
+              {ENABLE_DEMO_LOGIN ? (
+                <p className="auth-fine-print">
+                  The demo account has planner access. Admins and invited users can enter their own credentials.
+                </p>
+              ) : (
+                <p className="auth-fine-print">
+                  Access is tied to named users and workspace roles. Contact an admin if your role looks wrong.
+                </p>
+              )}
             </>
           ) : (
             <>

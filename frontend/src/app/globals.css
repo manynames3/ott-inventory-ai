@@ -291,6 +291,36 @@ select {
   font-size: 13px;
 }
 
+.data-freshness-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.data-freshness-bar div {
+  min-width: 0;
+}
+
+.data-freshness-bar span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.data-freshness-bar strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 15px;
+}
+
 .dashboard-secondary-toolbar {
   justify-content: flex-start;
   margin-bottom: 22px;
@@ -991,6 +1021,37 @@ select {
   flex-wrap: wrap;
 }
 
+.import-progress {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.import-progress strong {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.import-progress span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.import-progress-failed {
+  border-color: #e4b5bf;
+  background: var(--red-soft);
+}
+
+.import-progress-failed strong {
+  color: #7f1028;
+}
+
 .auth-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 420px);
@@ -1132,6 +1193,10 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.auth-secondary-actions.single {
+  grid-template-columns: 1fr;
 }
 
 .auth-secondary-button {
@@ -2436,6 +2501,10 @@ select {
 
   .auth-card {
     padding: 22px;
+  }
+
+  .data-freshness-bar {
+    grid-template-columns: 1fr;
   }
 
   .auth-secondary-actions {

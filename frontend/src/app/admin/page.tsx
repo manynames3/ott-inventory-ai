@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Building2, CreditCard, KeyRound, Save, ShieldCheck } from "lucide-react";
+import { Activity, Building2, KeyRound, Save, ShieldCheck } from "lucide-react";
 
 import { AdminTenantConfig, AdminTenantResponse, AuthMeResponse, apiGet, apiPost } from "@/lib/api";
 
@@ -25,6 +25,17 @@ const ssoStatuses: AdminTenantConfig["sso_status"][] = [
 
 function label(value: string) {
   const friendly: Record<string, string> = {
+    pilot: "limited rollout",
+    churned: "closed",
+    trial: "trial rollout",
+    invoice_pending: "owner review",
+    past_due: "needs attention",
+    canceled: "paused",
+    growth: "department",
+    enterprise: "enterprise",
+    custom: "custom",
+    external_invoice: "workspace owner",
+    workspace_owner: "workspace owner",
     cognito: "secure sign-in",
     password: "password sign-in",
     saml_ready: "enterprise sign-in ready",
@@ -107,7 +118,7 @@ export default function AdminPage() {
       <header className="page-header">
         <div>
           <h1>Admin</h1>
-          <p>Manage tenant setup, customer lifecycle, billing posture, and enterprise sign-in readiness.</p>
+          <p>Manage workspace setup, internal rollout, access posture, and company sign-in readiness.</p>
         </div>
         <div className="toolbar">
           <button className="button secondary" type="button" onClick={load} disabled={loading || saving}>
@@ -137,10 +148,10 @@ export default function AdminPage() {
             </div>
             <div className="insight-card compact">
               <span className="insight-icon stockout">
-                <CreditCard size={18} />
+                <Activity size={18} />
               </span>
               <h2>{label(draft.billing_status)}</h2>
-              <p>{label(draft.billing_plan)} plan via {label(draft.billing_provider)}.</p>
+              <p>{label(draft.billing_plan)} rollout tracked by {label(draft.billing_provider)}.</p>
             </div>
             <div className="insight-card compact">
               <span className="insight-icon waste">
@@ -156,7 +167,7 @@ export default function AdminPage() {
               <div className="panel-header">
                 <div>
                   <h2>Tenant Profile</h2>
-                  <p>Customer lifecycle and primary account identity.</p>
+                  <p>Workspace lifecycle and primary account identity.</p>
                 </div>
               </div>
               <div className="form-grid">
@@ -188,12 +199,12 @@ export default function AdminPage() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2>Billing</h2>
-                  <p>Subscription posture for pilot, invoice, and renewal tracking.</p>
+                  <h2>Internal Rollout</h2>
+                  <p>Operational status for launch, owner handoff, and renewal checkpoints.</p>
                 </div>
               </div>
               <div className="form-grid">
-                <label htmlFor="billing-status">Billing status</label>
+                <label htmlFor="billing-status">Rollout status</label>
                 <select
                   id="billing-status"
                   className="input"
@@ -206,7 +217,7 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="billing-plan">Plan</label>
+                <label htmlFor="billing-plan">Workspace tier</label>
                 <select
                   id="billing-plan"
                   className="input"
@@ -219,7 +230,7 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="billing-contact">Billing contact</label>
+                <label htmlFor="billing-contact">Owner contact</label>
                 <input
                   id="billing-contact"
                   className="input"
@@ -227,7 +238,7 @@ export default function AdminPage() {
                   value={draft.billing_contact_email}
                   onChange={(event) => update("billing_contact_email", event.target.value)}
                 />
-                <label htmlFor="billing-provider">Billing provider</label>
+                <label htmlFor="billing-provider">Tracking source</label>
                 <input
                   id="billing-provider"
                   className="input"
@@ -291,7 +302,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <ShieldCheck size={18} />
-                  <p>Billing state is operational metadata; payment processing is configured per customer contract.</p>
+                  <p>Rollout state is internal admin metadata; payment processing is outside this tool.</p>
                 </div>
                 <div>
                   <ShieldCheck size={18} />

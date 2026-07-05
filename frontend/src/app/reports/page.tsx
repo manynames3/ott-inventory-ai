@@ -152,7 +152,7 @@ export default function ReportsPage() {
       <header className="page-header">
         <div>
           <h1>Weekly ROI Report</h1>
-          <p>Approved and dismissed planner actions converted into an operating readout for the pilot sponsor.</p>
+          <p>Approved and dismissed planner actions converted into an operating readout for internal review.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/actions">
@@ -186,7 +186,7 @@ export default function ReportsPage() {
           <div className="panel-header">
             <div>
               <h2>Sponsor Readout</h2>
-              <p>Use this section in the weekly pilot meeting.</p>
+              <p>Use this section in the weekly operations review.</p>
             </div>
           </div>
           <div className="security-list">

@@ -103,7 +103,7 @@ export default function StatusPage() {
       <header className="page-header">
         <div>
           <h1>System Status</h1>
-          <p>Operational checks for the public pilot: frontend mode, backend reachability, login, imports, and AI.</p>
+          <p>Operational checks for frontend mode, backend reachability, login, imports, monitoring, and AI fallback.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/security">
@@ -129,7 +129,7 @@ export default function StatusPage() {
           <div>
             <p>Frontend</p>
             <h2>Cloudflare Pages-ready</h2>
-            <small>{IS_DEMO_MODE ? "Demo mode with local sample-data fallback" : "Live API mode"}</small>
+            <small>{IS_DEMO_MODE ? "Demo mode with bundled sample-data fallback" : "Live API mode"}</small>
             <strong className="system-ok">online</strong>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function StatusPage() {
             <h2>{IS_DEMO_MODE ? "Demo data fallback" : health.data?.service || "StockSense API"}</h2>
             <small>
               {IS_DEMO_MODE
-                ? "Public demo is using bundled sample data; live API checks are used when demo mode is off."
+                ? "Demo mode is using bundled sample data; live API checks are used when demo mode is off."
                 : health.error || "Lambda/FastAPI health endpoint responded."}
             </small>
             <strong className={statusClass(backendLabel)}>{backendLabel}</strong>
@@ -156,10 +156,10 @@ export default function StatusPage() {
           </span>
           <div>
             <p>Login</p>
-            <h2>{IS_DEMO_MODE ? "Demo session" : auth.data?.user?.username || "Pilot user"}</h2>
+            <h2>{IS_DEMO_MODE ? "Demo session" : auth.data?.user?.username || "Workspace user"}</h2>
             <small>
               {IS_DEMO_MODE
-                ? "Demo pages do not require buyer credentials."
+                ? "Demo pages do not require named-user credentials."
                 : auth.error
                   ? "Sign in to view protected API checks."
                   : `Tenant: ${auth.data?.user?.tenant_id || health.data?.tenant_id || "default"} · Role: ${
@@ -327,7 +327,7 @@ export default function StatusPage() {
           <div>
             <h2>Current Runtime Shape</h2>
             <p>
-              The pilot is optimized for low idle cost: static frontend, serverless API, private raw-file storage,
+              This workspace is optimized for low idle cost: static frontend, serverless API, private raw-file storage,
               and materialized operational views for fast natural-language answers.
             </p>
           </div>
@@ -360,7 +360,7 @@ export default function StatusPage() {
             <p>
               {requirements.data?.auth?.cognito_ready
                 ? "Secure hosted login is configured; workspace roles map to planner, approver, and admin access."
-                : "Password/JWT pilot auth is active."}
+                : "Password/JWT workspace auth is active."}
             </p>
           </div>
           <div>

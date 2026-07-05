@@ -45,6 +45,12 @@ Optional repository variables:
 
 | Variable | Default |
 | --- | --- |
+| `NEXT_PUBLIC_APP_ENV` | `demo` |
+| `NEXT_PUBLIC_WORKSPACE_NAME` | `Ottogi operations demo` |
+| `NEXT_PUBLIC_ENABLE_DEMO_LOGIN` | `true` |
+| `NEXT_PUBLIC_SHOW_DEMO_BANNER` | `true` |
+| `NEXT_PUBLIC_DEMO_LOGIN_USERNAME` | `demo@otokistocksense.demo` |
+| `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | `StockSenseDemo2026` |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://3eorxcthij.execute-api.us-west-2.amazonaws.com` |
 | `NEXT_PUBLIC_AUTH_MODE` | `cognito` |
@@ -63,6 +69,10 @@ Use this only when GitHub Actions is unavailable:
 cd frontend
 npm ci
 NEXT_PUBLIC_DEMO_MODE=false \
+NEXT_PUBLIC_APP_ENV=internal \
+NEXT_PUBLIC_WORKSPACE_NAME="<Company> operations workspace" \
+NEXT_PUBLIC_ENABLE_DEMO_LOGIN=false \
+NEXT_PUBLIC_SHOW_DEMO_BANNER=false \
 NEXT_PUBLIC_AUTH_MODE=cognito \
 NEXT_PUBLIC_API_BASE_URL=<api_gateway_url> \
 NEXT_PUBLIC_COGNITO_DOMAIN=<cognito_domain> \
@@ -92,11 +102,15 @@ In Cloudflare:
 
 ## Environment Variables
 
-For the hosted pilot, use the live backend:
+For an internal named-user environment, use the live backend and disable public demo access:
 
 | Variable | Value |
 | --- | --- |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
+| `NEXT_PUBLIC_APP_ENV` | `internal` |
+| `NEXT_PUBLIC_WORKSPACE_NAME` | `<Company> operations workspace` |
+| `NEXT_PUBLIC_ENABLE_DEMO_LOGIN` | `false` |
+| `NEXT_PUBLIC_SHOW_DEMO_BANNER` | `false` |
 | `NEXT_PUBLIC_AUTH_MODE` | `cognito` |
 | `NEXT_PUBLIC_API_BASE_URL` | `<api_gateway_url>` |
 | `NEXT_PUBLIC_COGNITO_DOMAIN` | `<cognito_domain>` |
@@ -104,10 +118,17 @@ For the hosted pilot, use the live backend:
 | `NEXT_PUBLIC_COGNITO_REDIRECT_URI` | `https://otokistocksense.pages.dev/login` |
 | `NEXT_PUBLIC_COGNITO_LOGOUT_URI` | `https://otokistocksense.pages.dev/login` |
 
-For the current live pilot, those values are:
+For the public hosted demo, keep demo access enabled:
 
 | Variable | Value |
 | --- | --- |
+| `NEXT_PUBLIC_DEMO_MODE` | `false` |
+| `NEXT_PUBLIC_APP_ENV` | `demo` |
+| `NEXT_PUBLIC_WORKSPACE_NAME` | `Ottogi operations demo` |
+| `NEXT_PUBLIC_ENABLE_DEMO_LOGIN` | `true` |
+| `NEXT_PUBLIC_SHOW_DEMO_BANNER` | `true` |
+| `NEXT_PUBLIC_DEMO_LOGIN_USERNAME` | `demo@otokistocksense.demo` |
+| `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | `StockSenseDemo2026` |
 | `NEXT_PUBLIC_AUTH_MODE` | `cognito` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://3eorxcthij.execute-api.us-west-2.amazonaws.com` |
 | `NEXT_PUBLIC_COGNITO_DOMAIN` | `https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com` |
@@ -136,8 +157,12 @@ After deploy:
 FRONTEND_URL=https://otokistocksense.pages.dev \
 EXPECTED_API_BASE_URL=<api_gateway_url> \
 EXPECTED_AUTH_MODE=cognito \
+EXPECTED_APP_ENV=internal \
+EXPECTED_DEMO_LOGIN=false \
 node scripts/verify_live_frontend.mjs
 ```
+
+For the public demo deployment, use `EXPECTED_APP_ENV=demo` and `EXPECTED_DEMO_LOGIN=true`.
 
 Then run the live backend smoke test from the repo root:
 

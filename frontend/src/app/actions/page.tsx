@@ -397,7 +397,7 @@ export default function ActionsPage() {
           </div>
         </div>
         <div className="message info">
-          Planner review state is {reviewStorage === "server" ? "synced to the pilot backend" : "saved in this browser"}.
+          Planner review state is {reviewStorage === "server" ? "synced to the workspace backend" : "saved in this browser"}.
           {" "}Current role: {userRole}. Approval requires approver/admin access. The reviewed CSV is the handoff artifact.
         </div>
         {reviewSyncMessage ? <div className="message warning">{reviewSyncMessage}</div> : null}

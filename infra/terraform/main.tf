@@ -358,6 +358,7 @@ data "aws_iam_policy_document" "lambda_data_access" {
         "cognito-idp:AdminEnableUser",
         "cognito-idp:AdminGetUser",
         "cognito-idp:AdminListGroupsForUser",
+        "cognito-idp:AdminResetUserPassword",
         "cognito-idp:AdminRemoveUserFromGroup",
         "cognito-idp:ListUsers"
       ]

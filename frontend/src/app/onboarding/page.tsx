@@ -103,6 +103,10 @@ export default function OnboardingPage() {
             <Search size={17} />
             Ask StockSense AI
           </Link>
+          <a className="button secondary" href="/sample_data/ottogi_demo/products.csv" download>
+            <FileText size={17} />
+            Sample CSV
+          </a>
         </div>
       </header>
 
@@ -125,13 +129,13 @@ export default function OnboardingPage() {
             <CircleAlert size={18} />
           </span>
           <h2>{missingCount} Remaining</h2>
-          <p>{nextDataset ? `${nextDataset.label} is the next file to load.` : "The demo dataset is ready for review."}</p>
+          <p>{nextDataset ? `${nextDataset.label} is the next file to load.` : "All required datasets are ready for review."}</p>
         </div>
         <div className="insight-card compact">
           <span className="insight-icon waste">
             <ShieldCheck size={18} />
           </span>
-          <h2>Pilot Controls</h2>
+          <h2>Workspace Controls</h2>
           <p>Preview mappings, validate rows, and retain an audit trail before trusting the recommendations.</p>
         </div>
       </section>
@@ -165,8 +169,8 @@ export default function OnboardingPage() {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2>Pilot Workflow</h2>
-              <p>The fastest path from files to an operations review.</p>
+              <h2>Operating Workflow</h2>
+              <p>The fastest path from files to a weekly operations review.</p>
             </div>
           </div>
           <div className="pilot-step-list">
@@ -231,6 +235,23 @@ export default function OnboardingPage() {
               <ArrowRight size={17} />
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Starter Files</h2>
+            <p>Use these sample files to understand format expectations before loading internal exports.</p>
+          </div>
+        </div>
+        <div className="template-actions">
+          {Object.keys(columns).map((entity) => (
+            <a className="button secondary" href={`/sample_data/ottogi_demo/${entity}.csv`} download key={entity}>
+              <FileText size={16} />
+              {titleCase(entity)}
+            </a>
+          ))}
         </div>
       </section>
     </>

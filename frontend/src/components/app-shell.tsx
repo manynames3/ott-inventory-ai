@@ -20,7 +20,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { clearAuthToken, cognitoLogoutUrl, getAuthToken, IS_DEMO_MODE } from "@/lib/api";
+import { clearAuthToken, cognitoLogoutUrl, getAuthToken, IS_DEMO_MODE, WORKSPACE_NAME } from "@/lib/api";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
@@ -74,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <img className="app-brand-mark" src="/assets/stocksense-ottogi-logo.svg" alt="" aria-hidden="true" />
           <span>
             <strong>StockSense AI</strong>
-            <small>Ottogi operations pilot</small>
+            <small>{WORKSPACE_NAME}</small>
           </span>
         </Link>
         <nav className="nav-list" aria-label="Primary">

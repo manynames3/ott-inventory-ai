@@ -124,12 +124,31 @@ export default function UsersPage() {
     }
   }
 
+  async function resetPassword(user: AdminUser) {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    setTemporaryPassword(null);
+    try {
+      const body = await apiPost<AdminUserResponse>(
+        `/api/admin/users/${encodeURIComponent(user.username)}/reset-password`,
+        {}
+      );
+      setUsers((current) => current.map((row) => (row.username === user.username ? body.row : row)));
+      setMessage(`Password reset email sent to ${userLabel(body.row)}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to reset password.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <>
       <header className="page-header">
         <div>
           <h1>User Management</h1>
-          <p>Invite pilot users, assign roles, and disable access from the app.</p>
+          <p>Invite workspace users, assign roles, reset passwords, and disable access from the app.</p>
         </div>
         <div className="toolbar">
           <button className="button secondary" type="button" onClick={load} disabled={loading || saving}>
@@ -144,12 +163,13 @@ export default function UsersPage() {
       {temporaryPassword ? (
         <div className="message warning">
           Temporary password: <strong>{temporaryPassword}</strong>
+          <span> Share it once through a secure internal channel, then have the user change it.</span>
         </div>
       ) : null}
 
       {!loading && !isAdmin ? (
         <section className="panel">
-          <div className="empty-state">Admin role is required to manage pilot users.</div>
+          <div className="empty-state">Admin role is required to manage workspace users.</div>
         </section>
       ) : null}
 
@@ -161,7 +181,7 @@ export default function UsersPage() {
                 <Users size={18} />
               </span>
               <h2>{users.length.toLocaleString()} Users</h2>
-              <p>{activeCount.toLocaleString()} active accounts in this pilot workspace.</p>
+              <p>{activeCount.toLocaleString()} active accounts in this workspace.</p>
             </div>
             <div className="insight-card compact">
               <span className="insight-icon stockout">
@@ -175,7 +195,7 @@ export default function UsersPage() {
                 <UserPlus size={18} />
               </span>
               <h2>Invites</h2>
-              <p>The sign-in service sends a temporary-password email when invitation delivery is enabled.</p>
+              <p>The sign-in service sends invitation and password reset emails when delivery is enabled.</p>
             </div>
           </section>
 
@@ -184,7 +204,7 @@ export default function UsersPage() {
               <div className="panel-header">
                 <div>
                   <h2>Invite User</h2>
-                  <p>Create a workspace account and assign initial pilot access.</p>
+                  <p>Create a workspace account and assign initial access.</p>
                 </div>
               </div>
               <form className="form-grid" onSubmit={createUser}>
@@ -230,7 +250,7 @@ export default function UsersPage() {
               <div className="panel-header">
                 <div>
                   <h2>Role Policy</h2>
-                  <p>Use the lowest role that matches the buyer workflow.</p>
+                  <p>Use the lowest role that matches the internal workflow.</p>
                 </div>
               </div>
               <div className="security-list">
@@ -257,7 +277,7 @@ export default function UsersPage() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2>Pilot Users</h2>
+                <h2>Workspace Users</h2>
                 <p>{loading ? "Loading workspace users." : `${users.length.toLocaleString()} accounts loaded.`}</p>
               </div>
             </div>
@@ -273,6 +293,7 @@ export default function UsersPage() {
                       <th>Status</th>
                       <th>Created</th>
                       <th>Access</th>
+                      <th>Password</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -303,6 +324,16 @@ export default function UsersPage() {
                             disabled={saving}
                           >
                             {user.enabled ? "Disable" : "Enable"}
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            className="button secondary compact-button"
+                            type="button"
+                            onClick={() => resetPassword(user)}
+                            disabled={saving || !user.enabled}
+                          >
+                            Reset
                           </button>
                         </td>
                       </tr>

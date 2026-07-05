@@ -28,7 +28,7 @@ export default function SecurityPage() {
       <header className="page-header">
         <div>
           <h1>Security And Data Handling</h1>
-          <p>Plain-English controls and pilot boundaries for inventory, order, customer, and inbound shipment files.</p>
+          <p>Plain-English controls for inventory, order, customer, and inbound shipment files.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/status">
@@ -122,7 +122,7 @@ export default function SecurityPage() {
             </div>
             <div>
               <FileText size={18} />
-              <p>Query activity is audited with question previews and result counts for pilot review.</p>
+              <p>Query activity is audited with question previews and result counts for operations review.</p>
             </div>
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function SecurityPage() {
           <div className="panel-header">
             <div>
               <h2>Retention Policy</h2>
-              <p>Default pilot retention windows. Final values should be confirmed in the buyer security review.</p>
+              <p>Default retention windows. Final values should be confirmed with the internal data owner.</p>
             </div>
           </div>
           <div className="security-list">
@@ -147,7 +147,7 @@ export default function SecurityPage() {
             </div>
             <div>
               <UploadCloud size={18} />
-              <p>Import status and validation history: {retention.import_status_days.toLocaleString()} days for pilot operations.</p>
+              <p>Import status and validation history: {retention.import_status_days.toLocaleString()} days for operations review.</p>
             </div>
             <div>
               <ShieldCheck size={18} />
@@ -160,7 +160,7 @@ export default function SecurityPage() {
           <div className="panel-header">
             <div>
               <h2>SIEM And Edge Security</h2>
-              <p>Controls designed for a low-traffic pilot before a production security program.</p>
+              <p>Controls designed for an internal operations workspace before broader enterprise rollout.</p>
             </div>
           </div>
           <div className="security-list">
@@ -173,7 +173,7 @@ export default function SecurityPage() {
             </div>
             <div>
               <ShieldCheck size={18} />
-              <p>Secure hosted login and API Gateway JWT authorization are available for stronger buyer pilot authentication.</p>
+              <p>Secure hosted login and API Gateway JWT authorization are available for named-user workspace authentication.</p>
             </div>
             <div>
               <LockKeyhole size={18} />
@@ -190,12 +190,12 @@ export default function SecurityPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Pilot Boundaries Before Production Rollout</h2>
+            <h2>Internal Rollout Boundaries</h2>
             <p>
-              This MVP is suitable for a low-traffic buyer pilot with named users, role-based approvals, private file
-              storage, audit visibility, and no ERP writeback. A production enterprise rollout should finalize enterprise sign-in,
-              tenant provisioning, buyer-specific retention/DPA terms, custom-domain review, SIEM forwarding, and a
-              reviewed security questionnaire.
+              StockSense AI is suitable for an internal operations workspace with named users, role-based approvals,
+              private file storage, audit visibility, and no ERP writeback. A broader enterprise rollout should finalize
+              company sign-in, owner provisioning, retention terms, custom-domain review, SIEM forwarding, and a reviewed
+              security questionnaire.
             </p>
           </div>
         </div>

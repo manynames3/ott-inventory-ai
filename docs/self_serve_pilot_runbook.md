@@ -27,6 +27,10 @@ Set GitHub repository variables:
 
 ```text
 NEXT_PUBLIC_DEMO_MODE=false
+NEXT_PUBLIC_APP_ENV=internal
+NEXT_PUBLIC_WORKSPACE_NAME=<Company> operations workspace
+NEXT_PUBLIC_ENABLE_DEMO_LOGIN=false
+NEXT_PUBLIC_SHOW_DEMO_BANNER=false
 NEXT_PUBLIC_AUTH_MODE=cognito
 NEXT_PUBLIC_API_BASE_URL=<api_gateway_url>
 NEXT_PUBLIC_COGNITO_DOMAIN=<cognito_domain>
@@ -64,7 +68,7 @@ aws cognito-idp admin-add-user-to-group \
   --group-name admin
 ```
 
-After that, admins can manage pilot users from `/users` in the app.
+After that, admins can manage workspace users from `/users` in the app.
 
 For the hosted demo environment, the active admin login is:
 
@@ -112,17 +116,18 @@ aws cognito-idp admin-set-user-password \
   --permanent
 ```
 
-## 4. Invite Pilot Users
+## 4. Invite Workspace Users
 
 1. Sign in as an admin.
 2. Open `/admin`.
-3. Set tenant profile, lifecycle stage, billing status, and enterprise SSO status.
+3. Set tenant profile, lifecycle stage, rollout status, and enterprise SSO status.
 4. Open `/users`.
-5. Invite buyer users with the lowest needed role:
+5. Invite users with the lowest needed role:
    - `viewer`: read-only dashboards and reports
    - `planner`: notes and dismiss/reopen
    - `approver`: approve actions
    - `admin`: user management and all approval controls
+6. Use the row-level reset control when a named user needs a fresh password email.
 
 ## 5. Enterprise SSO
 
@@ -135,7 +140,7 @@ cognito_saml_metadata_url  = "https://idp.example.com/metadata"
 
 Then set `/admin` SSO status to `saml_configured`.
 
-## 6. Load Buyer Data
+## 6. Load Workspace Data
 
 1. Open `/onboarding` to confirm required files.
 2. Open `/imports`.
@@ -167,6 +172,8 @@ Verify the live frontend bundle:
 FRONTEND_URL=https://otokistocksense.pages.dev \
 EXPECTED_API_BASE_URL=<api_gateway_url> \
 EXPECTED_AUTH_MODE=cognito \
+EXPECTED_APP_ENV=internal \
+EXPECTED_DEMO_LOGIN=false \
 node scripts/verify_live_frontend.mjs
 ```
 

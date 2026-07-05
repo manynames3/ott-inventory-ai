@@ -55,6 +55,7 @@ Architecture documentation:
 - [docs/architecture_decisions.md](docs/architecture_decisions.md): earlier implementation rationale and tradeoffs
 - [docs/pilot_readiness.md](docs/pilot_readiness.md): Phase 1-5 sellable-pilot hardening summary
 - [docs/self_serve_pilot_runbook.md](docs/self_serve_pilot_runbook.md): self-serve launch checklist for infrastructure, users, data, and verification
+- [docs/internal_tool_readiness.md](docs/internal_tool_readiness.md): named-user internal deployment checklist
 - [docs/terraform_state_and_apply.md](docs/terraform_state_and_apply.md): remote Terraform state and live-stack apply runbook
 - [docs/user_acceptance_test.md](docs/user_acceptance_test.md): external-user acceptance checklist
 - [docs/user_acceptance_test_results_2026-07-04.md](docs/user_acceptance_test_results_2026-07-04.md): completed live UAT results
