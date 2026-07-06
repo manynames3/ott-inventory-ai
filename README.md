@@ -4,7 +4,17 @@ StockSense AI is an expiration-aware inventory optimization MVP for food and CPG
 
 Live demo: [https://otokistocksense.pages.dev](https://otokistocksense.pages.dev)
 
-Hosted pilot status: the public frontend is deployed on Cloudflare Pages and can run against the Cognito-protected AWS API Gateway/Lambda backend. The sign-in screen pre-fills a planner-only public demo account for quick evaluation; admin and buyer-specific credentials are managed outside source control through Cognito/SSM.
+Hosted pilot status: the public frontend is deployed on Cloudflare Pages and can run against the Cognito-protected AWS API Gateway/Lambda backend. The live environment uses named-user workspace sign-in; admin and buyer-specific credentials are managed outside source control through Cognito/SSM.
+
+## Product Preview
+
+These screenshots use fictional Ottogi-style sample data from demo mode so reviewers can understand the workflow without logging in. See the full visual walkthrough in [docs/product_walkthrough.md](docs/product_walkthrough.md).
+
+![StockSense AI command dashboard](docs/screenshots/dashboard-command-center.jpg)
+
+![Planner priority actions queue](docs/screenshots/priority-actions.jpg)
+
+![CSV and Excel import workflow](docs/screenshots/imports-data-setup.jpg)
 
 ## About
 
@@ -60,6 +70,7 @@ Architecture documentation:
 - [docs/user_acceptance_test.md](docs/user_acceptance_test.md): external-user acceptance checklist
 - [docs/user_acceptance_test_results_2026-07-04.md](docs/user_acceptance_test_results_2026-07-04.md): completed live UAT results
 - [docs/cognito_live_smoke_test.md](docs/cognito_live_smoke_test.md): Cognito users/groups and API Gateway smoke-test steps
+- [docs/product_walkthrough.md](docs/product_walkthrough.md): visual walkthrough with screenshots
 - [docs/pilot_package/README.md](docs/pilot_package/README.md): guided pilot kit with sample data, security brief, and weekly ROI report template
 
 At a high level, the public demo uses a static Next.js frontend on Cloudflare Pages. The hardened hosted pilot path uses Cognito Hosted UI, API Gateway JWT authorization, AWS Lambda for API/import/refresh work, S3 for raw Excel/CSV files, DynamoDB for canonical records and materialized recommendation/query views, SSM Parameter Store for secrets, and optional SNS/Object Lock controls. The local/reference development path uses FastAPI and PostgreSQL.
