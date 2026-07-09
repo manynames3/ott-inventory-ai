@@ -9,19 +9,18 @@ import {
   CheckCircle2,
   Clock3,
   Download,
-  MoreVertical,
+  Eye,
   PackageCheck,
   RefreshCw,
   Search,
   ShieldCheck,
   ShoppingCart,
-  UploadCloud,
-  X
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
+import { PageError, PageLoading } from "@/components/feedback";
 import { StatusPill } from "@/components/status-pill";
 import {
   apiGet,
@@ -206,17 +205,6 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   const riskShare = dashboard.kpis.total_inventory_value
     ? Math.round((dashboard.kpis.inventory_at_risk_value / dashboard.kpis.total_inventory_value) * 1000) / 10
     : 0;
-  const plannerHours = Math.max(
-    2,
-    Math.round((dashboard.recommendations.length + dashboard.waste_risk_alerts.length + dashboard.fefo.length) * 0.2)
-  );
-  const topRecommendation = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
-  const topFefoAction = dashboard.fefo[0];
-  const topWasteAction = dashboard.waste_risk_alerts[0];
-  const recoveryLow = dashboard.kpis.inventory_at_risk_value * 0.2;
-  const recoveryBase = dashboard.kpis.waste_reduction_opportunity;
-  const recoveryHigh = dashboard.kpis.inventory_at_risk_value * 0.5;
-  const plannerValue = plannerHours * 75;
   const topStockout = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
   const topWaste = dashboard.waste_risk_alerts[0];
   const topFefo = dashboard.fefo[0];
@@ -225,7 +213,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>StockSense AI Executive ROI Report</title>
+  <title>StockSense AI Executive Operations Report</title>
   <style>
     body { color: #1e2521; font-family: Arial, Helvetica, sans-serif; margin: 40px; line-height: 1.45; }
     h1 { font-size: 34px; margin: 0 0 8px; }
@@ -248,22 +236,22 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   </style>
 </head>
 <body>
-  <h1>StockSense AI Executive ROI Report</h1>
+  <h1>StockSense AI Executive Operations Report</h1>
   <p class="muted">Generated ${escapeHtml(generatedAt)} from current inventory data.</p>
   <div class="callout">
     <strong>Executive readout:</strong>
     ${escapeHtml(formatCurrency(dashboard.kpis.inventory_at_risk_value))} of inventory is currently at expiration risk (${riskShare}% of inventory value), ${escapeHtml(
       String(stockoutActions)
-    )} replenishment actions are flagged as stockout exposure, and approximately ${escapeHtml(
-      String(plannerHours)
-    )} planner triage hours are being concentrated into a prioritized exception queue.
+    )} replenishment actions are flagged as stockout exposure, and ${escapeHtml(
+      String(priorityActions.length)
+    )} priority actions are currently ranked for planner review.
   </div>
-  <h2>Operations ROI Scorecard</h2>
+  <h2>Operations Scorecard</h2>
   <div class="scorecard">
-    <div><span>Low recovery case</span><strong>${escapeHtml(formatCurrency(recoveryLow))}</strong><p class="muted">20% of expiration-risk value protected.</p></div>
-    <div><span>Base recovery case</span><strong>${escapeHtml(formatCurrency(recoveryBase))}</strong><p class="muted">Current model assumption from FEFO, transfer, promotion, and discount action.</p></div>
-    <div><span>High recovery case</span><strong>${escapeHtml(formatCurrency(recoveryHigh))}</strong><p class="muted">50% of expiration-risk value protected.</p></div>
-    <div><span>Planner triage value</span><strong>${escapeHtml(formatCurrency(plannerValue))}</strong><p class="muted">${escapeHtml(String(plannerHours))} focused hours at $75/hour planning cost.</p></div>
+    <div><span>Expiration-risk value</span><strong>${escapeHtml(formatCurrency(dashboard.kpis.inventory_at_risk_value))}</strong><p class="muted">Current inventory value within the configured expiration-risk window.</p></div>
+    <div><span>Recoverable opportunity</span><strong>${escapeHtml(formatCurrency(dashboard.kpis.waste_reduction_opportunity))}</strong><p class="muted">Modeled opportunity from current FEFO, transfer, promotion, and discount recommendations.</p></div>
+    <div><span>Recommended reorder value</span><strong>${escapeHtml(formatCurrency(dashboard.kpis.recommended_reorder_value))}</strong><p class="muted">Current replenishment recommendations, before planner approval.</p></div>
+    <div><span>Priority actions</span><strong>${escapeHtml(String(priorityActions.length))}</strong><p class="muted">Ranked exceptions available for planner review.</p></div>
     <div><span>Fill-rate exceptions</span><strong>${escapeHtml(String(stockoutActions))}</strong><p class="muted">SKUs/warehouses where replenishment or allocation should be reviewed now.</p></div>
     <div><span>Inventory risk share</span><strong>${escapeHtml(String(riskShare))}%</strong><p class="muted">Expiration-risk value divided by current inventory value.</p></div>
   </div>
@@ -312,9 +300,8 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   ${reportRows(dashboard.waste_risk_alerts, ["sku", "product_name", "lot_id", "warehouse", "quantity_at_risk", "at_risk_value", "expiration_date", "suggested_action"])}
   <h2>Assumptions And Data Controls</h2>
   <table><tbody>
-    <tr><th>Waste recovery</th><td>Base case uses current recoverable waste opportunity from the model; low and high cases use 20% and 50% of expiration-risk value.</td></tr>
-    <tr><th>Planner time</th><td>Planner focus estimate counts ranked FEFO, waste-risk, and reorder exceptions, valued at $75/hour for executive comparison.</td></tr>
-    <tr><th>Forecasting</th><td>Demand uses historical order exports, simple moving averages, exponential smoothing, and trend placeholders.</td></tr>
+    <tr><th>Waste recovery</th><td>Recoverable opportunity is a modeled decision-support estimate. Confirm actual recovery from reviewed actions and downstream operating results.</td></tr>
+    <tr><th>Forecasting</th><td>Demand blends moving-average and exponential-smoothing estimates. Trend and seasonality notes are reported only from available order history.</td></tr>
     <tr><th>Controls</th><td>Recommendations are decision support only. StockSense AI stores raw uploads privately, logs import/query activity, and does not write back to ERP.</td></tr>
   </tbody></table>
 </body>
@@ -323,7 +310,7 @@ function downloadExecutiveReport(dashboard: DashboardResponse) {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "stocksense-ai-executive-roi-report.html";
+  link.download = "stocksense-ai-executive-operations-report.html";
   link.click();
   window.URL.revokeObjectURL(url);
 }
@@ -338,9 +325,9 @@ export default function DashboardPage() {
     loading: true
   });
   const [showDemoBanner, setShowDemoBanner] = useState(false);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [activeActionFilter, setActiveActionFilter] = useState<ActionFilter>("All");
   const [selectedActionKey, setSelectedActionKey] = useState("");
-  const [plannerNote, setPlannerNote] = useState("Plan customer outreach and confirm inventory movement before end of week.");
 
   useEffect(() => {
     let active = true;
@@ -370,7 +357,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadVersion]);
 
   useEffect(() => {
     setShowDemoBanner(SHOW_DEMO_BANNER && window.localStorage.getItem("stocksense_demo_banner_dismissed") !== "true");
@@ -391,11 +378,7 @@ export default function DashboardPage() {
   }
 
   if (state.loading) {
-    return (
-      <section className="panel">
-        <div className="empty-state">Loading inventory dashboard</div>
-      </section>
-    );
+    return <PageLoading label="Loading inventory overview" />;
   }
 
   if (!state.dashboard) {
@@ -407,22 +390,29 @@ export default function DashboardPage() {
             <p>Backend API is not reachable.</p>
           </div>
         </header>
-        <section className="panel">
-          <div className="message error">{state.error}</div>
-        </section>
+        <PageError
+          title="Inventory overview is unavailable"
+          message={state.error || "The latest workspace data could not be loaded."}
+          action={
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setState((current) => ({ ...current, loading: true, error: null }));
+                setLoadVersion((current) => current + 1);
+              }}
+            >
+              <RefreshCw size={17} />
+              Try again
+            </button>
+          }
+        />
       </>
     );
   }
 
   const dashboard = state.dashboard;
   const stockoutActions = dashboard.recommendations.filter((row) => String(row.status || "").includes("stockout")).length;
-  const plannerHours = Math.max(
-    2,
-    Math.round((dashboard.recommendations.length + dashboard.waste_risk_alerts.length + dashboard.fefo.length) * 0.2)
-  );
-  const topRecommendation = dashboard.recommendations.find((row) => String(row.status || "").includes("stockout"));
-  const topFefoAction = dashboard.fefo[0];
-  const topWasteAction = dashboard.waste_risk_alerts[0];
   const priorityActions = buildPriorityActions(dashboard);
   const checklist = state.importHistory?.checklist || [];
   const completeDatasets = checklist.filter((item) => item.status === "complete").length;
@@ -456,7 +446,10 @@ export default function DashboardPage() {
       ];
   const recentActivity = (state.importHistory?.rows || []).slice(0, 4);
   const topStockoutRows = priorityActions
-    .filter((row) => String(row.action_type || "").toLowerCase().includes("fill") || row.priority === "P1")
+    .filter((row) => {
+      const actionType = String(row.action_type || "").toLowerCase();
+      return actionType.includes("fill") || actionType.includes("reorder");
+    })
     .slice(0, 3);
 
   function selectActionFilter(filter: ActionFilter) {
@@ -494,11 +487,11 @@ export default function DashboardPage() {
         </div>
         <div className="status-ribbon-item">
           <ShieldCheck size={17} />
-          <span>Audit trail synced</span>
+          <span>No ERP writeback</span>
         </div>
         <div className="status-ribbon-item">
           <CheckCircle2 size={17} />
-          <span>{failedImports ? `${failedImports} import issues` : "System healthy"}</span>
+          <span>{failedImports ? `${failedImports} import issues` : "No import failures"}</span>
         </div>
       </section>
 
@@ -519,7 +512,7 @@ export default function DashboardPage() {
           <span><PackageCheck size={21} /></span>
           <p>Stockout exposure</p>
           <strong>{formatNumber(dashboard.kpis.projected_stockouts)}</strong>
-          <small>{stockoutActions.toLocaleString()} urgent actions</small>
+          <small>{stockoutActions.toLocaleString()} urgent {stockoutActions === 1 ? "action" : "actions"}</small>
         </article>
         <article className="command-metric command-metric-reorder">
           <span><ShoppingCart size={21} /></span>
@@ -529,9 +522,9 @@ export default function DashboardPage() {
         </article>
         <article className="command-metric command-metric-waste">
           <span><ShieldCheck size={21} /></span>
-          <p>Waste protected</p>
+          <p>Recoverable waste</p>
           <strong>{formatCurrency(dashboard.kpis.waste_reduction_opportunity)}</strong>
-          <small>Potential recovery</small>
+          <small>Modeled opportunity</small>
         </article>
       </section>
 
@@ -561,6 +554,7 @@ export default function DashboardPage() {
                 type="button"
                 key={filter}
                 onClick={() => selectActionFilter(filter)}
+                aria-pressed={filter === activeActionFilter}
               >
                 {filter}
                 <strong>{priorityCounts[filter]}</strong>
@@ -586,11 +580,7 @@ export default function DashboardPage() {
                   const key = actionKey(row, originalIndex);
                   const isSelected = selectedActionKey === key;
                   return (
-                    <tr
-                      className={isSelected ? "priority-table-row selected" : "priority-table-row"}
-                      key={key}
-                      onClick={() => setSelectedActionKey(key)}
-                    >
+                    <tr className={isSelected ? "priority-table-row selected" : "priority-table-row"} key={key}>
                       <td><StatusPill value={row.priority} /></td>
                       <td>
                         <span className={`action-kind action-kind-${actionTypeTone(row.action_type)}`}>
@@ -612,27 +602,16 @@ export default function DashboardPage() {
                         <span className="confidence-chip">{confidenceLabel(row.confidence)}</span>
                       </td>
                       <td>
-                        <div className="row-decision-actions">
-                          <button
-                            type="button"
-                            aria-label={`Approve action for ${text(row.sku)}`}
-                            title="Approve"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <Check size={14} aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Dismiss action for ${text(row.sku)}`}
-                            title="Dismiss"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <X size={14} aria-hidden="true" />
-                          </button>
-                          <button type="button" aria-label="More actions" title="More actions" onClick={(event) => event.stopPropagation()}>
-                            <MoreVertical size={15} />
-                          </button>
-                        </div>
+                        <button
+                          className="row-view-action"
+                          type="button"
+                          aria-label={`View action details for ${text(row.sku)}`}
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedActionKey(key)}
+                        >
+                          <Eye size={15} aria-hidden="true" />
+                          View
+                        </button>
                       </td>
                     </tr>
                   );
@@ -654,9 +633,6 @@ export default function DashboardPage() {
                   <h2>{text(selectedAction.sku)} - {text(selectedAction.product_name)}</h2>
                   <p>{text(selectedActionLot)} · {text(selectedAction.warehouse)}</p>
                 </div>
-                <button className="detail-more-button" type="button" aria-label="More selected action options">
-                  <MoreVertical size={18} />
-                </button>
               </div>
 
               <div className="detail-alert-line">
@@ -667,7 +643,7 @@ export default function DashboardPage() {
               <section className="detail-section">
                 <h3>Why this matters</h3>
                 <p>{text(selectedActionReason)}</p>
-                <strong>{text(selectedAction.financial_impact)} protected or exposed value.</strong>
+                {selectedAction.financial_impact ? <strong>{text(selectedAction.financial_impact)} protected or exposed value.</strong> : null}
               </section>
 
               <section className="source-field-list">
@@ -680,18 +656,11 @@ export default function DashboardPage() {
                 </dl>
               </section>
 
-              <label className="planner-note-field">
-                <span>Planner note</span>
-                <textarea value={plannerNote} onChange={(event) => setPlannerNote(event.target.value)} />
-                <small>{plannerNote.length}/300</small>
-              </label>
-
               <div className="approval-card">
-                <span>Approval</span>
-                <strong>Pending</strong>
-                <p>Assigned to Jane Planner</p>
-                <button className="button" type="button">Approve</button>
-                <button className="button secondary" type="button">Dismiss</button>
+                <span>Planner workflow</span>
+                <strong>Review required</strong>
+                <p>Add notes and record an approval or dismissal in the server-backed action queue.</p>
+                <Link className="button" href="/actions">Review action queue <ArrowRight size={16} /></Link>
               </div>
             </>
           ) : (

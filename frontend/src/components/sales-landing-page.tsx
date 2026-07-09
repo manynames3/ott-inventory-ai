@@ -33,7 +33,7 @@ const workflowSteps = [
     title: "현장 질문에 답합니다"
   },
   {
-    code: "roi-report.html",
+    code: "operations-report.html",
     copy: "폐기 절감 기회, 결품 노출, 권장 발주, 판단 신뢰도를 리더십이 바로 볼 수 있는 보고서로 남깁니다.",
     number: "04",
     title: "오늘의 실행 근거를 남깁니다"
@@ -62,7 +62,7 @@ const platformItems = [
     title: "비용 우선 설계"
   },
   {
-    copy: "Terraform으로 권한, CORS, 업로드 버킷, Lambda URL, 갱신 워커를 반복 가능하게 관리합니다.",
+    copy: "Terraform으로 권한, CORS, 업로드 버킷, API Gateway, Lambda, 갱신 워커를 반복 가능하게 관리합니다.",
     icon: <Boxes size={18} />,
     title: "Terraform 기반"
   },
@@ -76,7 +76,7 @@ const platformItems = [
 const plans = [
   {
     copy: "오뚜기 아메리카 첫 미팅용. 데모 데이터와 고객 제공 파일 1세트로 가치를 빠르게 확인합니다.",
-    features: ["호스팅된 파일럿 앱", "CSV 템플릿", "임원용 ROI 리포트", "가져오기 검증 이력"],
+    features: ["호스팅된 파일럿 앱", "CSV 템플릿", "임원용 운영 리포트", "가져오기 검증 이력"],
     name: "검증 파일럿"
   },
   {
@@ -87,7 +87,7 @@ const plans = [
   },
   {
     copy: "고객 소유 AWS 계정, 조달 검토, 또는 프라이빗 배포가 필요한 단계의 패키지입니다.",
-    features: ["Terraform 패키지", "고객 AWS 계정 배포 경로", "ERP 어댑터 자리", "보안 검토 지원"],
+    features: ["Terraform 패키지", "고객 AWS 계정 배포 경로", "CSV 기반 연동 검토", "보안 검토 지원"],
     name: "프라이빗 AWS"
   }
 ];
@@ -102,8 +102,8 @@ const queryRows = [
   "",
   "{",
   '  "action_summary": [',
-  '    "지금 조치가 필요한 SKU/창고 조합이 25개입니다.",',
-  '    "최우선: LA DC의 03632K, 가용 재고 13.5일."',
+  '    "우선 검토가 필요한 SKU와 창고를 위험도 순으로 정렬했습니다.",',
+  '    "각 결과에는 근거 데이터와 플래너 검토 메모가 포함됩니다."',
   "  ]",
   "}"
 ];
@@ -175,8 +175,8 @@ export function SalesLandingPage() {
                 <dd>FEFO 로트 출고 원칙</dd>
               </div>
               <div>
-                <dt>$428K</dt>
-                <dd>데모 기준 폐기 절감 기회</dd>
+                <dt>로트별 가치</dt>
+                <dd>폐기 위험 금액과 회수 기회</dd>
               </div>
               <div>
                 <dt>북미 파일럿</dt>
@@ -237,10 +237,8 @@ export function SalesLandingPage() {
               </ul>
             </div>
             <div className="sales-ref-code-panel">
-              <div className="sales-ref-tabs" role="tablist" aria-label="질의 예시">
-                <span aria-selected="true">질의</span>
-                <span>결과</span>
-                <span>보고서</span>
+              <div className="sales-ref-tabs" aria-label="질의 및 결과 예시">
+                <span>질의 및 결과 예시</span>
               </div>
               <pre className="sales-ref-code-block">{queryRows.join("\n")}</pre>
             </div>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from typing import Dict, Iterable, List, Optional
@@ -109,21 +110,27 @@ class ForecastEngine:
         last_30 = float(series.tail(30).mean()) if len(series) >= 30 else float(series.mean())
         prior_30 = float(series.tail(60).head(30).mean()) if len(series) >= 60 else last_30
         if last_30 > prior_30 * 1.1:
-            trend = "upward placeholder: recent 30-day demand is above the prior 30 days"
+            trend = "Upward: recent 30-day demand is above the prior 30 days."
         elif last_30 < prior_30 * 0.9:
-            trend = "downward placeholder: recent 30-day demand is below the prior 30 days"
+            trend = "Downward: recent 30-day demand is below the prior 30 days."
         else:
-            trend = "stable placeholder: no significant trend detected"
+            trend = "Stable: no significant change was detected between the two most recent 30-day windows."
 
-        same_month_last_year = series[
-            (series.index.month == today.month) & (series.index.year == today.year - 1)
-        ]
-        seasonality = (
-            "seasonality placeholder: compare against same-month demand once more annual cycles are available"
-            if same_month_last_year.empty
-            else "seasonality placeholder: same-month last-year daily demand averaged %.2f units"
-            % float(same_month_last_year.mean())
-        )
+        sku_orders = orders[orders["sku"].astype(str) == str(sku)].copy() if not orders.empty else pd.DataFrame()
+        if not sku_orders.empty:
+            sku_orders["order_date"] = pd.to_datetime(sku_orders["order_date"])
+            same_month_last_year = sku_orders[
+                (sku_orders["order_date"].dt.month == today.month)
+                & (sku_orders["order_date"].dt.year == today.year - 1)
+            ]
+        else:
+            same_month_last_year = pd.DataFrame()
+        if same_month_last_year.empty:
+            seasonality = "Not estimated: another annual demand cycle is needed for a reliable same-month comparison."
+        else:
+            days_in_month = calendar.monthrange(today.year - 1, today.month)[1]
+            daily_average = float(same_month_last_year["quantity"].sum()) / days_in_month
+            seasonality = "Same-month last-year daily demand averaged %.2f units." % daily_average
 
         return {
             "sku": sku,
@@ -143,4 +150,3 @@ class ForecastEngine:
         horizons: Iterable[int] = (30, 60, 90),
     ) -> List[Dict[str, object]]:
         return [self.forecast_sku(orders, sku, as_of=as_of, horizons=horizons) for sku in skus]
-

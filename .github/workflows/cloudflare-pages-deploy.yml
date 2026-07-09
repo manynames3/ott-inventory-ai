@@ -43,12 +43,12 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || 'false' }}
-          NEXT_PUBLIC_APP_ENV: ${{ vars.NEXT_PUBLIC_APP_ENV || 'demo' }}
-          NEXT_PUBLIC_WORKSPACE_NAME: ${{ vars.NEXT_PUBLIC_WORKSPACE_NAME || 'Ottogi operations demo' }}
-          NEXT_PUBLIC_ENABLE_DEMO_LOGIN: ${{ vars.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || 'true' }}
-          NEXT_PUBLIC_SHOW_DEMO_BANNER: ${{ vars.NEXT_PUBLIC_SHOW_DEMO_BANNER || 'true' }}
-          NEXT_PUBLIC_DEMO_LOGIN_USERNAME: ${{ vars.NEXT_PUBLIC_DEMO_LOGIN_USERNAME || 'demo@otokistocksense.demo' }}
-          NEXT_PUBLIC_DEMO_LOGIN_PASSWORD: ${{ vars.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || 'StockSenseDemo2026' }}
+          NEXT_PUBLIC_APP_ENV: ${{ vars.NEXT_PUBLIC_APP_ENV || 'internal' }}
+          NEXT_PUBLIC_WORKSPACE_NAME: ${{ vars.NEXT_PUBLIC_WORKSPACE_NAME || 'Internal operations workspace' }}
+          NEXT_PUBLIC_ENABLE_DEMO_LOGIN: ${{ vars.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || 'false' }}
+          NEXT_PUBLIC_SHOW_DEMO_BANNER: ${{ vars.NEXT_PUBLIC_SHOW_DEMO_BANNER || 'false' }}
+          NEXT_PUBLIC_DEMO_LOGIN_USERNAME: ${{ vars.NEXT_PUBLIC_DEMO_LOGIN_USERNAME }}
+          NEXT_PUBLIC_DEMO_LOGIN_PASSWORD: ${{ vars.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD }}
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://3eorxcthij.execute-api.us-west-2.amazonaws.com' }}
           NEXT_PUBLIC_AUTH_MODE: ${{ vars.NEXT_PUBLIC_AUTH_MODE || 'cognito' }}
           NEXT_PUBLIC_COGNITO_DOMAIN: ${{ vars.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com' }}
@@ -75,8 +75,8 @@ jobs:
           FRONTEND_URL: https://otokistocksense.pages.dev
           EXPECTED_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://3eorxcthij.execute-api.us-west-2.amazonaws.com' }}
           EXPECTED_AUTH_MODE: ${{ vars.NEXT_PUBLIC_AUTH_MODE || 'cognito' }}
-          EXPECTED_APP_ENV: ${{ vars.NEXT_PUBLIC_APP_ENV || 'demo' }}
-          EXPECTED_DEMO_LOGIN: ${{ vars.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || 'true' }}
+          EXPECTED_APP_ENV: ${{ vars.NEXT_PUBLIC_APP_ENV || 'internal' }}
+          EXPECTED_DEMO_LOGIN: ${{ vars.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || 'false' }}
       - name: Require Cloudflare credentials for manual deploy
         if: github.event_name == 'workflow_dispatch' && steps.cloudflare-config.outputs.configured != 'true'
         run: |

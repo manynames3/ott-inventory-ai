@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { BarChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
+import { EmptyState, PageError, PageLoading } from "@/components/feedback";
 import { apiGet, formatNumber } from "@/lib/api";
 
 type CustomerDetail = {
@@ -17,32 +18,60 @@ type CustomerDetail = {
 
 export function CustomerDetailClient() {
   const params = useSearchParams();
-  const customerId = params.get("customerId") || "CUST-001";
+  const customerId = params.get("customerId")?.trim() || "";
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadedCustomerId, setLoadedCustomerId] = useState("");
 
   useEffect(() => {
+    if (!customerId) return;
     let active = true;
-    setDetail(null);
-    setError(null);
     apiGet<CustomerDetail>(`/api/customers/${encodeURIComponent(customerId)}`)
       .then((response) => {
-        if (active) setDetail(response);
+        if (active) {
+          setDetail(response);
+          setError(null);
+          setLoadedCustomerId(customerId);
+        }
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : "Could not load customer detail");
+        if (active) {
+          setDetail(null);
+          setError(err instanceof Error ? err.message : "Could not load customer detail");
+          setLoadedCustomerId(customerId);
+        }
       });
     return () => {
       active = false;
     };
   }, [customerId]);
 
+  if (!customerId) {
+    return (
+      <>
+        <header className="page-header">
+          <div>
+            <h1>Customer detail</h1>
+            <p>Open a customer from search or an inventory table.</p>
+          </div>
+        </header>
+        <EmptyState
+          title="No customer selected"
+          message="Choose a customer to review order activity, monthly demand, and top SKUs."
+          action={<Link className="button" href="/">Back to overview</Link>}
+        />
+      </>
+    );
+  }
+
+  if (loadedCustomerId !== customerId) return <PageLoading label="Loading customer detail" />;
+
   if (error) {
-    return <div className="message error">{error}</div>;
+    return <PageError title="Customer could not be loaded" message={error} action={<Link className="button secondary" href="/">Back to overview</Link>} />;
   }
 
   if (!detail) {
-    return <div className="empty-state">Loading customer detail</div>;
+    return <PageLoading label="Loading customer detail" />;
   }
 
   const customer = detail.customer || {};

@@ -243,8 +243,8 @@ def import_requirements():
             "configured": bool(os.getenv("SIEM_HTTP_ENDPOINT", "").strip()),
         },
         "erp_adapters": {
-            "sap": "placeholder only; see docs/erp_integration.md",
-            "oracle": "placeholder only; see docs/erp_integration.md",
+            "sap": "not connected",
+            "oracle": "not connected",
         },
     }
 

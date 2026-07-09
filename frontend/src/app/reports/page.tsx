@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, ListChecks, ShieldCheck } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
+import { PageLoading } from "@/components/feedback";
 import { MetricCard } from "@/components/metric-card";
 import {
   ActionReviewRow,
@@ -84,7 +85,7 @@ function downloadWeeklyRoiCsv(rows: ActionReviewRow[]) {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "stocksense-weekly-roi-reviewed-actions.csv";
+  link.download = "stocksense-weekly-reviewed-actions.csv";
   link.click();
   window.URL.revokeObjectURL(url);
 }
@@ -140,19 +141,15 @@ export default function ReportsPage() {
   );
 
   if (state.loading) {
-    return (
-      <section className="panel">
-        <div className="empty-state">Loading weekly ROI report</div>
-      </section>
-    );
+    return <PageLoading label="Loading weekly operations report" />;
   }
 
   return (
     <>
       <header className="page-header">
         <div>
-          <h1>Weekly ROI Report</h1>
-          <p>Approved and dismissed planner actions converted into an operating readout for internal review.</p>
+          <h1>Weekly Action Report</h1>
+          <p>Approved and dismissed planner decisions summarized for the weekly operations review.</p>
         </div>
         <div className="toolbar">
           <Link className="button secondary" href="/actions">
@@ -166,13 +163,13 @@ export default function ReportsPage() {
         </div>
       </header>
 
-      {state.error ? <div className="message error">{state.error}</div> : null}
+      {state.error ? <div className="message error" role="alert">{state.error}</div> : null}
 
       <section className="metrics-grid">
-        <MetricCard label="Approved action value" value={formatCurrency(acceptedValue)} tone="value" />
-        <MetricCard label="Waste value approved" value={formatCurrency(wasteProtected)} tone="waste" />
-        <MetricCard label="Fill-rate value approved" value={formatCurrency(fillRateProtected)} tone="stockout" />
-        <MetricCard label="Dismissed action value" value={formatCurrency(dismissedValue)} tone="risk" />
+        <MetricCard label="Approved opportunity value" value={formatCurrency(acceptedValue)} tone="value" />
+        <MetricCard label="Waste opportunity approved" value={formatCurrency(wasteProtected)} tone="waste" />
+        <MetricCard label="Fill-rate opportunity approved" value={formatCurrency(fillRateProtected)} tone="stockout" />
+        <MetricCard label="Dismissed opportunity value" value={formatCurrency(dismissedValue)} tone="risk" />
         <MetricCard label="Reviewed actions" value={formatNumber(reviewed.length)} tone="reorder" />
       </section>
       <p className="metrics-helper">
@@ -185,7 +182,7 @@ export default function ReportsPage() {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2>Sponsor Readout</h2>
+              <h2>Operations Summary</h2>
               <p>Use this section in the weekly operations review.</p>
             </div>
           </div>
@@ -200,7 +197,7 @@ export default function ReportsPage() {
             <div>
               <ShieldCheck size={18} />
               <p>
-                Approved action value totals {formatCurrency(acceptedValue)} across reorder, allocation, FEFO, and waste-risk decisions.
+                Approved opportunity value totals {formatCurrency(acceptedValue)} across reorder, allocation, FEFO, and waste-risk decisions. Confirm realized value downstream.
               </p>
             </div>
             <div>

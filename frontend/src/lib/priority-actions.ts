@@ -23,7 +23,9 @@ export function buildPriorityActions(dashboard: DashboardResponse): Record<strin
       category: row.category,
       warehouse: row.warehouse,
       due_date: row.reorder_by_date,
-      financial_impact: money(Number(row.recommended_order_qty || 0) * Number(row.unit_cost || 0)),
+      financial_impact: money(
+        row.estimated_order_value ?? Number(row.recommended_order_qty || 0) * Number(row.unit_cost || 0)
+      ),
       recommended_action: row.action || `Order ${row.recommended_order_qty} cases`,
       reason: row.reason,
       confidence: row.confidence,
@@ -60,7 +62,7 @@ export function buildPriorityActions(dashboard: DashboardResponse): Record<strin
       warehouse: row.warehouse,
       lot_id: row.ship_first_lot,
       due_date: row.expiration_date,
-      financial_impact: "—",
+      financial_impact: null,
       recommended_action: row.suggested_action,
       reason: row.reason,
       confidence: 0.9,

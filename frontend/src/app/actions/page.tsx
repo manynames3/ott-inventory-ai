@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock3, FileDown, LayoutDashboard, RotateC
 import { useEffect, useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table";
+import { ConfirmDialog, PageError, PageLoading } from "@/components/feedback";
 import { MetricCard } from "@/components/metric-card";
 import { StatusPill } from "@/components/status-pill";
 import {
@@ -31,6 +32,24 @@ type ActionReviewState = {
   approved_at?: string;
   updated_at?: string;
 };
+
+function browserReviewState(): Record<string, ActionReviewState> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(ACTION_REVIEW_KEY);
+    return raw ? JSON.parse(raw) as Record<string, ActionReviewState> : {};
+  } catch {
+    return {};
+  }
+}
+
+function notesFromReviews(reviews: Record<string, ActionReviewState>) {
+  return Object.fromEntries(
+    Object.entries(reviews)
+      .filter(([, value]) => value.note)
+      .map(([key, value]) => [key, value.note || ""])
+  );
+}
 
 function actionKey(row: Record<string, unknown>): string {
   return [
@@ -75,8 +94,11 @@ export default function ActionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reviewState, setReviewState] = useState<Record<string, ActionReviewState>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
-  const [reviewStorage, setReviewStorage] = useState<"server" | "browser">(IS_DEMO_MODE ? "browser" : "server");
-  const [reviewSyncMessage, setReviewSyncMessage] = useState<string | null>(null);
+  const [reviewStorage, setReviewStorage] = useState<"server" | "browser" | "unavailable">(IS_DEMO_MODE ? "browser" : "server");
+  const [reviewNotice, setReviewNotice] = useState<{ tone: "ok" | "warning"; text: string } | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(!IS_DEMO_MODE);
+  const [busyActionKey, setBusyActionKey] = useState<string | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthMeResponse["user"] | null>(null);
 
   useEffect(() => {
@@ -93,9 +115,12 @@ export default function ActionsPage() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) {
-      setReviewStorage("browser");
-      loadBrowserReviewState();
-      return;
+      const timeout = window.setTimeout(() => {
+        const storedReviews = browserReviewState();
+        setReviewState(storedReviews);
+        setNoteDrafts(notesFromReviews(storedReviews));
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
     apiGet<ActionReviewsResponse>("/api/action-reviews")
       .then((body) => {
@@ -114,16 +139,19 @@ export default function ActionsPage() {
             serverNotes[row.action_key] = row.note;
           }
         }
-        setReviewState((current) => ({ ...current, ...serverState }));
-        setNoteDrafts((current) => ({ ...current, ...serverNotes }));
-        setReviewStorage(body.storage === "server" ? "server" : "browser");
-        setReviewSyncMessage(null);
+        setReviewState(serverState);
+        setNoteDrafts(serverNotes);
+        setReviewStorage("server");
+        setReviewNotice(null);
       })
       .catch(() => {
-        setReviewStorage("browser");
-        loadBrowserReviewState();
-        setReviewSyncMessage("Server review history is unavailable. Changes are saved in this browser until sync is restored.");
-      });
+        setReviewStorage("unavailable");
+        setReviewNotice({
+          tone: "warning",
+          text: "Planner review history is unavailable. Review controls are paused so decisions are not mistaken for saved workspace records."
+        });
+      })
+      .finally(() => setReviewsLoading(false));
   }, []);
 
   const actions = useMemo(() => (dashboard ? buildPriorityActions(dashboard) : []), [dashboard]);
@@ -147,88 +175,117 @@ export default function ActionsPage() {
   }, [actions, reviewState]);
   const reviewStateCount = Object.keys(reviewState).length;
   const canApproveActions = Boolean(currentUser?.can_approve_actions || IS_DEMO_MODE);
+  const canEditReviews = !reviewsLoading && (IS_DEMO_MODE || reviewStorage === "server");
   const userRole = currentUser?.role || (IS_DEMO_MODE ? "approver" : "planner");
   const username = currentUser?.username || (IS_DEMO_MODE ? "demo-planner" : "unknown");
-
-  function loadBrowserReviewState() {
-    try {
-      const raw = window.localStorage.getItem(ACTION_REVIEW_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, ActionReviewState>;
-      setReviewState(parsed);
-      setNoteDrafts(
-        Object.fromEntries(
-          Object.entries(parsed)
-            .filter(([, value]) => value.note)
-            .map(([key, value]) => [key, value.note || ""])
-        )
-      );
-    } catch {
-      setReviewState({});
-    }
-  }
 
   function persistReview(next: Record<string, ActionReviewState>) {
     setReviewState(next);
     window.localStorage.setItem(ACTION_REVIEW_KEY, JSON.stringify(next));
   }
 
-  function syncReview(key: string, status: ReviewStatus, note: string, row: Record<string, unknown>) {
-    if (IS_DEMO_MODE) return;
-    apiPost<ActionReviewUpsertResponse>("/api/action-reviews", {
-      action_key: key,
-      status,
-      note,
-      action_snapshot: row
-    })
-      .then((body) => {
-        setReviewStorage(body.storage === "server" ? "server" : "browser");
-        setReviewSyncMessage(null);
-      })
-      .catch((err) => {
-        setReviewStorage("browser");
-        setReviewSyncMessage(
-          err instanceof Error
-            ? `${err.message} The local review state remains saved in this browser.`
-            : "Could not sync this review to the server. It remains saved in this browser."
-        );
-      });
+  function applyServerReview(key: string, body: ActionReviewUpsertResponse) {
+    const row = body.row;
+    const nextState: ActionReviewState = {
+      status: row.status,
+      note: row.note || "",
+      updated_by: row.updated_by || "",
+      approved_by: row.approved_by || "",
+      approved_at: row.approved_at || (row.approved_at_epoch ? new Date(row.approved_at_epoch * 1000).toISOString() : undefined),
+      updated_at: row.updated_at || (row.updated_at_epoch ? new Date(row.updated_at_epoch * 1000).toISOString() : undefined)
+    };
+    setReviewState((current) => ({ ...current, [key]: nextState }));
+    setNoteDrafts((current) => ({ ...current, [key]: row.note || "" }));
+    setReviewStorage("server");
   }
 
-  function setActionStatus(key: string, status: ReviewStatus, row: Record<string, unknown>) {
+  async function setActionStatus(key: string, status: ReviewStatus, row: Record<string, unknown>) {
+    if (!canEditReviews) {
+      setReviewNotice({ tone: "warning", text: "Review controls are unavailable until the workspace review service reconnects." });
+      return;
+    }
     if (status === "accepted" && !canApproveActions) {
-      setReviewSyncMessage("Your role can add notes or dismiss actions, but approver/admin access is required to approve.");
+      setReviewNotice({ tone: "warning", text: "Your role can add notes or dismiss actions, but approver or admin access is required to approve." });
       return;
     }
     const note = noteDrafts[key] ?? reviewState[key]?.note ?? "";
-    persistReview({
-      ...reviewState,
-      [key]: {
-        ...reviewState[key],
+    if (status === "dismissed" && note.trim().length < 3) {
+      setReviewNotice({ tone: "warning", text: "Add a short planner note before dismissing an action so the decision remains auditable." });
+      return;
+    }
+    setBusyActionKey(key);
+    setReviewNotice(null);
+    if (IS_DEMO_MODE) {
+      persistReview({
+        ...reviewState,
+        [key]: {
+          ...reviewState[key],
+          status,
+          note,
+          updated_by: username,
+          approved_by: status === "accepted" ? username : status === "open" ? "" : reviewState[key]?.approved_by,
+          approved_at: status === "accepted" ? new Date().toISOString() : status === "open" ? "" : reviewState[key]?.approved_at,
+          updated_at: new Date().toISOString()
+        }
+      });
+      setReviewNotice({ tone: "ok", text: `Demo review marked ${status === "accepted" ? "approved" : status}.` });
+      setBusyActionKey(null);
+      return;
+    }
+    try {
+      const body = await apiPost<ActionReviewUpsertResponse>("/api/action-reviews", {
+        action_key: key,
         status,
         note,
-        updated_by: username,
-        approved_by: status === "accepted" ? username : status === "open" ? "" : reviewState[key]?.approved_by,
-        approved_at: status === "accepted" ? new Date().toISOString() : status === "open" ? "" : reviewState[key]?.approved_at,
-        updated_at: new Date().toISOString()
-      }
-    });
-    syncReview(key, status, note, row);
+        action_snapshot: row
+      });
+      applyServerReview(key, body);
+      setReviewNotice({ tone: "ok", text: `Action ${status === "accepted" ? "approved" : status}. The workspace review record is saved.` });
+    } catch (err) {
+      setReviewNotice({ tone: "warning", text: err instanceof Error ? err.message : "The review could not be saved." });
+    } finally {
+      setBusyActionKey(null);
+    }
   }
 
-  function saveNote(key: string, note: string, row: Record<string, unknown>) {
+  async function saveNote(key: string, note: string, row: Record<string, unknown>) {
     const status = reviewState[key]?.status || "open";
-    persistReview({
-      ...reviewState,
-      [key]: {
-        ...reviewState[key],
+    if (note === (reviewState[key]?.note || "")) return;
+    if (!canEditReviews) {
+      setReviewNotice({ tone: "warning", text: "The note was not saved because the workspace review service is unavailable." });
+      return;
+    }
+    setBusyActionKey(key);
+    setReviewNotice(null);
+    if (IS_DEMO_MODE) {
+      persistReview({
+        ...reviewState,
+        [key]: {
+          ...reviewState[key],
+          status,
+          note,
+          updated_by: username,
+          updated_at: new Date().toISOString()
+        }
+      });
+      setReviewNotice({ tone: "ok", text: "Demo planner note saved in this browser." });
+      setBusyActionKey(null);
+      return;
+    }
+    try {
+      const body = await apiPost<ActionReviewUpsertResponse>("/api/action-reviews", {
+        action_key: key,
         status,
         note,
-        updated_by: username,
-        updated_at: new Date().toISOString()
-      }
-    });
-    syncReview(key, status, note, row);
+        action_snapshot: row
+      });
+      applyServerReview(key, body);
+      setReviewNotice({ tone: "ok", text: "Planner note saved to the workspace review record." });
+    } catch (err) {
+      setReviewNotice({ tone: "warning", text: err instanceof Error ? err.message : "The planner note could not be saved." });
+    } finally {
+      setBusyActionKey(null);
+    }
   }
 
   function downloadReviewedCsv() {
@@ -278,49 +335,51 @@ export default function ActionsPage() {
     window.URL.revokeObjectURL(url);
   }
 
-  function clearReviewState() {
+  async function clearReviewState() {
     if (!canApproveActions) {
-      setReviewSyncMessage("Approver/admin access is required to clear planner review history.");
+      setReviewNotice({ tone: "warning", text: "Approver or admin access is required to clear planner review history." });
       return;
     }
-    setReviewState({});
-    setNoteDrafts({});
-    window.localStorage.removeItem(ACTION_REVIEW_KEY);
-    if (!IS_DEMO_MODE) {
-      apiPost<{ deleted: number; storage?: "server" | "browser" }>("/api/action-reviews/clear", {})
-        .then((body) => {
-          setReviewStorage(body.storage === "server" ? "server" : "browser");
-          setReviewSyncMessage(null);
-        })
-        .catch(() => {
-          setReviewStorage("browser");
-          setReviewSyncMessage("Could not clear server review history. Local review state was cleared in this browser.");
-        });
+    setBusyActionKey("__clear__");
+    setReviewNotice(null);
+    try {
+      if (!IS_DEMO_MODE) {
+        await apiPost<{ deleted: number; storage?: "server" }>("/api/action-reviews/clear", {});
+      }
+      setReviewState({});
+      setNoteDrafts({});
+      window.localStorage.removeItem(ACTION_REVIEW_KEY);
+      setReviewStorage(IS_DEMO_MODE ? "browser" : "server");
+      setReviewNotice({ tone: "ok", text: "Planner review history cleared." });
+      setClearDialogOpen(false);
+    } catch (err) {
+      setReviewNotice({ tone: "warning", text: err instanceof Error ? err.message : "Review history could not be cleared." });
+    } finally {
+      setBusyActionKey(null);
     }
   }
 
   if (error) {
     return (
-      <section className="panel">
-        <div className="message error">{error}</div>
-        <div className="toolbar error-toolbar">
+      <PageError
+        title="Priority actions are unavailable"
+        message={error}
+        action={
+          <div className="toolbar error-toolbar">
           <Link className="button secondary" href="/status">
             System status
           </Link>
           <Link className="button" href="/login">
             Sign in
           </Link>
-        </div>
-      </section>
+          </div>
+        }
+      />
     );
   }
 
   if (!dashboard) {
-    return (
-      <section className="panel">
-        <div className="empty-state">Loading priority queue</div>
-      </section>
-    );
+    return <PageLoading label="Loading priority actions" />;
   }
 
   return (
@@ -386,7 +445,12 @@ export default function ActionsPage() {
             </p>
           </div>
           <div className="toolbar">
-            <button className="button secondary" type="button" onClick={clearReviewState} disabled={!reviewStateCount || !canApproveActions}>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => setClearDialogOpen(true)}
+              disabled={!reviewStateCount || !canApproveActions || !canEditReviews || Boolean(busyActionKey)}
+            >
               <RotateCcw size={17} />
               Clear review state
             </button>
@@ -396,11 +460,17 @@ export default function ActionsPage() {
             </button>
           </div>
         </div>
-        <div className="message info">
-          Planner review state is {reviewStorage === "server" ? "synced to the workspace backend" : "saved in this browser"}.
-          {" "}Current role: {userRole}. Approval requires approver/admin access. The reviewed CSV is the handoff artifact.
+        <div className="message info" role="status">
+          {reviewsLoading
+            ? "Loading workspace review history."
+            : reviewStorage === "server"
+              ? "Planner decisions are saved to the workspace review record."
+              : reviewStorage === "browser"
+                ? "Demo review state is saved only in this browser."
+                : "Workspace review controls are temporarily paused."}
+          {" "}Current role: {userRole}. Approval requires approver or admin access.
         </div>
-        {reviewSyncMessage ? <div className="message warning">{reviewSyncMessage}</div> : null}
+        {reviewNotice ? <div className={`message ${reviewNotice.tone}`} role={reviewNotice.tone === "warning" ? "alert" : "status"}>{reviewNotice.text}</div> : null}
         {actions.length > 18 ? (
           <p className="metrics-helper">
             Showing the top 18 actions by urgency. Exported CSV includes all {actions.length.toLocaleString()} actions.
@@ -482,19 +552,36 @@ export default function ActionsPage() {
                           [key]: event.target.value
                         }))
                       }
-                      onBlur={(event) => saveNote(key, event.currentTarget.value, row)}
+                      onBlur={(event) => void saveNote(key, event.currentTarget.value, row)}
+                      maxLength={500}
+                      disabled={!canEditReviews || busyActionKey === key}
                     />
                   </label>
 
                   <div className="toolbar planner-review-actions">
-                    <button className="button" type="button" onClick={() => setActionStatus(key, "accepted", row)} disabled={!canApproveActions}>
+                    <button
+                      className="button"
+                      type="button"
+                      onClick={() => void setActionStatus(key, "accepted", row)}
+                      disabled={!canApproveActions || !canEditReviews || busyActionKey === key}
+                    >
                       Approve
                     </button>
-                    <button className="button secondary" type="button" onClick={() => setActionStatus(key, "dismissed", row)}>
+                    <button
+                      className="button secondary"
+                      type="button"
+                      onClick={() => void setActionStatus(key, "dismissed", row)}
+                      disabled={!canEditReviews || busyActionKey === key}
+                    >
                       Dismiss
                     </button>
                     {state.status !== "open" ? (
-                      <button className="button secondary" type="button" onClick={() => setActionStatus(key, "open", row)}>
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => void setActionStatus(key, "open", row)}
+                        disabled={!canEditReviews || busyActionKey === key}
+                      >
                         Reopen
                       </button>
                     ) : null}
@@ -534,6 +621,16 @@ export default function ActionsPage() {
           rows={actions}
         />
       </section>
+      <ConfirmDialog
+        open={clearDialogOpen}
+        title="Clear planner review history?"
+        description="This removes all saved review statuses and notes for the current workspace. The action cannot be undone."
+        confirmLabel="Clear review history"
+        destructive
+        busy={busyActionKey === "__clear__"}
+        onCancel={() => setClearDialogOpen(false)}
+        onConfirm={() => void clearReviewState()}
+      />
     </>
   );
 }

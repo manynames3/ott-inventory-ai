@@ -6,7 +6,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "StockSense AI",
-  description: "Expiration-aware inventory optimization for food and CPG teams"
+  description: "Expiration-aware inventory optimization for food and CPG teams",
+  icons: {
+    icon: "/assets/stocksense-ottogi-logo.svg"
+  }
 };
 
 export const viewport: Viewport = {

@@ -45,12 +45,12 @@ Optional repository variables:
 
 | Variable | Default |
 | --- | --- |
-| `NEXT_PUBLIC_APP_ENV` | `demo` |
-| `NEXT_PUBLIC_WORKSPACE_NAME` | `Ottogi operations demo` |
-| `NEXT_PUBLIC_ENABLE_DEMO_LOGIN` | `true` |
-| `NEXT_PUBLIC_SHOW_DEMO_BANNER` | `true` |
-| `NEXT_PUBLIC_DEMO_LOGIN_USERNAME` | `demo@otokistocksense.demo` |
-| `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | `StockSenseDemo2026` |
+| `NEXT_PUBLIC_APP_ENV` | `internal` |
+| `NEXT_PUBLIC_WORKSPACE_NAME` | `Internal operations workspace` |
+| `NEXT_PUBLIC_ENABLE_DEMO_LOGIN` | `false` |
+| `NEXT_PUBLIC_SHOW_DEMO_BANNER` | `false` |
+| `NEXT_PUBLIC_DEMO_LOGIN_USERNAME` | unset |
+| `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | unset |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://3eorxcthij.execute-api.us-west-2.amazonaws.com` |
 | `NEXT_PUBLIC_AUTH_MODE` | `cognito` |

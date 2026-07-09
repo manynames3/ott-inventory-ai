@@ -8,14 +8,14 @@ export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE || "cognito";
 export const IS_COGNITO_AUTH = AUTH_MODE === "cognito";
-export const APP_ENV = (process.env.NEXT_PUBLIC_APP_ENV || "demo").toLowerCase();
+export const APP_ENV = (process.env.NEXT_PUBLIC_APP_ENV || "production").toLowerCase();
 export const IS_INTERNAL_ENV = APP_ENV === "internal" || APP_ENV === "production";
 export const ENABLE_DEMO_LOGIN =
-  (process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || (IS_INTERNAL_ENV ? "false" : "true")) === "true";
+  (process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN || (IS_DEMO_MODE && !IS_INTERNAL_ENV ? "true" : "false")) === "true";
 export const SHOW_DEMO_BANNER =
-  (process.env.NEXT_PUBLIC_SHOW_DEMO_BANNER || (ENABLE_DEMO_LOGIN ? "true" : "false")) === "true";
+  (process.env.NEXT_PUBLIC_SHOW_DEMO_BANNER || (IS_DEMO_MODE ? "true" : "false")) === "true";
 export const WORKSPACE_NAME =
-  process.env.NEXT_PUBLIC_WORKSPACE_NAME || (IS_INTERNAL_ENV ? "Internal operations workspace" : "Ottogi operations demo");
+  process.env.NEXT_PUBLIC_WORKSPACE_NAME || (IS_DEMO_MODE ? "Ottogi operations demo" : "Internal operations workspace");
 
 const COGNITO_DOMAIN = (
   process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "https://ott-inventory-ai-mvp-636305658578.auth.us-west-2.amazoncognito.com"
@@ -413,6 +413,10 @@ function randomString(byteLength = 48): string {
   return base64Url(bytes.buffer);
 }
 
+function safeLocalPath(value: string | null | undefined): string {
+  return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
 export async function startCognitoLogin(nextPath = "/"): Promise<void> {
   if (!COGNITO_DOMAIN || !COGNITO_CLIENT_ID) {
     throw new Error("Secure sign-in is not configured.");
@@ -422,7 +426,7 @@ export async function startCognitoLogin(nextPath = "/"): Promise<void> {
   const state = randomString(24);
   window.localStorage.setItem(COGNITO_CODE_VERIFIER_KEY, verifier);
   window.localStorage.setItem(COGNITO_STATE_KEY, state);
-  window.localStorage.setItem(COGNITO_NEXT_KEY, nextPath || "/");
+  window.localStorage.setItem(COGNITO_NEXT_KEY, safeLocalPath(nextPath));
 
   const params = new URLSearchParams({
     client_id: COGNITO_CLIENT_ID,
@@ -454,7 +458,7 @@ export async function completeCognitoLoginFromUrl(): Promise<string | null> {
     redirect_uri: authRedirectUri(),
     code_verifier: verifier
   });
-  const response = await fetch(`${COGNITO_DOMAIN}/oauth2/token`, {
+  const response = await requestFetch(`${COGNITO_DOMAIN}/oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString()
@@ -470,7 +474,7 @@ export async function completeCognitoLoginFromUrl(): Promise<string | null> {
   setAuthToken(String(authToken));
   window.localStorage.removeItem(COGNITO_CODE_VERIFIER_KEY);
   window.localStorage.removeItem(COGNITO_STATE_KEY);
-  const next = window.localStorage.getItem(COGNITO_NEXT_KEY) || "/";
+  const next = safeLocalPath(window.localStorage.getItem(COGNITO_NEXT_KEY));
   window.localStorage.removeItem(COGNITO_NEXT_KEY);
   window.history.replaceState({}, "", "/login");
   return next;
@@ -496,6 +500,42 @@ function handleUnauthorized(status: number): void {
   redirectToLogin();
 }
 
+async function responseError(response: Response, fallback: string): Promise<Error> {
+  const errorBody = await response.json().catch(() => null);
+  const detail = errorBody?.detail ?? errorBody?.message ?? errorBody?.Message;
+  if (typeof detail === "object" && Array.isArray(detail?.errors)) {
+    return new Error(detail.errors.map(String).join(" "));
+  }
+  if (typeof detail === "object" && detail?.message) {
+    return new Error(String(detail.message));
+  }
+  if (typeof detail === "string" && detail.trim()) {
+    return new Error(detail);
+  }
+  if (response.status === 401) return new Error("Your session has expired. Sign in again to continue.");
+  if (response.status === 403) return new Error("You do not have permission to complete this action.");
+  if (response.status === 404) return new Error("The requested record could not be found.");
+  if (response.status === 409) return new Error("This change conflicts with a newer update. Refresh and try again.");
+  if (response.status === 429) return new Error("Too many requests. Wait a moment and try again.");
+  if (response.status >= 500) return new Error("StockSense is temporarily unavailable. Try again shortly.");
+  return new Error(fallback);
+}
+
+function normalizeRequestError(error: unknown): Error {
+  if (error instanceof TypeError) {
+    return new Error("Could not reach StockSense. Check your connection and try again.");
+  }
+  return error instanceof Error ? error : new Error("The request could not be completed.");
+}
+
+async function requestFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    throw normalizeRequestError(error);
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   if (IS_DEMO_MODE) {
     const demo = getDemoGet(path);
@@ -510,7 +550,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     });
     if (!response.ok) {
       handleUnauthorized(response.status);
-      throw new Error(`API request failed: ${response.status}`);
+      throw await responseError(response, `The request failed with status ${response.status}.`);
     }
     return response.json() as Promise<T>;
   } catch (error) {
@@ -518,7 +558,7 @@ export async function apiGet<T>(path: string): Promise<T> {
       const demo = getDemoGet(path);
       if (demo) return demo as T;
     }
-    throw error;
+    throw normalizeRequestError(error);
   }
 }
 
@@ -540,15 +580,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     });
     if (!response.ok) {
       handleUnauthorized(response.status);
-      const errorBody = await response.json().catch(() => null);
-      const detail = errorBody?.detail;
-      if (typeof detail === "object" && detail?.errors) {
-        throw new Error(detail.errors.join(" "));
-      }
-      if (typeof detail === "object" && detail?.message) {
-        throw new Error(String(detail.message));
-      }
-      throw new Error(typeof detail === "string" ? detail : `API request failed: ${response.status}`);
+      throw await responseError(response, `The request failed with status ${response.status}.`);
     }
     return response.json() as Promise<T>;
   } catch (error) {
@@ -556,38 +588,49 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
       const demo = getDemoPost(path, body);
       if (demo) return demo as T;
     }
-    throw error;
+    throw normalizeRequestError(error);
   }
 }
 
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   requireCognitoToken();
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: formData
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData
+    });
+    if (!response.ok) {
+      handleUnauthorized(response.status);
+      throw await responseError(response, `The upload failed with status ${response.status}.`);
+    }
+    return response.json() as Promise<T>;
+  } catch (error) {
+    throw normalizeRequestError(error);
+  }
+}
+
+export async function apiDownload(path: string): Promise<Blob> {
+  requireCognitoToken();
+  const response = await requestFetch(`${API_BASE_URL}${path}`, {
+    cache: "no-store",
+    headers: authHeaders()
   });
   if (!response.ok) {
     handleUnauthorized(response.status);
-    const errorBody = await response.json().catch(() => null);
-    const detail = errorBody?.detail;
-    if (typeof detail === "object" && detail?.errors) {
-      throw new Error(detail.errors.join(" "));
-    }
-    throw new Error(typeof detail === "string" ? detail : `API request failed: ${response.status}`);
+    throw await responseError(response, `The download failed with status ${response.status}.`);
   }
-  return response.json() as Promise<T>;
+  return response.blob();
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  const response = await requestFetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
   });
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    throw new Error(errorBody?.detail || "Login failed");
+    throw await responseError(response, "Email or password is incorrect.");
   }
   const body = (await response.json()) as LoginResponse;
   setAuthToken(body.access_token);
@@ -598,7 +641,7 @@ export async function loginWithCognitoPassword(username: string, password: strin
   if (!COGNITO_CLIENT_ID) {
     throw new Error("Secure sign-in is not configured.");
   }
-  const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+  const response = await requestFetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-amz-json-1.1",
@@ -615,8 +658,20 @@ export async function loginWithCognitoPassword(username: string, password: strin
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    const message = body?.message || body?.Message || body?.__type || "Sign-in failed.";
-    throw new Error(String(message).replace(/^.*?#/, ""));
+    const errorType = String(body?.__type || "").replace(/^.*?#/, "");
+    if (errorType === "NotAuthorizedException" || errorType === "UserNotFoundException") {
+      throw new Error("Email or password is incorrect.");
+    }
+    if (errorType === "UserNotConfirmedException") {
+      throw new Error("This account is not active yet. Check your invitation email or contact your workspace admin.");
+    }
+    if (errorType === "PasswordResetRequiredException") {
+      throw new Error("A password reset is required. Use company sign-in or contact your workspace admin.");
+    }
+    if (errorType === "TooManyRequestsException" || errorType === "LimitExceededException") {
+      throw new Error("Too many sign-in attempts. Wait a moment and try again.");
+    }
+    throw new Error("Sign-in could not be completed. Try again or use company sign-in.");
   }
   if (body?.ChallengeName) {
     throw new Error("This account needs an additional sign-in step. Use company sign-in instead.");

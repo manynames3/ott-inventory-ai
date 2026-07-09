@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "deploy:cloudflare": "wrangler pages deploy out --project-name=otokistocksense --branch=main",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

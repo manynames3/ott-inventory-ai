@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Activity, Building2, KeyRound, Save, ShieldCheck } from "lucide-react";
 
+import { ConfirmDialog, PageLoading } from "@/components/feedback";
 import { AdminTenantConfig, AdminTenantResponse, AuthMeResponse, apiGet, apiPost } from "@/lib/api";
 
 const lifecycleStages: AdminTenantConfig["lifecycle_stage"][] = ["setup", "pilot", "active", "paused", "churned"];
@@ -65,6 +66,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
   const changed = useMemo(() => JSON.stringify(config) !== JSON.stringify(draft), [config, draft]);
@@ -72,6 +74,13 @@ export default function AdminPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (!changed) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [changed]);
 
   async function load() {
     setLoading(true);
@@ -98,6 +107,14 @@ export default function AdminPage() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft) return;
+    if (!draft.organization_name.trim()) {
+      setError("Enter an organization name.");
+      return;
+    }
+    if (draft.billing_contact_email && !/^\S+@\S+\.\S+$/.test(draft.billing_contact_email)) {
+      setError("Enter a valid owner contact email.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -113,6 +130,8 @@ export default function AdminPage() {
     }
   }
 
+  if (loading) return <PageLoading label="Loading workspace settings" />;
+
   return (
     <>
       <header className="page-header">
@@ -121,14 +140,14 @@ export default function AdminPage() {
           <p>Manage workspace setup, internal rollout, access posture, and company sign-in readiness.</p>
         </div>
         <div className="toolbar">
-          <button className="button secondary" type="button" onClick={load} disabled={loading || saving}>
+          <button className="button secondary" type="button" onClick={() => changed ? setDiscardDialogOpen(true) : void load()} disabled={saving}>
             Refresh
           </button>
         </div>
       </header>
 
-      {error ? <div className="message error">{error}</div> : null}
-      {message ? <div className="message ok">{message}</div> : null}
+      {error ? <div className="message error" role="alert">{error}</div> : null}
+      {message ? <div className="message ok" role="status">{message}</div> : null}
 
       {!loading && !isAdmin ? (
         <section className="panel">
@@ -177,6 +196,7 @@ export default function AdminPage() {
                   className="input"
                   value={draft.organization_name}
                   onChange={(event) => update("organization_name", event.target.value)}
+                  required
                 />
                 <label htmlFor="tenant-id">Tenant ID</label>
                 <input id="tenant-id" className="input" value={draft.tenant_id} readOnly />
@@ -317,6 +337,18 @@ export default function AdminPage() {
               </div>
             </section>
           </form>
+          <ConfirmDialog
+            open={discardDialogOpen}
+            title="Discard unsaved changes?"
+            description="Refreshing workspace settings will replace this form with the latest saved values."
+            confirmLabel="Discard changes"
+            destructive
+            onCancel={() => setDiscardDialogOpen(false)}
+            onConfirm={() => {
+              setDiscardDialogOpen(false);
+              void load();
+            }}
+          />
         </>
       ) : null}
     </>

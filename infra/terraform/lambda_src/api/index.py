@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import calendar
 import csv
 import hashlib
 import hmac
@@ -1958,11 +1959,20 @@ def _sku_detail(sku: str) -> Dict[str, Any]:
     recent_avg = sum(recent_30) / 30 if recent_30 else 0.0
     prior_avg = sum(prior_30) / 30 if prior_30 else 0.0
     if recent_avg > prior_avg * 1.15:
-        trend = "upward placeholder: recent 30-day demand is above the prior 30 days"
+        trend = "Upward: recent 30-day demand is above the prior 30 days."
     elif recent_avg < prior_avg * 0.85:
-        trend = "downward placeholder: recent 30-day demand is below the prior 30 days"
+        trend = "Downward: recent 30-day demand is below the prior 30 days."
     else:
-        trend = "stable placeholder: no significant trend detected"
+        trend = "Stable: no significant change was detected between the two most recent 30-day windows."
+
+    current_date = datetime.fromtimestamp(today)
+    prior_year_month = f"{current_date.year - 1:04d}-{current_date.month:02d}"
+    prior_year_quantity = quantities_by_month.get(prior_year_month)
+    if prior_year_quantity is None:
+        seasonality = "Not estimated: another annual demand cycle is needed for a reliable same-month comparison."
+    else:
+        days_in_month = calendar.monthrange(current_date.year - 1, current_date.month)[1]
+        seasonality = f"Same-month last-year daily demand averaged {prior_year_quantity / days_in_month:.2f} units."
 
     demand_points = [
         {"label": month, "value": quantity}
@@ -1992,7 +2002,7 @@ def _sku_detail(sku: str) -> Dict[str, Any]:
                 "exponential_smoothing": round(smoothed, 4),
             },
             "trend": trend,
-            "seasonality": "seasonality placeholder: compare against same-month demand once more annual cycles are available",
+            "seasonality": seasonality,
         },
         "reorder_recommendations": recs,
         "fefo": fefo,
@@ -2160,8 +2170,8 @@ def _dispatch(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "configured": bool(os.getenv("SIEM_HTTP_ENDPOINT", "").strip()),
                 },
                 "erp_adapters": {
-                    "sap": "placeholder only; see docs/erp_integration.md",
-                    "oracle": "placeholder only; see docs/erp_integration.md",
+                    "sap": "not connected",
+                    "oracle": "not connected",
                 },
             },
         )

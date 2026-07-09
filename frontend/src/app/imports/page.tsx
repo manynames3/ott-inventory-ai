@@ -5,7 +5,6 @@ import { CheckCheck, CheckCircle2, CircleAlert, Clock, Eye, FileDown, RefreshCw,
 
 import { DataTable } from "@/components/data-table";
 import {
-  API_BASE_URL,
   AuditEventsResponse,
   AuditEventRow,
   IS_DEMO_MODE,
@@ -15,10 +14,10 @@ import {
   ImportHistoryRow,
   ImportPreviewResponse,
   ImportRequirementsResponse,
+  apiDownload,
   apiGet,
   apiPost,
-  apiUpload,
-  authHeaders
+  apiUpload
 } from "@/lib/api";
 
 type UploadResponse = {
@@ -82,7 +81,7 @@ const fallbackEntities: Record<string, string[]> = {
 export default function ImportsPage() {
   const [requirements, setRequirements] = useState<ImportRequirementsResponse | null>(null);
   const [files, setFiles] = useState<Record<string, File | null>>({});
-  const [messages, setMessages] = useState<Record<string, { type: "ok" | "error"; text: string }>>({});
+  const [messages, setMessages] = useState<Record<string, { type: "ok" | "error" | "warning"; text: string }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<ImportHistoryResponse | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -93,11 +92,18 @@ export default function ImportsPage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, ImportProgress | null>>({});
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<ImportRequirementsResponse>("/api/import/requirements")
-      .then(setRequirements)
-      .catch(() => setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} }));
+      .then((body) => {
+        setRequirements(body);
+        setRequirementsError(null);
+      })
+      .catch((error) => {
+        setRequirements({ csv_required_columns: fallbackEntities, erp_adapters: {} });
+        setRequirementsError(error instanceof Error ? error.message : "Import requirements are unavailable.");
+      });
     void loadHistory();
     void loadAudit();
   }, []);
@@ -135,13 +141,50 @@ export default function ImportsPage() {
   }
 
   function onFile(entity: string, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+    if (file) {
+      const extension = `.${file.name.split(".").pop()?.toLowerCase() || ""}`;
+      const allowed = requirements?.supported_upload_formats || [".csv", ".xlsx", ".xlsm"];
+      const maxBytes = requirements?.upload_mode === "presigned_s3" ? 100 * 1024 * 1024 : 8 * 1024 * 1024;
+      if (!allowed.includes(extension)) {
+        event.target.value = "";
+        setFiles((current) => ({ ...current, [entity]: null }));
+        setMessages((current) => ({
+          ...current,
+          [entity]: { type: "error", text: `Choose a supported file: ${allowed.join(", ")}.` }
+        }));
+        setProgress((current) => ({ ...current, [entity]: { step: "failed", message: "Unsupported file type." } }));
+        return;
+      }
+      if (!file.size) {
+        event.target.value = "";
+        setFiles((current) => ({ ...current, [entity]: null }));
+        setMessages((current) => ({ ...current, [entity]: { type: "error", text: "The selected file is empty." } }));
+        setProgress((current) => ({ ...current, [entity]: { step: "failed", message: "Empty file." } }));
+        return;
+      }
+      if (file.size > maxBytes) {
+        event.target.value = "";
+        setFiles((current) => ({ ...current, [entity]: null }));
+        setMessages((current) => ({
+          ...current,
+          [entity]: { type: "error", text: `This file exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB upload limit.` }
+        }));
+        setProgress((current) => ({ ...current, [entity]: { step: "failed", message: "File is too large." } }));
+        return;
+      }
+    }
     setFiles((current) => ({
       ...current,
-      [entity]: event.target.files?.[0] || null
+      [entity]: file
     }));
     setPreviews((current) => ({ ...current, [entity]: null }));
     setMappings((current) => ({ ...current, [entity]: {} }));
-    const file = event.target.files?.[0] || null;
+    setMessages((current) => {
+      const next = { ...current };
+      delete next[entity];
+      return next;
+    });
     setProgress((current) => ({
       ...current,
       [entity]: file ? { step: "selected", message: `${file.name} selected. Preview the file before import.` } : null
@@ -314,13 +357,7 @@ export default function ImportsPage() {
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/templates/${entity}.${format}`, {
-      headers: authHeaders()
-    });
-    if (!response.ok) {
-      throw new Error(`Could not download ${entity} template.`);
-    }
-    const blob = await response.blob();
+    const blob = await apiDownload(`/api/templates/${entity}.${format}`);
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -330,23 +367,38 @@ export default function ImportsPage() {
   }
 
   async function downloadExport(entity: string) {
-    const url = IS_DEMO_MODE
-      ? `/sample_data/ottogi_demo/${entity}.csv`
-      : `${API_BASE_URL}/api/exports/${entity}.csv`;
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: IS_DEMO_MODE ? undefined : authHeaders()
-    });
-    if (!response.ok) {
-      throw new Error(`Could not download ${entity} export.`);
+    let blob: Blob;
+    if (IS_DEMO_MODE) {
+      const response = await fetch(`/sample_data/ottogi_demo/${entity}.csv`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Could not download ${entity} export.`);
+      blob = await response.blob();
+    } else {
+      blob = await apiDownload(`/api/exports/${entity}.csv`);
     }
-    const blob = await response.blob();
     const objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
     link.download = `${entity}_export.csv`;
     link.click();
     window.URL.revokeObjectURL(objectUrl);
+  }
+
+  async function runDownload(entity: string, label: string, action: () => Promise<void>) {
+    setMessages((current) => ({ ...current, [entity]: { type: "ok", text: `Preparing ${label}...` } }));
+    try {
+      await action();
+      setMessages((current) => ({ ...current, [entity]: { type: "ok", text: `${label} downloaded.` } }));
+    } catch (error) {
+      const message = error instanceof TypeError
+        ? `${label} could not be reached. Check your connection and try again.`
+        : error instanceof Error
+          ? error.message
+          : `${label} could not be downloaded.`;
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "error", text: message }
+      }));
+    }
   }
 
   async function previewImport(entity: string) {
@@ -394,11 +446,16 @@ export default function ImportsPage() {
           ...current,
           [entity]: { step: "uploading", message: "Uploading preview file to private storage." }
         }));
-        const uploadResponse = await fetch(presign.upload_url, {
-          method: "PUT",
-          headers: { "Content-Type": contentType },
-          body: file
-        });
+        let uploadResponse: Response;
+        try {
+          uploadResponse = await fetch(presign.upload_url, {
+            method: "PUT",
+            headers: { "Content-Type": contentType },
+            body: file
+          });
+        } catch {
+          throw new Error("The file could not be uploaded. Check your connection and try again.");
+        }
         if (!uploadResponse.ok) {
           throw new Error(`S3 upload failed: ${uploadResponse.status}`);
         }
@@ -488,6 +545,13 @@ export default function ImportsPage() {
       }));
       return;
     }
+    if (preview.validation.sample_errors.length) {
+      setMessages((current) => ({
+        ...current,
+        [entity]: { type: "error", text: "Resolve the sample validation errors before approving this import." }
+      }));
+      return;
+    }
     setLoading((current) => ({ ...current, [entity]: true }));
     setMessages((current) => ({
       ...current,
@@ -505,6 +569,21 @@ export default function ImportsPage() {
         mapping: mappings[entity]
       });
       const status = await pollImportStatus(body.bucket, body.key);
+      if (status.status === "queued" || status.status === "processing") {
+        setMessages((current) => ({
+          ...current,
+          [entity]: {
+            type: "warning",
+            text: "The import is still processing. It remains queued safely; refresh import history in a moment for the final result."
+          }
+        }));
+        setProgress((current) => ({
+          ...current,
+          [entity]: { step: "queued", message: "Import is still processing in the background." }
+        }));
+        void loadHistory();
+        return;
+      }
       setProgress((current) => ({
         ...current,
         [entity]: { step: "refreshing", message: "Import worker reported back. Refreshing views and history." }
@@ -561,6 +640,13 @@ export default function ImportsPage() {
         </div>
       </header>
 
+      {requirementsError ? <div className="message warning" role="alert">Import configuration could not be verified: {requirementsError}</div> : null}
+      {IS_DEMO_MODE ? (
+        <div className="message info" role="status">
+          File uploads are disabled in the demo workspace. You can download the sample exports and templates below; sign in to a live workspace to import operational data.
+        </div>
+      ) : null}
+
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -591,35 +677,37 @@ export default function ImportsPage() {
           const missing = missingMappings(entity);
           return (
           <div className="upload-row" key={entity}>
-            <div>
+            <label className="upload-file-label" htmlFor={`import-file-${entity}`}>
               <strong>{entity.replaceAll("_", " ")}</strong>
               <p>{required.join(", ")}</p>
-            </div>
+            </label>
             <input
+              id={`import-file-${entity}`}
               className="input"
               type="file"
               accept=".csv,text/csv,.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={(event) => onFile(entity, event)}
+              disabled={IS_DEMO_MODE}
             />
             <div className="template-actions">
-              <button className="button secondary" type="button" onClick={() => downloadExport(entity)}>
+              <button className="button secondary" type="button" onClick={() => void runDownload(entity, "CSV export", () => downloadExport(entity))}>
                 <FileDown size={16} />
                 Export CSV
               </button>
-              <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "csv")}>
+              <button className="button secondary" type="button" onClick={() => void runDownload(entity, "CSV template", () => downloadTemplate(entity, "csv"))}>
                 <FileDown size={16} />
                 CSV Template
               </button>
               {!IS_DEMO_MODE ? (
-                <button className="button secondary" type="button" onClick={() => downloadTemplate(entity, "xlsx")}>
+                <button className="button secondary" type="button" onClick={() => void runDownload(entity, "Excel template", () => downloadTemplate(entity, "xlsx"))}>
                   <FileDown size={16} />
                   Excel Template
                 </button>
               ) : null}
             </div>
-            <button className="button" type="button" disabled={loading[entity]} onClick={() => previewImport(entity)}>
+            <button className="button" type="button" disabled={IS_DEMO_MODE || loading[entity] || !files[entity]} onClick={() => previewImport(entity)}>
               <Eye size={17} />
-              Preview
+              {loading[entity] ? "Working..." : "Preview file"}
             </button>
             {progress[entity] ? (
               <div className={`import-progress import-progress-${progress[entity]?.step}`}>
@@ -634,7 +722,12 @@ export default function ImportsPage() {
                     <h3>Mapping Preview</h3>
                     <p>{preview.row_count_estimate.toLocaleString()} rows detected from {preview.filename}.</p>
                   </div>
-                  <button className="button" type="button" disabled={loading[entity] || missing.length > 0} onClick={() => commitImport(entity)}>
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={loading[entity] || missing.length > 0 || preview.validation.sample_errors.length > 0}
+                    onClick={() => commitImport(entity)}
+                  >
                     <CheckCheck size={17} />
                     Approve import
                   </button>
@@ -677,7 +770,7 @@ export default function ImportsPage() {
               </div>
             ) : null}
             {messages[entity] ? (
-              <div className={`message ${messages[entity].type}`}>{messages[entity].text}</div>
+              <div className={`message ${messages[entity].type}`} role={messages[entity].type === "error" ? "alert" : "status"}>{messages[entity].text}</div>
             ) : null}
           </div>
           );

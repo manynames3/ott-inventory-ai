@@ -7,10 +7,12 @@ type DataTableProps = {
   rows: Record<string, unknown>[];
   emptyLabel?: string;
   tableClassName?: string;
+  ariaLabel?: string;
 };
 
 function formatHeader(column: string) {
-  return column.replaceAll("_", " ");
+  const label = column.replaceAll("_", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 function formatCell(column: string, value: unknown) {
@@ -33,18 +35,18 @@ function formatCell(column: string, value: unknown) {
   return String(value);
 }
 
-export function DataTable({ columns, rows, emptyLabel = "No rows", tableClassName = "" }: DataTableProps) {
+export function DataTable({ columns, rows, emptyLabel = "No rows", tableClassName = "", ariaLabel }: DataTableProps) {
   if (!rows.length) {
-    return <div className="empty-state">{emptyLabel}</div>;
+    return <div className="empty-state" role="status">{emptyLabel}</div>;
   }
 
   return (
     <div className="table-scroll">
-      <table className={`data-table${tableClassName ? ` ${tableClassName}` : ""}`}>
+      <table className={`data-table${tableClassName ? ` ${tableClassName}` : ""}`} aria-label={ariaLabel}>
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column} data-column={column}>
+              <th key={column} data-column={column} scope="col">
                 {formatHeader(column)}
               </th>
             ))}
@@ -52,7 +54,7 @@ export function DataTable({ columns, rows, emptyLabel = "No rows", tableClassNam
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={index}>
+            <tr key={`${columns.map((column) => String(row[column] ?? "")).join("|")}-${index}`}>
               {columns.map((column) => {
                 const value = row[column];
                 if (column === "sku" && value) {

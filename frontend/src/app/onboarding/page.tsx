@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, CircleAlert, FileText, Search, ShieldCheck, UploadCloud } from "lucide-react";
 
+import { PageLoading } from "@/components/feedback";
 import { StatusPill } from "@/components/status-pill";
 import {
+  IS_DEMO_MODE,
   ImportChecklistItem,
   ImportHistoryResponse,
   ImportRequirementsResponse,
@@ -60,6 +62,7 @@ export default function OnboardingPage() {
   const [requirements, setRequirements] = useState<ImportRequirementsResponse | null>(null);
   const [history, setHistory] = useState<ImportHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -72,6 +75,8 @@ export default function OnboardingPage() {
         setHistory(historyBody);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Onboarding status is not available.");
+      } finally {
+        setLoading(false);
       }
     }
     void load();
@@ -86,6 +91,8 @@ export default function OnboardingPage() {
     if (!checklist.length) return 0;
     return Math.round((completeCount / checklist.length) * 100);
   }, [checklist.length, completeCount]);
+
+  if (loading) return <PageLoading label="Loading data setup" />;
 
   return (
     <>
@@ -103,10 +110,12 @@ export default function OnboardingPage() {
             <Search size={17} />
             Ask StockSense AI
           </Link>
-          <a className="button secondary" href="/sample_data/ottogi_demo/products.csv" download>
-            <FileText size={17} />
-            Sample CSV
-          </a>
+          {IS_DEMO_MODE ? (
+            <a className="button secondary" href="/sample_data/ottogi_demo/products.csv" download>
+              <FileText size={17} />
+              Demo CSV
+            </a>
+          ) : null}
         </div>
       </header>
 
@@ -238,22 +247,24 @@ export default function OnboardingPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2>Starter Files</h2>
-            <p>Use these sample files to understand format expectations before loading internal exports.</p>
+      {IS_DEMO_MODE ? (
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Demo Files</h2>
+              <p>Download the sample dataset used in this demo environment.</p>
+            </div>
           </div>
-        </div>
-        <div className="template-actions">
-          {Object.keys(columns).map((entity) => (
-            <a className="button secondary" href={`/sample_data/ottogi_demo/${entity}.csv`} download key={entity}>
-              <FileText size={16} />
-              {titleCase(entity)}
-            </a>
-          ))}
-        </div>
-      </section>
+          <div className="template-actions">
+            {Object.keys(columns).map((entity) => (
+              <a className="button secondary" href={`/sample_data/ottogi_demo/${entity}.csv`} download key={entity}>
+                <FileText size={16} />
+                {titleCase(entity)}
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

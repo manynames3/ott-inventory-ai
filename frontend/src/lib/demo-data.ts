@@ -552,8 +552,8 @@ const demoImportRequirements = {
     configured: false
   },
   erp_adapters: {
-    sap: "placeholder only; see docs/erp_integration.md",
-    oracle: "placeholder only; see docs/erp_integration.md"
+    sap: "not connected",
+    oracle: "not connected"
   }
 };
 
@@ -697,8 +697,8 @@ export function demoSkuDetail(sku: string) {
         { horizon_days: 90, forecast_quantity: 3789, daily_demand: 42.1 }
       ],
       models: { moving_average: 40.8, exponential_smoothing: 43.4 },
-      trend: "upward placeholder: recent 30-day demand is above the prior 30 days",
-      seasonality: "seasonality placeholder: compare against same-month demand once more annual cycles are available"
+      trend: "Upward: recent 30-day demand is above the prior 30 days.",
+      seasonality: "Not estimated: another annual demand cycle is needed for a reliable comparison."
     },
     reorder_recommendations: demoDashboard.recommendations.filter((item) => item.sku === sku),
     fefo: demoDashboard.fefo.filter((item) => item.sku === sku),
@@ -810,6 +810,12 @@ function demoQuery(question: string) {
   };
 }
 
+function requestedLimit(path: string, fallback = 100) {
+  const raw = new URL(path, "https://demo.stocksense.local").searchParams.get("limit");
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), 250) : fallback;
+}
+
 export function getDemoGet(path: string) {
   if (path.startsWith("/health")) return { ok: true, service: "stocksense-demo-api", tenant_id: "demo" };
   if (path.startsWith("/api/auth/me")) {
@@ -830,8 +836,10 @@ export function getDemoGet(path: string) {
   if (path.startsWith("/api/action-reviews")) return demoActionReviews;
   if (path.startsWith("/api/monitoring/summary")) return demoMonitoringSummary;
   if (path.startsWith("/api/validation/forecast")) return demoForecastValidation;
-  if (path.startsWith("/api/products")) return { rows: products, count: products.length };
-  if (path.startsWith("/api/customers?")) return { rows: customers, count: customers.length };
+  if (path.startsWith("/api/products")) return { rows: products.slice(0, requestedLimit(path)), count: products.length };
+  if (path === "/api/customers" || path.startsWith("/api/customers?")) {
+    return { rows: customers.slice(0, requestedLimit(path)), count: customers.length };
+  }
   if (path.startsWith("/api/sku/")) return demoSkuDetail(decodeURIComponent(path.split("/api/sku/")[1]));
   if (path.startsWith("/api/customers/")) return demoCustomerDetail(decodeURIComponent(path.split("/api/customers/")[1]));
   return undefined;

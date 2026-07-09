@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { BarChart, MultiLineChart } from "@/components/charts";
 import { DataTable } from "@/components/data-table";
+import { EmptyState, PageError, PageLoading } from "@/components/feedback";
 import { StatusPill } from "@/components/status-pill";
 import { apiGet, formatNumber } from "@/lib/api";
 
@@ -87,33 +88,59 @@ function SkuReorderActions({ rows }: { rows: Record<string, unknown>[] }) {
 
 export function SkuDetailClient() {
   const params = useSearchParams();
-  const sku = params.get("sku") || "08252K";
+  const sku = params.get("sku")?.trim() || "";
   const [detail, setDetail] = useState<SkuDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadedSku, setLoadedSku] = useState("");
 
   useEffect(() => {
+    if (!sku) return;
     let active = true;
-    setDetail(null);
-    setError(null);
     apiGet<SkuDetail>(`/api/sku/${encodeURIComponent(sku)}`)
       .then((response) => {
-        if (active) setDetail(response);
+        if (active) {
+          setDetail(response);
+          setError(null);
+          setLoadedSku(sku);
+        }
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : "Could not load SKU detail");
+        if (active) {
+          setDetail(null);
+          setError(err instanceof Error ? err.message : "Could not load SKU detail");
+          setLoadedSku(sku);
+        }
       });
     return () => {
       active = false;
     };
   }, [sku]);
 
-  if (error) {
-    return <div className="message error">{error}</div>;
+  if (!sku) {
+    return (
+      <>
+        <header className="page-header">
+          <div>
+            <h1>SKU detail</h1>
+            <p>Open a product from search, the dashboard, or an inventory table.</p>
+          </div>
+        </header>
+        <EmptyState
+          title="No SKU selected"
+          message="Choose a SKU from the inventory overview to inspect demand, lots, inbound supply, and reorder recommendations."
+          action={<Link className="button" href="/">Browse inventory</Link>}
+        />
+      </>
+    );
   }
 
-  if (!detail) {
-    return <div className="empty-state">Loading SKU detail</div>;
+  if (loadedSku !== sku) return <PageLoading label="Loading SKU detail" />;
+
+  if (error) {
+    return <PageError title="SKU could not be loaded" message={error} action={<Link className="button secondary" href="/">Back to overview</Link>} />;
   }
+
+  if (!detail) return <PageLoading label="Loading SKU detail" />;
 
   const product = detail.product || {};
   const modelRows = Object.entries(detail.forecast.models).map(([model, daily_demand]) => ({

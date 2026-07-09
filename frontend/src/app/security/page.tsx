@@ -4,24 +4,31 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Activity, BrainCircuit, Database, FileText, LockKeyhole, ShieldCheck, UploadCloud } from "lucide-react";
 
+import { PageLoading } from "@/components/feedback";
 import { ImportRequirementsResponse, apiGet } from "@/lib/api";
 
 export default function SecurityPage() {
   const [requirements, setRequirements] = useState<ImportRequirementsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<ImportRequirementsResponse>("/api/import/requirements")
-      .then(setRequirements)
-      .catch(() => setRequirements(null));
+      .then((body) => {
+        setRequirements(body);
+        setError(null);
+      })
+      .catch((err) => {
+        setRequirements(null);
+        setError(err instanceof Error ? err.message : "Runtime security settings are unavailable.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const retention = requirements?.retention || {
-    raw_upload_days: 365,
-    audit_event_days: 180,
-    import_status_days: 90,
-    immutable_archive_days: 2555,
-  };
-  const siem = requirements?.siem || { mode: "s3_archive_or_customer_forwarder", configured: false };
+  if (loading) return <PageLoading label="Loading security and data handling" />;
+
+  const retention = requirements?.retention;
+  const siem = requirements?.siem;
 
   return (
     <>
@@ -44,6 +51,8 @@ export default function SecurityPage() {
           </Link>
         </div>
       </header>
+
+      {error ? <div className="message warning" role="alert">Runtime control values could not be verified: {error}</div> : null}
 
       <section className="grid-3 buyer-value-grid">
         <div className="insight-card compact">
@@ -139,19 +148,19 @@ export default function SecurityPage() {
           <div className="security-list">
             <div>
               <Database size={18} />
-              <p>Raw upload files: {retention.raw_upload_days.toLocaleString()} days in private S3 lifecycle storage.</p>
+              <p>Raw upload files: {retention ? `${retention.raw_upload_days.toLocaleString()} days` : "not reported"} in private lifecycle storage.</p>
             </div>
             <div>
               <Activity size={18} />
-              <p>App audit events: {retention.audit_event_days.toLocaleString()} days in the operational audit table.</p>
+              <p>App audit events: {retention ? `${retention.audit_event_days.toLocaleString()} days` : "not reported"} in the operational audit table.</p>
             </div>
             <div>
               <UploadCloud size={18} />
-              <p>Import status and validation history: {retention.import_status_days.toLocaleString()} days for operations review.</p>
+              <p>Import status and validation history: {retention ? `${retention.import_status_days.toLocaleString()} days` : "not reported"} for operations review.</p>
             </div>
             <div>
               <ShieldCheck size={18} />
-              <p>Immutable audit archive: {retention.immutable_archive_days.toLocaleString()} days when Object Lock is enabled.</p>
+              <p>Immutable audit archive: {retention ? `${retention.immutable_archive_days.toLocaleString()} days` : "not reported"} when immutable storage is enabled.</p>
             </div>
           </div>
         </div>
@@ -167,13 +176,13 @@ export default function SecurityPage() {
             <div>
               <FileText size={18} />
               <p>
-                SIEM mode: {siem.mode.replaceAll("_", " ")}. Direct forwarding is{" "}
-                {siem.configured ? "configured" : "left customer-specific until a reviewed endpoint and secret are provided"}.
+                SIEM mode: {siem?.mode ? siem.mode.replaceAll("_", " ") : "not reported"}. Direct forwarding is{" "}
+                {siem?.configured ? "configured" : "not configured for this workspace"}.
               </p>
             </div>
             <div>
               <ShieldCheck size={18} />
-              <p>Secure hosted login and API Gateway JWT authorization are available for named-user workspace authentication.</p>
+              <p>Named-user sign-in and role checks protect access to workspace data and approval controls.</p>
             </div>
             <div>
               <LockKeyhole size={18} />

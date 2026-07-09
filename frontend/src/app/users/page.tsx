@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { RefreshCw, ShieldCheck, UserPlus, Users } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, ShieldCheck, UserPlus, Users, X } from "lucide-react";
 
+import { ConfirmDialog, PageLoading } from "@/components/feedback";
 import {
   AdminUser,
   AdminUserResponse,
@@ -41,6 +42,9 @@ export default function UsersPage() {
   const [role, setRole] = useState<AdminUser["role"]>("planner");
   const [sendInvite, setSendInvite] = useState(true);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: "disable" | "reset"; user: AdminUser } | null>(null);
 
   const isAdmin = currentUser?.role === "admin";
   const activeCount = useMemo(() => users.filter((user) => user.enabled).length, [users]);
@@ -48,6 +52,16 @@ export default function UsersPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (!temporaryPassword) return;
+    const timeout = window.setTimeout(() => {
+      setTemporaryPassword(null);
+      setShowTemporaryPassword(false);
+      setPasswordCopied(false);
+    }, 5 * 60 * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [temporaryPassword]);
 
   async function load() {
     setLoading(true);
@@ -83,6 +97,8 @@ export default function UsersPage() {
       setRole("planner");
       setSendInvite(true);
       setTemporaryPassword(body.temporary_password || null);
+      setShowTemporaryPassword(false);
+      setPasswordCopied(false);
       setMessage(body.invite_sent ? `Invitation sent to ${body.row.email}.` : `Created ${body.row.email}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create user.");
@@ -117,6 +133,7 @@ export default function UsersPage() {
       const body = await apiPost<AdminUserResponse>(`/api/admin/users/${encodeURIComponent(user.username)}/${action}`, {});
       setUsers((current) => current.map((row) => (row.username === user.username ? body.row : row)));
       setMessage(`${userLabel(body.row)} ${enabled ? "enabled" : "disabled"}.`);
+      setPendingAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update user.");
     } finally {
@@ -136,12 +153,25 @@ export default function UsersPage() {
       );
       setUsers((current) => current.map((row) => (row.username === user.username ? body.row : row)));
       setMessage(`Password reset email sent to ${userLabel(body.row)}.`);
+      setPendingAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to reset password.");
     } finally {
       setSaving(false);
     }
   }
+
+  async function copyTemporaryPassword() {
+    if (!temporaryPassword) return;
+    try {
+      await navigator.clipboard.writeText(temporaryPassword);
+      setPasswordCopied(true);
+    } catch {
+      setError("The temporary password could not be copied. Reveal it and copy it manually.");
+    }
+  }
+
+  if (loading) return <PageLoading label="Loading workspace users" />;
 
   return (
     <>
@@ -158,16 +188,37 @@ export default function UsersPage() {
         </div>
       </header>
 
-      {error ? <div className="message error">{error}</div> : null}
-      {message ? <div className="message ok">{message}</div> : null}
+      {error ? <div className="message error" role="alert">{error}</div> : null}
+      {message ? <div className="message ok" role="status">{message}</div> : null}
       {temporaryPassword ? (
-        <div className="message warning">
-          Temporary password: <strong>{temporaryPassword}</strong>
-          <span> Share it once through a secure internal channel, then have the user change it.</span>
+        <div className="temporary-password-notice" role="status">
+          <div>
+            <strong>Temporary password created</strong>
+            <span>It will be removed from this screen in five minutes. Share it only through an approved secure channel.</span>
+          </div>
+          <code>{showTemporaryPassword ? temporaryPassword : "••••••••••••"}</code>
+          <div className="temporary-password-actions">
+            <button className="button secondary compact-button" type="button" onClick={() => setShowTemporaryPassword((current) => !current)}>
+              {showTemporaryPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              {showTemporaryPassword ? "Hide" : "Reveal"}
+            </button>
+            <button className="button secondary compact-button" type="button" onClick={() => void copyTemporaryPassword()}>
+              <Copy size={15} />
+              {passwordCopied ? "Copied" : "Copy"}
+            </button>
+            <button
+              className="icon-button subtle-icon-button"
+              type="button"
+              aria-label="Remove temporary password from screen"
+              onClick={() => setTemporaryPassword(null)}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      {!loading && !isAdmin ? (
+      {!isAdmin ? (
         <section className="panel">
           <div className="empty-state">Admin role is required to manage workspace users.</div>
         </section>
@@ -281,23 +332,25 @@ export default function UsersPage() {
                 <p>{loading ? "Loading workspace users." : `${users.length.toLocaleString()} accounts loaded.`}</p>
               </div>
             </div>
-            {loading ? (
-              <div className="empty-state">Loading users</div>
+            {!users.length ? (
+              <div className="empty-state" role="status">No workspace users yet. Invite the first user to begin assigning access.</div>
             ) : (
               <div className="table-scroll">
                 <table className="data-table admin-users-table">
                   <thead>
                     <tr>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                      <th>Access</th>
-                      <th>Password</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Created</th>
+                      <th scope="col">Access</th>
+                      <th scope="col">Password</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {users.map((user) => {
+                      const isCurrentAccount = user.username === currentUser?.username || user.email === currentUser?.username;
+                      return (
                       <tr key={user.username}>
                         <td>{userLabel(user)}</td>
                         <td>
@@ -305,7 +358,9 @@ export default function UsersPage() {
                             className="input compact-input"
                             value={user.role}
                             onChange={(event) => updateRole(user, event.target.value as AdminUser["role"])}
-                            disabled={saving}
+                            disabled={saving || isCurrentAccount}
+                            aria-label={`Role for ${userLabel(user)}`}
+                            title={isCurrentAccount ? "Use another admin account to change your own role." : undefined}
                           >
                             {roles.map((item) => (
                               <option key={item} value={item}>
@@ -320,8 +375,9 @@ export default function UsersPage() {
                           <button
                             className="button secondary compact-button"
                             type="button"
-                            onClick={() => setEnabled(user, !user.enabled)}
-                            disabled={saving}
+                            onClick={() => user.enabled ? setPendingAction({ type: "disable", user }) : void setEnabled(user, true)}
+                            disabled={saving || isCurrentAccount}
+                            title={isCurrentAccount ? "You cannot disable your own account." : undefined}
                           >
                             {user.enabled ? "Disable" : "Enable"}
                           </button>
@@ -330,19 +386,38 @@ export default function UsersPage() {
                           <button
                             className="button secondary compact-button"
                             type="button"
-                            onClick={() => resetPassword(user)}
+                            onClick={() => setPendingAction({ type: "reset", user })}
                             disabled={saving || !user.enabled}
                           >
                             Reset
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </section>
+          <ConfirmDialog
+            open={Boolean(pendingAction)}
+            title={pendingAction?.type === "disable" ? "Disable this user?" : "Send a password reset?"}
+            description={
+              pendingAction?.type === "disable"
+                ? `${pendingAction ? userLabel(pendingAction.user) : "This user"} will immediately lose workspace access until an admin enables the account again.`
+                : `The sign-in service will send ${pendingAction ? userLabel(pendingAction.user) : "this user"} a password reset email.`
+            }
+            confirmLabel={pendingAction?.type === "disable" ? "Disable user" : "Send reset email"}
+            destructive={pendingAction?.type === "disable"}
+            busy={saving}
+            onCancel={() => setPendingAction(null)}
+            onConfirm={() => {
+              if (!pendingAction) return;
+              if (pendingAction.type === "disable") void setEnabled(pendingAction.user, false);
+              else void resetPassword(pendingAction.user);
+            }}
+          />
         </>
       ) : null}
     </>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Activity, BrainCircuit, Database, LockKeyhole, Server, ShieldCheck, UploadCloud } from "lucide-react";
+import { Activity, BrainCircuit, Database, LockKeyhole, RefreshCw, Server, ShieldCheck, UploadCloud } from "lucide-react";
 
 import {
   API_BASE_URL,
@@ -13,7 +13,6 @@ import {
   ImportRequirementsResponse,
   MonitoringSummaryResponse,
   apiGet,
-  authHeaders
 } from "@/lib/api";
 
 type Loadable<T> = {
@@ -45,20 +44,11 @@ export default function StatusPage() {
   const [ai, setAi] = useState<Loadable<AiStatusResponse>>(empty());
   const [requirements, setRequirements] = useState<Loadable<ImportRequirementsResponse>>(empty());
   const [monitoring, setMonitoring] = useState<Loadable<MonitoringSummaryResponse>>(empty());
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   useEffect(() => {
     async function fetchJson<T>(path: string): Promise<T> {
-      if (IS_DEMO_MODE) {
-        return apiGet<T>(path);
-      }
-      const response = await fetch(`${API_BASE_URL}${path}`, {
-        cache: "no-store",
-        headers: authHeaders()
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return response.json() as Promise<T>;
+      return apiGet<T>(path);
     }
 
     async function loadOne<T>(path: string, setter: (value: Loadable<T>) => void) {
@@ -76,7 +66,7 @@ export default function StatusPage() {
     void loadOne<AiStatusResponse>("/api/ai/status", setAi);
     void loadOne<ImportRequirementsResponse>("/api/import/requirements", setRequirements);
     void loadOne<MonitoringSummaryResponse>("/api/monitoring/summary", setMonitoring);
-  }, []);
+  }, [refreshVersion]);
 
   const backendLabel = IS_DEMO_MODE ? "demo" : statusLabel(health, Boolean(health.data?.ok));
   const authLabel = IS_DEMO_MODE ? "demo" : statusLabel(auth, Boolean(auth.data?.user?.username));
@@ -97,6 +87,8 @@ export default function StatusPage() {
       : requirements.error
         ? "attention"
         : "online";
+  const checksLoading = health.loading || auth.loading || ai.loading || requirements.loading || monitoring.loading;
+  const frontendUrl = typeof window === "undefined" ? "" : window.location.origin;
 
   return (
     <>
@@ -118,6 +110,10 @@ export default function StatusPage() {
             <UploadCloud size={17} />
             Import CSV
           </Link>
+          <button className="button secondary" type="button" onClick={() => setRefreshVersion((current) => current + 1)} disabled={checksLoading}>
+            <RefreshCw size={17} />
+            Refresh checks
+          </button>
         </div>
       </header>
 
@@ -128,8 +124,8 @@ export default function StatusPage() {
           </span>
           <div>
             <p>Frontend</p>
-            <h2>Cloudflare Pages-ready</h2>
-            <small>{IS_DEMO_MODE ? "Demo mode with bundled sample-data fallback" : "Live API mode"}</small>
+            <h2>StockSense web app</h2>
+            <small>{IS_DEMO_MODE ? "Demo workspace with bundled sample data" : "Connected workspace mode"}</small>
             <strong className="system-ok">online</strong>
           </div>
         </div>
@@ -240,9 +236,11 @@ export default function StatusPage() {
             </span>
             <div>
               <p>Raw uploads</p>
-              <h2>{requirements.data?.retention?.raw_upload_days?.toLocaleString() || "365"} days</h2>
+              <h2>{requirements.data?.retention ? `${requirements.data.retention.raw_upload_days.toLocaleString()} days` : "Not reported"}</h2>
               <small>Private S3 lifecycle retention for uploaded CSV/XLSX files.</small>
-              <strong className="system-ok">configured</strong>
+              <strong className={statusClass(requirements.data?.retention ? "online" : requirements.loading ? "checking" : "attention")}>
+                {requirements.data?.retention ? "configured" : requirements.loading ? "checking" : "unavailable"}
+              </strong>
             </div>
           </div>
           <div className="system-status-card">
@@ -251,9 +249,11 @@ export default function StatusPage() {
             </span>
             <div>
               <p>Audit events</p>
-              <h2>{requirements.data?.retention?.audit_event_days?.toLocaleString() || "180"} days</h2>
+              <h2>{requirements.data?.retention ? `${requirements.data.retention.audit_event_days.toLocaleString()} days` : "Not reported"}</h2>
               <small>Operational audit table retention before immutable archive export.</small>
-              <strong className="system-ok">configured</strong>
+              <strong className={statusClass(requirements.data?.retention ? "online" : requirements.loading ? "checking" : "attention")}>
+                {requirements.data?.retention ? "configured" : requirements.loading ? "checking" : "unavailable"}
+              </strong>
             </div>
           </div>
           <div className="system-status-card">
@@ -262,9 +262,11 @@ export default function StatusPage() {
             </span>
             <div>
               <p>Import history</p>
-              <h2>{requirements.data?.retention?.import_status_days?.toLocaleString() || "90"} days</h2>
+              <h2>{requirements.data?.retention ? `${requirements.data.retention.import_status_days.toLocaleString()} days` : "Not reported"}</h2>
               <small>Import validation and status history retention.</small>
-              <strong className="system-ok">configured</strong>
+              <strong className={statusClass(requirements.data?.retention ? "online" : requirements.loading ? "checking" : "attention")}>
+                {requirements.data?.retention ? "configured" : requirements.loading ? "checking" : "unavailable"}
+              </strong>
             </div>
           </div>
           <div className="system-status-card">
@@ -273,10 +275,10 @@ export default function StatusPage() {
             </span>
             <div>
               <p>SIEM</p>
-              <h2>{requirements.data?.siem?.configured ? "Forwarder configured" : "Archive-ready"}</h2>
-              <small>{requirements.data?.siem?.mode?.replaceAll("_", " ") || "S3 archive or customer forwarder"}</small>
-              <strong className={statusClass(requirements.data?.siem?.configured ? "online" : "needs setup")}>
-                {requirements.data?.siem?.configured ? "online" : "needs setup"}
+              <h2>{requirements.data?.siem ? (requirements.data.siem.configured ? "Forwarder configured" : "Forwarder not configured") : "Not reported"}</h2>
+              <small>{requirements.data?.siem?.mode?.replaceAll("_", " ") || "Runtime setting unavailable"}</small>
+              <strong className={statusClass(requirements.data?.siem?.configured ? "online" : requirements.loading ? "checking" : "needs setup")}>
+                {requirements.data?.siem?.configured ? "online" : requirements.loading ? "checking" : "needs setup"}
               </strong>
             </div>
           </div>
@@ -319,6 +321,8 @@ export default function StatusPage() {
           </div>
         ) : monitoring.loading ? (
           <div className="empty-state">Checking monitoring signals</div>
+        ) : !monitoring.error ? (
+          <div className="empty-state">No monitoring events were reported in this window.</div>
         ) : null}
       </section>
 
@@ -335,7 +339,7 @@ export default function StatusPage() {
         <div className="runtime-list">
           <div>
             <span>Frontend URL</span>
-            <p>https://otokistocksense.pages.dev</p>
+            <p suppressHydrationWarning>{frontendUrl || "Current workspace URL"}</p>
           </div>
           <div>
             <span>API Base URL</span>
@@ -343,12 +347,14 @@ export default function StatusPage() {
           </div>
           <div>
             <span>Import Workflow</span>
-            <p>{requirements.data?.import_workflow?.replaceAll("_", " ") || "preview, map, approve import"}</p>
+            <p>{requirements.data?.import_workflow?.replaceAll("_", " ") || "Not reported"}</p>
           </div>
           <div>
             <span>Scheduled Imports</span>
             <p>
-              {requirements.data?.scheduled_imports?.enabled
+              {requirements.error
+                ? "Scheduled import status is unavailable."
+                : requirements.data?.scheduled_imports?.enabled
                 ? `${requirements.data.scheduled_imports.mode?.replaceAll("_", " ") || "scheduled S3 scan"}: ${
                   requirements.data.scheduled_imports.prefixes?.join(", ") || "configured prefixes"
                 }`
@@ -358,9 +364,11 @@ export default function StatusPage() {
           <div>
             <span>Authentication Mode</span>
             <p>
-              {requirements.data?.auth?.cognito_ready
-                ? "Secure hosted login is configured; workspace roles map to planner, approver, and admin access."
-                : "Password/JWT workspace auth is active."}
+              {requirements.error
+                ? "Sign-in configuration is unavailable."
+                : requirements.data?.auth?.cognito_ready
+                  ? "Named-user sign-in is configured; workspace roles control planner, approver, and admin access."
+                  : "Workspace password sign-in is active."}
             </p>
           </div>
           <div>
@@ -368,7 +376,7 @@ export default function StatusPage() {
             <p>
               {IS_DEMO_MODE
                 ? "Browser-local for the public demo; server persistence is enabled in live API mode."
-                : "Server-backed action review API with browser fallback if sync is interrupted."}
+                : "Server-backed workspace review records. Controls pause if sync is interrupted."}
             </p>
           </div>
           <div>

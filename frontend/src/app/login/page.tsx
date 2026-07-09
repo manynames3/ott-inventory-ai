@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
 
 import {
   completeCognitoLoginFromUrl,
   ENABLE_DEMO_LOGIN,
+  getAuthToken,
   IS_COGNITO_AUTH,
   IS_DEMO_MODE,
   login,
@@ -16,6 +17,10 @@ import {
 const DEMO_USERNAME = ENABLE_DEMO_LOGIN ? process.env.NEXT_PUBLIC_DEMO_LOGIN_USERNAME || "" : "";
 const DEMO_PASSWORD = ENABLE_DEMO_LOGIN ? process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || "" : "";
 
+function safeNextPath(value: string | null) {
+  return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
 export default function LoginPage() {
   const [username, setUsername] = useState(DEMO_USERNAME);
   const [password, setPassword] = useState(DEMO_PASSWORD);
@@ -23,36 +28,63 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [cognitoCallbackLoading, setCognitoCallbackLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
 
   const nextPath = useMemo(() => {
     if (typeof window === "undefined") return "/";
-    return new URLSearchParams(window.location.search).get("next") || "/";
+    return safeNextPath(new URLSearchParams(window.location.search).get("next"));
   }, []);
 
   useEffect(() => {
     if (!IS_COGNITO_AUTH) return;
     const params = new URLSearchParams(window.location.search);
+    if (!params.get("code") && getAuthToken() && !IS_DEMO_MODE) {
+      window.location.replace(nextPath);
+      return;
+    }
     if (!params.get("code")) return;
-    setCognitoCallbackLoading(true);
+    let active = true;
+    const loadingTimer = window.setTimeout(() => {
+      if (active) setCognitoCallbackLoading(true);
+    }, 0);
     completeCognitoLoginFromUrl()
       .then((next) => {
         window.location.href = next || "/";
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Sign-in could not be completed.");
+        if (active) setError(err instanceof Error ? err.message : "Sign-in could not be completed.");
       })
-      .finally(() => setCognitoCallbackLoading(false));
-  }, []);
+      .finally(() => {
+        window.clearTimeout(loadingTimer);
+        if (active) setCognitoCallbackLoading(false);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(loadingTimer);
+    };
+  }, [nextPath]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedUsername = username.trim();
+    const nextErrors: { username?: string; password?: string } = {};
+    if (!normalizedUsername) {
+      nextErrors.username = "Enter your work email.";
+    } else if (IS_COGNITO_AUTH && !/^\S+@\S+\.\S+$/.test(normalizedUsername)) {
+      nextErrors.username = "Enter a valid email address.";
+    }
+    if (!password) nextErrors.password = "Enter your password.";
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
     setLoading(true);
     setError(null);
     try {
       if (IS_COGNITO_AUTH) {
-        await loginWithCognitoPassword(username, password);
+        await loginWithCognitoPassword(normalizedUsername, password);
       } else {
-        await login(username, password);
+        await login(normalizedUsername, password);
       }
       window.location.href = nextPath;
     } catch (err) {
@@ -77,6 +109,7 @@ export default function LoginPage() {
     setUsername(DEMO_USERNAME);
     setPassword(DEMO_PASSWORD);
     setError(null);
+    setFieldErrors({});
   }
 
   return (
@@ -103,7 +136,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <form className="auth-card auth-form" onSubmit={submit}>
+        <form className="auth-card auth-form" onSubmit={submit} noValidate aria-busy={loading || companyLoading || cognitoCallbackLoading}>
           {IS_COGNITO_AUTH ? (
             <>
               <div className="auth-card-header">
@@ -123,19 +156,43 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="username"
                   value={username}
-                  onChange={(event) => setUsername(event.target.value)}
+                  onChange={(event) => {
+                    setUsername(event.target.value);
+                    setFieldErrors((current) => ({ ...current, username: undefined }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.username)}
+                  aria-describedby={fieldErrors.username ? "username-error" : undefined}
+                  required
                 />
+                {fieldErrors.username ? <span className="field-error" id="username-error">{fieldErrors.username}</span> : null}
                 <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  className="input"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
+                <div className="password-field">
+                  <input
+                    id="password"
+                    className="input"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setFieldErrors((current) => ({ ...current, password: undefined }));
+                    }}
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((current) => !current)}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+                {fieldErrors.password ? <span className="field-error" id="password-error">{fieldErrors.password}</span> : null}
               </div>
-              {error ? <div className="message error">{error}</div> : null}
+              {error ? <div className="message error" role="alert">{error}</div> : null}
               <button
                 className="button auth-primary-button"
                 type="submit"
@@ -189,19 +246,43 @@ export default function LoginPage() {
                 className="input"
                 autoComplete="username"
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  setFieldErrors((current) => ({ ...current, username: undefined }));
+                }}
+                aria-invalid={Boolean(fieldErrors.username)}
+                aria-describedby={fieldErrors.username ? "username-error" : undefined}
+                required
               />
+              {fieldErrors.username ? <span className="field-error" id="username-error">{fieldErrors.username}</span> : null}
               <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                className="input"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
+              <div className="password-field">
+                <input
+                  id="password"
+                  className="input"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setFieldErrors((current) => ({ ...current, password: undefined }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              {fieldErrors.password ? <span className="field-error" id="password-error">{fieldErrors.password}</span> : null}
             </div>
-            {error ? <div className="message error">{error}</div> : null}
+            {error ? <div className="message error" role="alert">{error}</div> : null}
             <button className="button auth-primary-button" type="submit" disabled={loading || IS_DEMO_MODE}>
               {loading ? <LockKeyhole size={17} /> : <LogIn size={17} />}
               Sign in

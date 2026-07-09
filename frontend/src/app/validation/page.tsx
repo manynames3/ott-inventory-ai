@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, UploadCloud } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
+import { PageLoading } from "@/components/feedback";
 import { MetricCard } from "@/components/metric-card";
 import { ForecastValidationResponse, apiGet, formatNumber } from "@/lib/api";
 
@@ -55,11 +56,7 @@ export default function ForecastValidationPage() {
   );
 
   if (state.loading) {
-    return (
-      <section className="panel">
-        <div className="empty-state">Loading forecast validation</div>
-      </section>
-    );
+    return <PageLoading label="Loading forecast validation" />;
   }
 
   const summary = state.data?.summary;
@@ -83,7 +80,7 @@ export default function ForecastValidationPage() {
         </div>
       </header>
 
-      {state.error ? <div className="message error">{state.error}</div> : null}
+      {state.error ? <div className="message error" role="alert">{state.error}</div> : null}
 
       <section className="metrics-grid">
         <MetricCard label="SKUs validated" value={formatNumber(summary?.sku_count || 0)} tone="value" />

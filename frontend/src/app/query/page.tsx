@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Search, Send } from "lucide-react";
+import { LoaderCircle, Send } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
+import { EmptyState } from "@/components/feedback";
 import { apiPost, IS_DEMO_MODE, QueryResponse } from "@/lib/api";
 
 const examples = [
@@ -13,6 +14,7 @@ const examples = [
   "Which customers usually buy SKU 08252K every month?",
   "What should we reorder this week?"
 ];
+const MAX_QUESTION_LENGTH = 500;
 
 function aiModeLabel(result: QueryResponse): string {
   if (result.ai_status === "llm_augmented") return "AI reasoning active";
@@ -42,10 +44,15 @@ export default function QueryPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedQuestion = question.trim();
+    if (!normalizedQuestion) {
+      setError("Enter a question about inventory, demand, customers, or replenishment.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const response = await apiPost<QueryResponse>("/api/query", { question });
+      const response = await apiPost<QueryResponse>("/api/query", { question: normalizedQuestion });
       setResult(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Query failed");
@@ -70,8 +77,19 @@ export default function QueryPage() {
             id="question"
             className="textarea"
             value={question}
-            onChange={(event) => setQuestion(event.target.value)}
+            onChange={(event) => {
+              setQuestion(event.target.value);
+              if (error) setError(null);
+            }}
+            rows={3}
+            maxLength={MAX_QUESTION_LENGTH}
+            aria-describedby="question-help"
+            required
           />
+          <div className="field-meta" id="question-help">
+            <span>Questions are answered from approved operational views and include source context.</span>
+            <strong>{question.length}/{MAX_QUESTION_LENGTH}</strong>
+          </div>
           <div className="toolbar">
             {examples.map((example) => (
               <button
@@ -85,15 +103,15 @@ export default function QueryPage() {
             ))}
           </div>
           <button className="button" type="submit" disabled={loading || !question.trim()}>
-            {loading ? <Search size={17} /> : <Send size={17} />}
-            Run query
+            {loading ? <LoaderCircle className="spin" size={17} /> : <Send size={17} />}
+            {loading ? "Running query..." : "Run query"}
           </button>
         </form>
       </section>
 
       {error ? (
         <section className="panel">
-          <div className="message error">{error}</div>
+          <div className="message error" role="alert">{error}</div>
         </section>
       ) : null}
 
@@ -159,6 +177,11 @@ export default function QueryPage() {
           ) : null}
           <DataTable columns={result.columns} rows={result.rows} emptyLabel="No matching rows" />
         </section>
+      ) : !error ? (
+        <EmptyState
+          title="No query results yet"
+          message="Choose an example or ask a question above to generate a cited operational answer."
+        />
       ) : null}
     </>
   );

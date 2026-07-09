@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, ShieldCheck, UploadCloud } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
+import { PageLoading } from "@/components/feedback";
 import { MetricCard } from "@/components/metric-card";
 import {
   ActionReviewsResponse,
@@ -129,6 +130,8 @@ export default function AuditPage() {
     window.URL.revokeObjectURL(url);
   }
 
+  if (state.loading && !state.audit && !state.reviews) return <PageLoading label="Loading audit trail" />;
+
   return (
     <>
       <header className="page-header">
@@ -174,7 +177,7 @@ export default function AuditPage() {
             No ERP writeback
           </span>
         </div>
-        {state.error ? <div className="message error">{state.error}</div> : null}
+        {state.error ? <div className="message error" role="alert">{state.error}</div> : null}
         {state.loading ? <div className="empty-state">Loading audit trail</div> : null}
       </section>
 
